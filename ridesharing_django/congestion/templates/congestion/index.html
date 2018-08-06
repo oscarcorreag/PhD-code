@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Congestion-aware activity-based ride-sharing</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.0/themes/smoothness/jquery-ui.css">
+    <style>
+        html, body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+        }
+        #map {
+			height: 100%;
+        }
+		label {
+			display: block;			
+		}		
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2_vswqiPrDj_MEZkQTA-QqhT3hFMg9QU&libraries=drawing"></script>
+	<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+	<script src="https://code.jquery.com/ui/1.12.0/jquery-ui.js"></script>
+	<script src="/static/congestion/jquery.layout-latest.js"></script>	
+    <script>
+    var map;
+    var drawingManager;
+    var bboxes = [];
+	var polylines = [];
+	var poi_markers = [];
+	var terminal_markers = [];	
+	
+	var zones = {
+					"quito": [-0.233333, -78.516667],
+					"melbourne": [-37.813611, 144.963056],
+					"manhattan": [40.728333, -73.994167]
+				};
+	
+    function initialize() {		
+		map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 10,
+            center: new google.maps.LatLng(-0.233333, -78.516667),
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        });
+        drawingManager = new google.maps.drawing.DrawingManager();
+        drawingManager.setOptions({
+            drawingMode: google.maps.drawing.OverlayType.RECTANGLE,
+            drawingControl: true,
+            drawingControlOptions: {
+                position: google.maps.ControlPosition.TOP_CENTER,
+                drawingModes: [ google.maps.drawing.OverlayType.RECTANGLE ]
+            },
+            rectangleOptions: {
+                strokeColor: '#6c6c6c',
+                strokeWeight: 3.5,
+                fillColor : '#926239',
+                fillOpacity : 0.1,
+                editable: true,
+                draggable: true
+            }
+        });
+        drawingManager.setMap(map);
+        google.maps.event.addListener(drawingManager, 'rectanglecomplete', onRectangleCompleted);    
+    }
+	
+	function changeMap(city) {
+		var coords = zones[city];		
+		map.setCenter(new google.maps.LatLng(coords[0], coords[1]));
+	}
+
+    function onRectangleCompleted(rectangle) {
+		bbox = rectangle;
+        var ne = bbox.getBounds().getNorthEast();
+        var sw = bbox.getBounds().getSouthWest();
+		setBboxCoord(ne.lat(), sw.lng(), sw.lat(), ne.lng());
+        bbox.addListener('bounds_changed', onBoundsChanged);
+		bboxes.push(bbox);
+    }
+
+    function onBoundsChanged(event) {
+		var ne = bbox.getBounds().getNorthEast();
+        var sw = bbox.getBounds().getSouthWest();        
+		setBboxCoord(ne.lat(), sw.lng(), sw.lat(), ne.lng());
+	}
+	
+	function setBboxCoord(top, left, bottom, right) {
+		document.getElementById('id_top').value = top;
+		document.getElementById('id_left').value = left;
+		document.getElementById('id_bottom').value = bottom;
+		document.getElementById('id_right').value = right;
+	}
+	
+	$(document).ready(function() {
+		
+		$('#show_pois').click(function() {
+			$.get('{% url 'congestion:index' %}', {
+					op: 'show_pois',
+					top: $('#id_top').val(),
+					left: $('#id_left').val(),
+					bottom: $('#id_bottom').val(),
+					right: $('#id_right').val()
+				}, function(data) {
+					showPoisTerminals(data.pois, [], false);
+				}, 'json');
+		});
+		
+		$('#slice_pois').click(function() {
+			$.get('{% url 'congestion:index' %}', {
+					op: 'slice_pois',
+					top: $('#id_top').val(),
+					left: $('#id_left').val(),
+					bottom: $('#id_bottom').val(),
+					right: $('#id_right').val()
+				}, function(data) {
+					showPoisTerminals(data.pois, [], false);
+				}, 'json');
+		});
+		
+		$('#create_queries').click(function() {
+			$.get('{% url 'congestion:index' %}', {
+					op: 'create_queries',
+					top: $('#id_top').val(),
+					left: $('#id_left').val(),
+					bottom: $('#id_bottom').val(),
+					right: $('#id_right').val(),
+					nusers: $('#num_users_q').val(),
+					seed: $('#seed').val()
+				}, function(data) {
+					showPoisTerminals(data.pois, data.terminals, true);
+				}, 'json');
+		});
+		
+		// Black is repeated as I do not have more colors  :(
+		var colors = {
+						"amenity:post_office": "blue", 
+						"shop:mall": "red", 
+						"amenity:restaurant": "green", 
+						"shop:supermarket": "yellow", 
+						"shop:convenience": "orange", 
+						"leisure:swimming_pool": "gray", 
+						"amenity:bar": "black", 
+						"amenity:fast_food": "purple", 
+						"amenity:cafe": "black", 
+						"leisure:fitness_centre": "black", 
+						"amenity:pub": "brown"
+					};
+
+		var icons = new Array();
+		icons["red"] = {
+			url: "http://labs.google.com/ridefinder/images/mm_20_red.png",
+			// This marker is 20 pixels wide by 32 pixels tall.
+			size: new google.maps.Size(12, 20),
+			// The origin for this image is 0,0.
+			origin: new google.maps.Point(0,0),
+			// The anchor for this image is the base of the flagpole at 0,32.
+			anchor: new google.maps.Point(6, 20)
+		};
+	
+		function getMarkerImage(iconColor) {
+			if ((typeof(iconColor)=="undefined") || (iconColor==null)) { 
+				iconColor = "red"; 
+			}
+			if (!icons[iconColor]) {
+				icons[iconColor] = {
+					url: "http://labs.google.com/ridefinder/images/mm_20_"+ iconColor +".png",
+					// This marker is 20 pixels wide by 32 pixels tall.
+					size: new google.maps.Size(12, 20),
+					// The origin for this image is 0,0.
+					origin: new google.maps.Point(0,0),
+					// The anchor for this image is the base of the flagpole at 0,32.
+					anchor: new google.maps.Point(6, 20)
+				};
+			}
+			return icons[iconColor];
+		}
+
+		function showPoisTerminals(pois, terminals, resetBbox) {
+			resetMap(resetBbox);
+			var iconImage = {
+				url: 'http://labs.google.com/ridefinder/images/mm_20_red.png',
+				// This marker is 20 pixels wide by 32 pixels tall.
+				size: new google.maps.Size(12, 20),
+				// The origin for this image is 0,0.
+				origin: new google.maps.Point(0,0),
+				// The anchor for this image is the base of the flagpole at 0,32.
+				anchor: new google.maps.Point(6, 20)
+			};
+			var iconShadow = {
+				url: 'http://labs.google.com/ridefinder/images/mm_20_shadow.png',
+				// The shadow image is larger in the horizontal dimension
+				// while the position and offset are the same as for the main image.
+				size: new google.maps.Size(22, 20),
+				origin: new google.maps.Point(0,0),
+				anchor: new google.maps.Point(6, 20)
+			};
+			// Shapes define the clickable region of the icon.
+			// The type defines an HTML &lt;area&gt; element 'poly' which
+			// traces out a polygon as a series of X,Y points. The final
+			// coordinate closes the poly by connecting to the first
+			// coordinate.
+			var iconShape = {
+				coord: [4,0,0,4,0,7,3,11,4,19,7,19,8,11,11,7,11,4,7,0],
+				type: 'poly'
+			};
+			for (i = 0; i < pois.length; i++) {
+				var latLng = new google.maps.LatLng(pois[i][0], pois[i][1]);
+				var subtype = pois[i][3];
+				var poi_marker = new google.maps.Marker({
+					position: latLng,
+					shadow: iconShadow,
+					icon: getMarkerImage(colors[subtype]),
+					shape: iconShape,
+					map: map
+				});
+				var infowindow = new google.maps.InfoWindow();
+				(function(marker, content) {
+					google.maps.event.addListener(marker, 'click', function(event) {
+						infowindow.setContent(content.toString());
+						infowindow.open(map, marker);
+					});
+				})(poi_marker, pois[i][3]);
+				poi_markers.push(poi_marker);
+			}
+			for (i = 0; i < terminals.length; i++) {
+				var latLng = new google.maps.LatLng(terminals[i][0], terminals[i][1]);
+				var subtype = terminals[i][3];
+				var terminal_marker = new google.maps.Marker({
+					position: latLng,					
+					icon: {
+						path: google.maps.SymbolPath.CIRCLE,
+						scale: 3,
+						strokeColor: colors[subtype]
+					},
+					map: map
+				});				
+				var infowindow = new google.maps.InfoWindow();
+				(function(marker, content) {
+					google.maps.event.addListener(marker, 'click', function(event) {
+						infowindow.setContent(content.toString());
+						infowindow.open(map, marker);
+					});
+				})(terminal_marker, terminals[i][3]);
+				terminal_markers.push(terminal_marker);
+			}
+		}
+		
+		function resetMap(resetBboxes) {
+			for (i = 0; i < poi_markers.length; i++) {
+				poi_markers[i].setMap(null);
+			}
+			for (i = 0; i < terminal_markers.length; i++) {
+				terminal_markers[i].setMap(null);
+			}			
+			for (i = 0; i < polylines.length; i++) {
+				polylines[i].setMap(null);
+			}
+			if (resetBboxes) {
+				for (i = 0; i < bboxes.length; i++) {
+					bboxes[i].setMap(null);
+				}				
+			}			
+		}
+		
+		$('#reset_map').click(resetMap);
+		
+		function submitAlg() {
+			$.get('{% url 'congestion:index' %}', {
+					alg: $('#id_alg').val()
+				}, function(data) {					
+					route = data.route;						
+					showRoute(route);
+					showStats(data.cost, data.elapsed_time, data.warl, data.mwrl, data.mrl1, data.mrl2, data.ent, data.ni)
+				}, 'json');
+		}
+		
+		$('#show_plans').click(submitAlg);
+				
+		function showRoute(route) {
+			for (i = 0; i < polylines.length; i++) {
+				polylines[i].setMap(null);
+			}
+			polylines = [];
+			for (i = 0; i < route.length; i++) {
+				var from_ = route[i][0];				
+				var to_ = route[i][1];
+				var subtype = route[i][2];
+				var fromLatLng = new google.maps.LatLng(from_[0], from_[1]);
+				var toLatLng = new google.maps.LatLng(to_[0], to_[1]);
+				var polyline = new google.maps.Polyline({
+					path: [fromLatLng, toLatLng],
+					strokeColor: colors[subtype],
+					strokeOpacity: 1.0,
+					strokeWeight: 2
+				});
+				polyline.setMap(map);
+				polylines.push(polyline);
+			}			
+		}
+		
+		function showStats(tt, et, warl, mwrl, mrl1, mrl2, ent, nit) {
+			document.getElementById('tt').value = tt;
+			document.getElementById('et').value = et;
+			document.getElementById('warl').value = warl;
+			document.getElementById('mwrl').value = mwrl;
+			document.getElementById('mrl1').value = mrl1;
+			document.getElementById('mrl2').value = mrl2;
+			document.getElementById('ent').value = ent;
+			document.getElementById('nit').value = nit;			
+		}
+		
+		$('body').layout({ applyDefaultStyles: true });
+		$('#accordion').accordion();		
+		$('#id_alg').change(function() {
+			$(this).find('option:selected').each(function() {
+				if ($(this).attr('value') == 'rahman') {
+					$('.options').not('.rahman').hide();
+					$('.rahman').show();
+				} else if ($(this).attr('value') == 'correa') {
+					$('.options').not('.correa').hide();
+					$('.correa').show();
+				} else {
+					$('.options').hide();
+				}
+			});
+		}).change();
+		$('#level_attraction').spinner();
+		$('#seed').spinner();
+	});	
+    </script>
+</head>
+<body onload="initialize();">
+<div class="ui-layout-west">
+	<div id="accordion">
+		<h3>Network Sample</h3>
+		<div id="sample">
+			<label for="zone">Zone:</label>
+			<select id="zone" onchange="changeMap(this.value)">
+				<option value="quito">Quito</option>
+				<option value="melbourne">Melbourne</option>
+				<option value="manhattan">Manhattan</option>
+			</select>
+			<label for="id_top">Top:</label>
+			<input type="text" id="id_top">
+			<label for="id_left">Left:</label>
+			<input type="text" id="id_left">
+			<label for="id_bottom">Bottom:</label>
+			<input type="text" id="id_bottom">
+			<label for="id_right">Right:</label>
+			<input type="text" id="id_right">
+			<br>
+			<button id="show_pois" class="ui-button ui-corner-all">Create network sample</button>
+		</div>
+		<h3>POIs Slicing</h3>
+		<div id="pois">
+			<button id="slice_pois" class="ui-button ui-corner-all">Slice POIs</button>
+		</div>
+		<h3>Queries</h3>
+		<div id="pois">
+			<label for="num_users_q"> Num. users/query:</label><input type="text" id="num_users_q" value="5" />
+			<label for="seed"> Seed:</label><input type="text" id="seed" value="0" />
+			<button id="create_queries" class="ui-button ui-corner-all">Create queries</button>
+		</div>
+		<h3>Algorithm</h3>
+		<div id="algorithm">			
+			<select id="id_alg">
+				<option value="vst-nca">VST-NCA</option>
+				<option value="vst-ca-mixed">VST-CA Mixed</option>
+				<option value="vst-ca-pure">VST-CA Pure</option>
+			</select>
+			<button id="show_plans" class="ui-button ui-corner-all">Show plans</button>
+		</div>
+		<h3>Results</h3>
+		<div id="results">		
+			<label for="tt">Total travel time: </label><input type="text" id="tt" readonly="true" />
+			<label for="et">Elapsed time: </label><input type="text" id="et" readonly="true" />
+			<label for="warl">WARL: </label><input type="text" id="warl" readonly="true" />
+			<label for="mwrl">MWRL: </label><input type="text" id="mwrl" readonly="true" />
+			<label for="mrl1">MRL 1: </label><input type="text" id="mrl1" readonly="true" />
+			<label for="mrl2">MRL 2: </label><input type="text" id="mrl2" readonly="true" />
+			<label for="ent">Entropy: </label><input type="text" id="ent" readonly="true" />
+			<label for="nit">Num. it: </label><input type="text" id="nit" readonly="true" />			
+		</div>		
+	</div>
+	<br />
+	<button id="reset_map" class="ui-widget ui-button ui-corner-all">Reset map</button>
+</div>
+<div id="map" class="ui-layout-center"></div>
+</div>
+</body>
+</html>

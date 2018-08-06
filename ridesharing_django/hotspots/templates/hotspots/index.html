@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Ridesharing with hotspots</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.0/themes/smoothness/jquery-ui.css">
+    <style>
+        html, body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+        }
+        #map {
+			height: 100%;
+        }
+		label {
+			display: block;			
+		}		
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2_vswqiPrDj_MEZkQTA-QqhT3hFMg9QU&libraries=drawing" async defer></script>
+	<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+	<script src="https://code.jquery.com/ui/1.12.0/jquery-ui.js"></script>
+	<script src="/static/hotspots/jquery.layout-latest.js"></script>	
+    <script>
+    var map;
+//    var drawingManager;
+//    var bbox;
+	var polylines = [];
+	var hotspot_markers = [];
+	var poi_markers = [];
+	var terminal_markers = [];	
+	
+    function initialize() {
+        map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 10,
+            center: new google.maps.LatLng(-37.813611, 144.963056),
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        });
+//        drawingManager = new google.maps.drawing.DrawingManager();
+//        drawingManager.setOptions({
+//            drawingMode: google.maps.drawing.OverlayType.RECTANGLE,
+//            drawingControl: true,
+//            drawingControlOptions: {
+//                position: google.maps.ControlPosition.TOP_CENTER,
+//                drawingModes: [ google.maps.drawing.OverlayType.RECTANGLE ]
+//            },
+//            rectangleOptions: {
+//                strokeColor: '#6c6c6c',
+//                strokeWeight: 3.5,
+//                fillColor : '#926239',
+//                fillOpacity : 0.6,
+//                editable: true,
+//                draggable: true
+//            }
+//        });
+//        drawingManager.setMap(map);
+//        google.maps.event.addListener(drawingManager, 'rectanglecomplete', onRectangleCompleted);    
+    }
+
+//    function onRectangleCompleted(rectangle) {
+//		bbox = rectangle;
+//        var ne = bbox.getBounds().getNorthEast();
+//        var sw = bbox.getBounds().getSouthWest();
+//		setBboxCoord(ne.lat(), sw.lng(), sw.lat(), ne.lng());
+//        bbox.addListener('bounds_changed', onBoundsChanged);
+//    }
+
+//    function onBoundsChanged(event) {
+//		var ne = bbox.getBounds().getNorthEast();
+//        var sw = bbox.getBounds().getSouthWest();        
+//		setBboxCoord(ne.lat(), sw.lng(), sw.lat(), ne.lng());
+//	}
+	
+//	function setBboxCoord(top, left, bottom, right) {
+//		document.getElementById('id_top').value = top;
+//		document.getElementById('id_left').value = left;
+//		document.getElementById('id_bottom').value = bottom;
+//		document.getElementById('id_right').value = right;
+//	}
+	
+	$(document).ready(function() {
+		
+		$('#file').change(function() {
+			$.get('{% url 'hotspots:index' %}', {
+				file_to_retrieve_dhs: $(this).val()
+			}, function(data) {
+				html_dh_sel = '<option value="">(Choose departure hour)</option>';
+				for (i = 0; i < data.dh.length; i++) {
+					html_dh_sel = html_dh_sel + '<option value="' + data.dh[i] + '">' + data.dh[i] + '</option>'
+				}
+				$('#dep_hour').html(html_dh_sel);
+			}, 'json');
+		});
+	
+		$('#dep_hour').change(function() {
+			$.get('{% url 'hotspots:index' %}', {
+				file_to_retrieve_acts: $('#file').val(),
+				dh_to_retrieve_acts: $(this).val()
+			}, function(data) {
+				html_acts_sel = '<option value="">(Choose activity)</option>';
+				for (i = 0; i < data.acts.length; i++) {
+					html_acts_sel = html_acts_sel + '<option value="' + data.acts[i][0] + '">' + data.acts[i][1] + '</option>'
+				}
+				$('#act_dest').html(html_acts_sel);
+			}, 'json');
+		});
+		
+		$('#show_term_hots_pois').click(function() {
+			$.get('{% url 'hotspots:index' %}', {
+					file: $('#file').val(),
+					dh: $('#dep_hour').val(),
+					act: $('#act_dest').val()
+				}, function(data) {
+					showHotspotsPoisTerminals(data.hotspots, data.pois, data.terminals);
+				}, 'json');
+		});
+		
+		function showHotspotsPoisTerminals(hotspots, pois, terminals) {
+			resetMap();
+			for (i = 0; i < hotspots.length; i++) {
+				var latLng = new google.maps.LatLng(hotspots[i][0], hotspots[i][1]);
+				var hotspot_marker = new google.maps.Marker({
+					position: latLng,
+					icon: {
+						path: google.maps.SymbolPath.CIRCLE,
+						scale: 2,
+						strokeColor: 'green'
+					},
+					map: map
+				});
+				var infowindow = new google.maps.InfoWindow();
+				(function(marker, content) {
+					google.maps.event.addListener(marker, 'click', function(event) {
+						infowindow.setContent(content.toString());
+						infowindow.open(map, marker);
+					});
+				})(hotspot_marker, hotspots[i][2]);
+				hotspot_markers.push(hotspot_marker);
+			}
+			for (i = 0; i < pois.length; i++) {
+				var latLng = new google.maps.LatLng(pois[i][0], pois[i][1]);
+				var poi_marker = new google.maps.Marker({
+					position: latLng,
+					icon: 'https://chart.googleapis.com/chart?chst=d_map_pin_icon&chld=flag|ADDE63',
+					map: map
+				});
+				var infowindow = new google.maps.InfoWindow();
+				(function(marker, content) {
+					google.maps.event.addListener(marker, 'click', function(event) {
+						infowindow.setContent(content.toString());
+						infowindow.open(map, marker);
+					});
+				})(poi_marker, pois[i][2]);
+				poi_markers.push(poi_marker);
+			}
+			for (i = 0; i < terminals.length; i++) {
+				var latLng = new google.maps.LatLng(terminals[i][0], terminals[i][1]);
+				var terminal_marker = new google.maps.Marker({
+					position: latLng,					
+					icon: 'https://chart.googleapis.com/chart?chst=d_map_xpin_icon&chld=pin_star|car-dealer|00FFFF|FF0000',
+					map: map
+				});				
+				var infowindow = new google.maps.InfoWindow();
+				(function(marker, content) {
+					google.maps.event.addListener(marker, 'click', function(event) {
+						infowindow.setContent(content.toString());
+						infowindow.open(map, marker);
+					});
+				})(terminal_marker, terminals[i][2]);
+				terminal_markers.push(terminal_marker);
+			}
+//			bbox.setMap(null);
+		}
+		
+		function resetMap() {
+			for (i = 0; i < hotspot_markers.length; i++) {
+				hotspot_markers[i].setMap(null);
+			}
+			for (i = 0; i < poi_markers.length; i++) {
+				poi_markers[i].setMap(null);
+			}
+			for (i = 0; i < terminal_markers.length; i++) {
+				terminal_markers[i].setMap(null);
+			}			
+			for (i = 0; i < polylines.length; i++) {
+				polylines[i].setMap(null);
+			}
+		}
+		
+		$('#reset_map').click(resetMap);
+		
+		function submitAlg() {
+			$.get('{% url 'hotspots:index' %}', {
+					alg: $('#id_alg').val(),
+					cap_r: $('#num_seats_r').val(),
+					cap_c: $('#num_seats_c').val(),
+					mdr: $('#max_detour_ratio').val(),
+					mwd: $('#max_walking_distance').val()					
+				}, function(data) {					
+					route = data.route;						
+					showRoute(route);
+					showStats(data.distance, data.elapsed_time, data.gr, data.avg_dr, data.num_cars, data.avg_or)
+				}, 'json');
+		}
+		
+		$('#show_route').click(submitAlg);
+				
+		function showRoute(route) {
+			for (i = 0; i < polylines.length; i++) {
+				polylines[i].setMap(null);
+			}
+			polylines = [];
+			for (i = 0; i < route.length; i++) {
+				from_ = route[i][0];				
+				to_ = route[i][1];
+				var fromLatLng = new google.maps.LatLng(from_[0], from_[1]);
+				var toLatLng = new google.maps.LatLng(to_[0], to_[1]);
+				var polyline = new google.maps.Polyline({
+					path: [fromLatLng, toLatLng],
+					strokeColor: '#FF0000',
+					strokeOpacity: 1.0,
+					strokeWeight: 2
+				});
+				polyline.setMap(map);
+				polylines.push(polyline);
+			}			
+		}
+		
+		function showStats(distance, elapsedTime, gr, avg_dr, num_cars, avg_or) {
+			document.getElementById('id_distance').value = distance;
+			document.getElementById('id_time').value = elapsedTime;
+			document.getElementById('gain_ratio').value = gr;
+			document.getElementById('avg_dr').value = avg_dr;
+			document.getElementById('num_cars').value = num_cars;
+			document.getElementById('avg_or').value = avg_or;
+		}
+		
+		$('body').layout({ applyDefaultStyles: true });
+		$('#accordion').accordion();
+		$('#id_alg').change(function() {
+			$(this).find('option:selected').each(function() {
+				if ($(this).attr('value') == 'rahman') {
+					$('.options').not('.rahman').hide();
+					$('.rahman').show();
+				} else if ($(this).attr('value') == 'correa') {
+					$('.options').not('.correa').hide();
+					$('.correa').show();
+				} else {
+					$('.options').hide();
+				}
+			});
+		}).change();
+		$('#level_attraction').spinner();
+		$('#seed').spinner();
+	});	
+    </script>
+</head>
+<body onload='initialize()'>
+<div class="ui-layout-west">
+	<div id="accordion">
+		<h3>Options</h3>
+		<div id="options">
+			<label for="file">File:</label>
+			<select id="file">
+				<option value="">(Choose file)</option>
+				<option value="Vista7161">Yarra Ranges</option>
+				<option value="maribyrnong">Maribyrnong</option>
+			</select>
+			<label for="dep_hour">Departure hour:</label>
+			<select id="dep_hour">
+				<option value="">(Choose departure hour)</option>
+			</select>
+			<label for="act_dest">Activity at destination:</label>
+			<select id="act_dest">
+				<option value="">(Choose activity)</option>
+			</select>
+			<button id="show_term_hots_pois" class="ui-button ui-corner-all">Show terminals, hotspots, POIs</button>
+		</div>
+		<h3>Algorithm</h3>
+		<div id="algorithm">			
+			<select id="id_alg">
+				<option value="rahman">VST-RS</option>
+				<option value="correa">Gr-based</option>
+			</select>
+			<div class="options rahman">
+				<label for="num_seats_r"> Num. seats:</label><input type="text" id="num_seats_r" value="5" />
+			</div>
+			<div class="options correa">
+				<label for="num_seats_c"> Num. seats:</label><input type="text" id="num_seats_c" value="5" />
+				<label for="max_detour_ratio">Max. detour ratio:</label><input type="text" id="max_detour_ratio" />
+				<label for="max_walking_distance">Max. walking distance:</label><input type="text" id="max_walking_distance" />				
+			</div>			
+			<button id="show_route" class="ui-button ui-corner-all">Show route</button>
+		</div>
+		<h3>Results</h3>
+		<div id="results">		
+			<label for="id_distance">Total Distance: </label><input type="text" id="id_distance" readonly="true" />
+			<label for="id_time">Elapsed Time: </label><input type="text" id="id_time" readonly="true" />
+			<label for="id_time">Gain Ratio: </label><input type="text" id="gain_ratio" readonly="true" />
+			<label for="id_time">Avg. Detour Ratio: </label><input type="text" id="avg_dr" readonly="true" />
+			<label for="id_time">Num. Cars: </label><input type="text" id="num_cars" readonly="true" />
+			<label for="id_time">Avg. Occupancy Rate: </label><input type="text" id="avg_or" readonly="true" />
+		</div>		
+	</div>
+	<br />
+	<button id="reset_map" class="ui-widget ui-button ui-corner-all">Reset map</button>
+</div>
+<div id="map" class="ui-layout-center"></div>
+</div>
+</body>
+</html>
