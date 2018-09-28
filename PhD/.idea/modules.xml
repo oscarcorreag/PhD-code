@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/../Baltz's algorithm/.idea/Baltz's algorithm.iml" filepath="$PROJECT_DIR$/../Baltz's algorithm/.idea/Baltz's algorithm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Charikar's algorithm/.idea/Charikar's algorithm.iml" filepath="$PROJECT_DIR$/../Charikar's algorithm/.idea/Charikar's algorithm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Cluster-based ST/.idea/Cluster-based ST.iml" filepath="$PROJECT_DIR$/../Cluster-based ST/.idea/Cluster-based ST.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Cluster-based ST V2/.idea/Cluster-based ST V2.iml" filepath="$PROJECT_DIR$/../Cluster-based ST V2/.idea/Cluster-based ST V2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Congestion-aware/.idea/Congestion-aware.iml" filepath="$PROJECT_DIR$/../Congestion-aware/.idea/Congestion-aware.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Convex hull/.idea/Convex hull.iml" filepath="$PROJECT_DIR$/../Convex hull/.idea/Convex hull.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Dreyfus/.idea/Dreyfus.iml" filepath="$PROJECT_DIR$/../Dreyfus/.idea/Dreyfus.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Dreyfus IMR/.idea/Dreyfus IMR.iml" filepath="$PROJECT_DIR$/../Dreyfus IMR/.idea/Dreyfus IMR.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Dreyfus with stops/.idea/Dreyfus with stops.iml" filepath="$PROJECT_DIR$/../Dreyfus with stops/.idea/Dreyfus with stops.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Exact C-VSF/.idea/Exact C-VSF.iml" filepath="$PROJECT_DIR$/../Exact C-VSF/.idea/Exact C-VSF.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Experiments/.idea/Experiments.iml" filepath="$PROJECT_DIR$/../Experiments/.idea/Experiments.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Gravitation/.idea/Gravitation.iml" filepath="$PROJECT_DIR$/../Gravitation/.idea/Gravitation.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Hotspot-based/.idea/Hotspot-based.iml" filepath="$PROJECT_DIR$/../Hotspot-based/.idea/Hotspot-based.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Klein-Ravi algorithm/.idea/Klein-Ravi algorithm.iml" filepath="$PROJECT_DIR$/../Klein-Ravi algorithm/.idea/Klein-Ravi algorithm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Lazy/.idea/Lazy.iml" filepath="$PROJECT_DIR$/../Lazy/.idea/Lazy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Lazy V2/.idea/Lazy V2.iml" filepath="$PROJECT_DIR$/../Lazy V2/.idea/Lazy V2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Pickup-Delivery/.idea/Pickup-Delivery.iml" filepath="$PROJECT_DIR$/../Pickup-Delivery/.idea/Pickup-Delivery.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Prim's algorithm/.idea/Prim's algorithm.iml" filepath="$PROJECT_DIR$/../Prim's algorithm/.idea/Prim's algorithm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Rayward-Smith algorithm/.idea/Rayward-Smith algorithm.iml" filepath="$PROJECT_DIR$/../Rayward-Smith algorithm/.idea/Rayward-Smith algorithm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Shortest path LP/.idea/Shortest path LP.iml" filepath="$PROJECT_DIR$/../Shortest path LP/.idea/Shortest path LP.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Spiders/.idea/Spiders.iml" filepath="$PROJECT_DIR$/../Spiders/.idea/Spiders.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Steiner Forest LP/.idea/Steiner Forest LP.iml" filepath="$PROJECT_DIR$/../Steiner Forest LP/.idea/Steiner Forest LP.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Steiner Forest LP Directed/.idea/Steiner Forest LP Directed.iml" filepath="$PROJECT_DIR$/../Steiner Forest LP Directed/.idea/Steiner Forest LP Directed.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Steiner tree LP/.idea/Steiner tree LP.iml" filepath="$PROJECT_DIR$/../Steiner tree LP/.idea/Steiner tree LP.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Traffic/.idea/Traffic.iml" filepath="$PROJECT_DIR$/../Traffic/.idea/Traffic.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../VST-RS/.idea/VST-RS.iml" filepath="$PROJECT_DIR$/../VST-RS/.idea/VST-RS.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Voronoi-based/.idea/Voronoi-based.iml" filepath="$PROJECT_DIR$/../Voronoi-based/.idea/Voronoi-based.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../common/.idea/common.iml" filepath="$PROJECT_DIR$/../common/.idea/common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ridesharing_django/.idea/ridesharing_django.iml" filepath="$PROJECT_DIR$/../ridesharing_django/.idea/ridesharing_django.iml" />
+    </modules>
+  </component>
+</project>
