@@ -7,9 +7,9 @@ class SteinerTreeLP:
         c = []
 
         # arcs = graph.get_edges()
-        # arcs.update({(j, i): d for (i, j), d in arcs.items()})
+        # arcs.update({(j, i): d for (i, j), d in arcs.iteritems()})
         #
-        # for (i, j), c_ij in arcs.items():
+        # for (i, j), c_ij in arcs.iteritems():
         #     vars.append((i, j))
         #     c.append(c_ij)
         #     for k in terminals:
@@ -37,4 +37,4 @@ class SteinerTreeLP:
         #     else:
         #         adj_nodes = graph[v][1]
         #     constraint = {}
-        #     for w, dist in adj_nodes.items():
+        #     for w, dist in adj_nodes.iteritems():

@@ -15,11 +15,11 @@ from vst_rs import VST_RS
 def get_suitability_graph_from_session(request):
     graph = request.session['graph']
     suitability_graph = SuitabilityDigraph()
-    for node_id, (node_weight, adj_dict, data) in graph.items():
-        new_adj_dict = {int(neighbour): edge_cost for neighbour, edge_cost in adj_dict.items()}
+    for node_id, (node_weight, adj_dict, data) in graph.iteritems():
+        new_adj_dict = {int(neighbour): edge_cost for neighbour, edge_cost in adj_dict.iteritems()}
         suitability_graph[int(node_id)] = (node_weight, new_adj_dict, data)
     dist = {}
-    for k, v in request.session['dist'].items():
+    for k, v in request.session['dist'].iteritems():
         k_ = k.split(",")
         dist[(long(k_[0]), long(k_[1]))] = v
     suitability_graph.dist = dist
@@ -98,7 +98,7 @@ def index(request):
         graph.compute_dist_paths(origins=temp, destinations=temp, compute_paths=False)
         #
         request.session['graph'] = graph
-        request.session['dist'] = {str(k[0]) + "," + str(k[1]): v for k, v in graph.dist.items()}
+        request.session['dist'] = {str(k[0]) + "," + str(k[1]): v for k, v in graph.dist.iteritems()}
         request.session['pairs_dist_paths'] = [str(v) + "," + str(w) for v, w in graph.pairs_dist_paths]
         request.session['hotspots'] = hotspots
         request.session['pois'] = pois

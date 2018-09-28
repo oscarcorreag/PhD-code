@@ -46,7 +46,7 @@ if __name__ == '__main__':
     ngh.draw_graph(nodes_1=pois,
                    nodes_2=terminals,
                    node_weight_generator=generator,
-                   subgraphs_1=[r for _, (r, _, _, _, _, _) in regions.items()],
+                   subgraphs_1=[r for _, (r, _, _, _, _, _) in regions.iteritems()],
                    subgraphs_2=[forest],
                    title_1="Exact C-VSF, seed = " + str(seed),
                    title_2="Cost: " + str(cost) + ", elapsed time: " + str(elapsed_time),

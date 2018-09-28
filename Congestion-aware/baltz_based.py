@@ -13,10 +13,10 @@ class BaltzBased:
         self.congestion = {}
 
         l_G = float(0)
-        for e, le in self.__edges.items():
+        for e, le in self.__edges.iteritems():
             self.congestion[e] = 0
             l_G += le
-        self.__weights = {e: le / l_G for e, le in self.__edges.items()}
+        self.__weights = {e: le / l_G for e, le in self.__edges.iteritems()}
 
     def steiner_forest(self, requests, k=4):
         lambda_ = 1
@@ -39,10 +39,10 @@ class BaltzBased:
                 A = len(E_Ti)
                 self.__graph.update_edge_weights(
                     {e: self.__weights[e] * A ** (self.congestion[e] - cmax) for e in self.__edges})
-                self.__graph.update_edge_weights({e: le / A for e, le in E_Ti.items()})
+                self.__graph.update_edge_weights({e: le / A for e, le in E_Ti.iteritems()})
                 mz = VST_RS(self.__graph)
                 Ti_, l, _, _, _, _, _ = mz.steiner_forest(terminals, pois, k, sys.maxint)
-                self.__graph.update_edge_weights({e: le * A for e, le in E_Ti.items()})
+                self.__graph.update_edge_weights({e: le * A for e, le in E_Ti.iteritems()})
                 if MSTs[i][1] > l:
                     for e in MSTs[i][0].get_edges():
                         self.congestion[e] -= 1

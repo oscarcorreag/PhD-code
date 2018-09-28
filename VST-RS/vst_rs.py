@@ -67,7 +67,7 @@ class VST_RS:
                 adj_nodes = self.graph[u][1]
             else:
                 adj_nodes = self.graph[u]
-            for v, length in adj_nodes.items():
+            for v, length in adj_nodes.iteritems():
                 if v not in visited:
                     cost[v] = sys.maxint
                 temp = cost[u] + length
@@ -159,11 +159,11 @@ class VST_RS:
     def divide_users_into_groups(self, merge_users=True, initial_seed=0):
         groups = []
         remaining_users = []
-        for p, group in self.p_cells.items():
+        for p, group in self.p_cells.iteritems():
             while len(group) > self.S:
                 dists = {u: self.graph.dist[tuple(sorted(([u, p])))] for u in group}
                 # If group size > S, create a new group with the S farthest users from the medoid.
-                new_group = [u for u, _ in sorted(dists.items(), key=operator.itemgetter(1), reverse=True)[:self.S]]
+                new_group = [u for u, _ in sorted(dists.iteritems(), key=operator.itemgetter(1), reverse=True)[:self.S]]
                 groups.append(new_group)
                 group = list(set(group).difference(new_group))
             if len(group) > 0:
@@ -173,7 +173,7 @@ class VST_RS:
                     groups.append(group)
         if merge_users:
             if len(remaining_users) > self.S:
-                k = math.ceil(float(len(remaining_users)) / self.S)
+                k = int(math.ceil(float(len(remaining_users)) / self.S))
                 merged = self.merge_remaining_users(k, remaining_users, initial_seed=initial_seed)
                 groups.extend(merged)
             else:
@@ -183,11 +183,11 @@ class VST_RS:
     def merge_remaining_users(self, k, users, initial_seed=0):
         groups = []
         merged = self.get_merged_groups(k, users, initial_seed=initial_seed)
-        for m, group in merged.items():
+        for m, group in merged.iteritems():
             while len(group) > self.S:
                 dists = {u: self.graph.dist[tuple(sorted(([u, m])))] for u in group}
                 # If group size > S, create a new group with the S closest users from the medoid.
-                new_group = [u for u, _ in sorted(dists.items(), key=operator.itemgetter(1))[:self.S]]
+                new_group = [u for u, _ in sorted(dists.iteritems(), key=operator.itemgetter(1))[:self.S]]
                 groups.append(new_group)
                 group = list(set(group).difference(new_group))
             if len(group) > 0:
@@ -207,7 +207,7 @@ class VST_RS:
             while set(prev_medoids) != set(medoids) and iterations < max_iter:
                 groups, _ = self.graph.get_voronoi_cells(users, medoids)
                 prev_medoids = list(medoids)
-                medoids = [self.graph.get_medoid(g) for _, g in groups.items()]
+                medoids = [self.graph.get_medoid(g) for _, g in groups.iteritems()]
                 iterations += 1
             # print iterations
             # When convergence was attained, loop is broken.
@@ -227,7 +227,7 @@ class VST_RS:
         # Compute P-Voronoi cells.
         self.p_cells, self.medoids = self.graph.get_voronoi_cells(self.U, self.pois)
         # Compute distances between users as they are used when grouping them.
-        for _, cell in self.p_cells.items():
+        for _, cell in self.p_cells.iteritems():
             self.graph.compute_dist_paths(origins=cell, destinations=cell, compute_paths=False)
         #
         cost = num_trees = 0
@@ -273,7 +273,7 @@ class VST_RS:
             gain_ratio = tot_ic / cost
             avg_detour_ratio = tot_dr / len(self.U)
             avg_occupancy_rate = sum(occupancy_rates) / num_trees
-        load = {e: l for e, l in self.load.items() if l > 0}
+        load = {e: l for e, l in self.load.iteritems() if l > 0}
 
         return steiner_forest, cost, gain_ratio, avg_detour_ratio, num_trees, avg_occupancy_rate, steiner_trees, load
 
@@ -307,8 +307,8 @@ class VST_RS:
                     if previous is not None:
                         weights_0 = f(self.edges, previous[ord_][1], self.cap, alpha=alpha, beta=beta)
                         weights_1 = f(self.edges, load, self.cap, alpha=alpha, beta=beta)
-                        cost_0 = sum([l * weights_0[e] for e, l in previous[ord_][1].items()])
-                        cost_1 = sum([l * weights_1[e] for e, l in load.items()])
+                        cost_0 = sum([l * weights_0[e] for e, l in previous[ord_][1].iteritems()])
+                        cost_1 = sum([l * weights_1[e] for e, l in load.iteritems()])
                         #
                         if cost_1 < cost_0:
                             plans[ord_] = (plan, load)
@@ -343,7 +343,7 @@ class VST_RS:
             #     plans_ = comm.gather(plans_, root=0)
             #     if rank == 0:
             #         for i in range(size):
-            #             for ord_, (plan, load) in plans_[i].items():
+            #             for ord_, (plan, load) in plans_[i].iteritems():
             #                 plans[ord_] = (plan, load)
         else:  # No parallel processing ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             for ord_, (U, pois) in enumerate(queries):
@@ -353,8 +353,8 @@ class VST_RS:
                 if previous is not None:
                     weights_0 = f(self.edges, previous[ord_][1], self.cap, alpha=alpha, beta=beta)
                     weights_1 = f(self.edges, load, self.cap, alpha=alpha, beta=beta)
-                    cost_0 = sum([l * weights_0[e] for e, l in previous[ord_][1].items()])
-                    cost_1 = sum([l * weights_1[e] for e, l in load.items()])
+                    cost_0 = sum([l * weights_0[e] for e, l in previous[ord_][1].iteritems()])
+                    cost_1 = sum([l * weights_1[e] for e, l in load.iteritems()])
                     #
                     if cost_1 < cost_0:
                         plans[ord_] = (plan, load)
@@ -382,8 +382,8 @@ class VST_RS:
                                               parallelise=parallelise, p_method=p_method, job_server=job_server)
             # Aggregate the loads.
             self.load = {e: 0 for e in self.edges}
-            for _, (plan, load) in plans.items():
-                for e, l in load.items():
+            for _, (plan, load) in plans.iteritems():
+                for e, l in load.iteritems():
                     self.load[e] += l
             # Store the previous plan as it is needed with a mixed strategy.
             previous = dict(plans)
@@ -412,7 +412,7 @@ class VST_RS:
             if verbose:
                 job_server.print_stats()
             job_server.destroy()
-        return [(ord_, plan) for ord_, (plan, _) in plans.items()], cost, warl, mwrl, mrl1, mrl2, entropy, no_iter
+        return [(ord_, plan) for ord_, (plan, _) in plans.iteritems()], cost, warl, mwrl, mrl1, mrl2, entropy, no_iter
 
     def non_congestion_aware(self, queries, z, S, f, merge_users=True, alpha=0.15, beta=4.0, parallelise=True,
                              p_method="pp", verbose=True):
@@ -426,8 +426,8 @@ class VST_RS:
         plans = self.compute_multiq_plans(queries, z, S, merge_users=merge_users, parallelise=parallelise,
                                           p_method=p_method, job_server=job_server)
         # Aggregate the loads.
-        for _, (_, load) in plans.items():
-            for e, l in load.items():
+        for _, (_, load) in plans.iteritems():
+            for e, l in load.iteritems():
                 self.load[e] += l
         # Compute congestion statistics.
         cost, warl, mwrl, mrl1, mrl2, entropy = self.compute_congestion_statistics(f, alpha=alpha, beta=beta)
@@ -436,7 +436,7 @@ class VST_RS:
             if verbose:
                 job_server.print_stats()
             job_server.destroy()
-        return [(ord_, plan) for ord_, (plan, _) in plans.items()], cost, warl, mwrl, mrl1, mrl2, entropy
+        return [(ord_, plan) for ord_, (plan, _) in plans.iteritems()], cost, warl, mwrl, mrl1, mrl2, entropy
 
     def append_to_history(self, f, log_history=False, alpha=0.15, beta=4.0):
         edges = sorted(self.edges)
@@ -481,7 +481,7 @@ class VST_RS:
         mrl2 = 0.0
         rls = []
         # Compute statistics.
-        for e, weight in self.edges.items():
+        for e, weight in self.edges.iteritems():
             if self.load[e] > 0:
                 cost += self.load[e] * weights[e]  # With new weights
                 prop = weight / self.sum_weights  # "Importance" of the edge (based on original weights)

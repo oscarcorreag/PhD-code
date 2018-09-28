@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
     mz = VST_RS(graph)
     start_time = time.clock()
-    forest, cost, _, _, _, _, sts = mz.steiner_forest(terminals, pois, 4, 8)
+    forest, cost, _, _, _, _, sts, _ = mz.steiner_forest(terminals, pois, 4, 8)
     elapsed_time = time.clock() - start_time
 
     special_nodes = [(terminals, '#000000', 35), (pois, '#0000FF', 65)]

@@ -26,7 +26,7 @@ class SteinerForestLP:
                     vars_[(e[1], e[0], t)] = i
                     i += 1
         # Sort dictionary of variables by index.
-        sorted_vars = sorted(vars_.items(), key=operator.itemgetter(1))
+        sorted_vars = sorted(vars_.iteritems(), key=operator.itemgetter(1))
         # Create the c vector.
         c = []
         for var, _ in sorted_vars:
@@ -37,8 +37,8 @@ class SteinerForestLP:
         # Create the conservation of flow constraints.
         A_eq_d = {}
         b_eq_d = {}
-        for v, val in self.__graph.items():
-            for w, _ in val.items():
+        for v, val in self.__graph.iteritems():
+            for w, _ in val.iteritems():
                 for ts in self.__terminals:
                     for t in ts:
                         try:
@@ -72,7 +72,7 @@ class SteinerForestLP:
                     b_eq.append(b_eq_d[(v, t)])
         # Create "capacity" constraints.
         A_ub_d = {}
-        for e, _ in E.items():
+        for e, _ in E.iteritems():
             for ts in self.__terminals:
                 for t in ts:
                     try:

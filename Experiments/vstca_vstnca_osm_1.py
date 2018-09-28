@@ -59,7 +59,7 @@ def main():
         # Create queries.
         queries = []
         occupied = set()
-        for _, pois_ in ps_subtype.items():
+        for _, pois_ in ps_subtype.iteritems():
             where = set(free_nodes).difference(occupied)
             terminals = np.random.choice(a=list(where), size=nuq, replace=False)
             queries.append((terminals, pois_))

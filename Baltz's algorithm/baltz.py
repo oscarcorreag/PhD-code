@@ -12,10 +12,10 @@ class Baltz:
         self.__congestion = {}
 
         l_G = float(0)
-        for e, le in self.__edges.items():
+        for e, le in self.__edges.iteritems():
             self.__congestion[e] = 0
             l_G += le
-        self.__costs = {e: le / l_G for e, le in self.__edges.items()}
+        self.__costs = {e: le / l_G for e, le in self.__edges.iteritems()}
 
     def steiner_forest(self, requests, k=4):
         lambda_ = 1
@@ -38,10 +38,10 @@ class Baltz:
                 A = len(E_Ti)
                 self.__graph.update_edge_weights(
                     {e: self.__costs[e] * A ** (self.__congestion[e] - cmax) for e in self.__edges})
-                self.__graph.update_edge_weights({e: le / A for e, le in E_Ti.items()})
+                self.__graph.update_edge_weights({e: le / A for e, le in E_Ti.iteritems()})
                 mz = VST_RS(self.__graph)
                 Ti_, l, _, _, _, _, _ = mz.steiner_forest(r[1:], [r[0]], k, sys.maxint)
-                self.__graph.update_edge_weights({e: le * A for e, le in E_Ti.items()})
+                self.__graph.update_edge_weights({e: le * A for e, le in E_Ti.iteritems()})
                 if MSTs[i][1] > l:
                     for e in MSTs[i][0].get_edges():
                         self.__congestion[e] -= 1
@@ -51,6 +51,6 @@ class Baltz:
             iteration += 1
         return MSTs
         # forest = SuitabilityDigraph()
-        # for _, (Ti, _) in MSTs.items():
+        # for _, (Ti, _) in MSTs.iteritems():
         #     forest.append_from_graph(Ti)
         # return forest

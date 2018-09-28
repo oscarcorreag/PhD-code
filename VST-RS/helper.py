@@ -5,7 +5,7 @@ def assign_users_to_pois(graph, users, pois, method, seed=0, k=3):
     requests = []
     if method == "Voronoi":
         groups, _ = graph.get_voronoi_cells(users, pois)
-        for p, group in groups.items():
+        for p, group in groups.iteritems():
             requests.extend([(u, p) for u in group])
     elif method == "random":
         np.random.seed(seed)

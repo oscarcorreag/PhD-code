@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     print et
 
-    special_subgraphs = [(MST, None) for _, (MST, cost) in MSTs.items()]
+    special_subgraphs = [(MST, None) for _, (MST, cost) in MSTs.iteritems()]
 
     ngh = NetworkXGraphHelper(suitability_graph)
     ngh.draw_graph(special_subgraphs=special_subgraphs, print_node_labels=True)

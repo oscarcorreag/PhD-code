@@ -43,8 +43,8 @@ class DreyfusMaxStops:
         set_c = tuple(sorted(self.__terminals))
         t_tuples = [tuple([t]) for t in set_c]
         #
-        ms = {t: s - 1 for t, s in self.__max_stops.items()}
-        bs = {t: s == 0 for t, s in ms.items()}
+        ms = {t: s - 1 for t, s in self.__max_stops.iteritems()}
+        bs = {t: s == 0 for t, s in ms.iteritems()}
         #
         temp_list = list(self.__nodes)
         temp_list.remove(self.__poi)
@@ -107,7 +107,7 @@ class DreyfusMaxStops:
                         if burnt:
                             temp_list = [self.__poi, j]
                         elif ms is not None:
-                            ms = {t: s - 1 for t, s in ms.items()}
+                            ms = {t: s - 1 for t, s in ms.iteritems()}
                             if 0 in ms.values():
                                 burnt = True
                     for i in temp_list:

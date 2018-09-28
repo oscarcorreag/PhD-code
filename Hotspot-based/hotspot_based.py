@@ -127,7 +127,7 @@ class HotspotBased:
 
     def __compute_gain_ratios(self):
         self.__gain_ratios = {}
-        for h, leaves in self.__leaves_subtree_sv.items():
+        for h, leaves in self.__leaves_subtree_sv.iteritems():
             self.__gain_ratios[h] = self.__compute_gain_ratio(h, leaves)
 
     def __compute_gain_ratio(self, h, leaves):
@@ -155,14 +155,14 @@ class HotspotBased:
                     # self.__detour_ratios_3[t][h] = dist_t_h / OPT
 
     # def __compute_densities(self):
-    #     for h, ridesharers in self.__ridesharers_by_hotspot.items():
+    #     for h, ridesharers in self.__ridesharers_by_hotspot.iteritems():
     #         star = sum([self.__graph.dist[tuple(sorted([t, h]))] for t in ridesharers])
     #         star += self.__graph.dist[tuple(sorted([h, self.__medoids[h]]))]
     #         Ts = len(ridesharers)
     #         self.__densities[h] = star / Ts
 
     # def __compute_remoteness(self):
-    #     for poi, p_cell in self.__p_cells.items():
+    #     for poi, p_cell in self.__p_cells.iteritems():
     #         hotspots = set(p_cell).intersection(self.__hotspots)
     #         max_dist = max([self.__graph.dist[tuple(sorted([h, poi]))] for h in hotspots])
     #         temp = {h: self.__graph.dist[tuple(sorted([h, poi]))] / max_dist for h in hotspots}
@@ -229,7 +229,7 @@ class HotspotBased:
         Lk_ = []
         tot_num_terms = 0
         gr = 0
-        Lk = sorted(loss_ratios.items(), key=operator.itemgetter(1))
+        Lk = sorted(loss_ratios.iteritems(), key=operator.itemgetter(1))
         driver_present = False
         for leaf, loss_ratio in Lk:
             if (gr != 0 and 1 / gr <= loss_ratio) or tot_num_terms == k:
@@ -265,7 +265,7 @@ class HotspotBased:
             new_candidate_id = id_generator()
             self.__graph[new_candidate_id] = \
                 (self.__graph[sv][0], self.__graph[sv][1].copy(), self.__graph[sv][2].copy())
-            for w, dist in self.__graph[sv][1].items():
+            for w, dist in self.__graph[sv][1].iteritems():
                 self.__graph[w][1][new_candidate_id] = dist
             self.__hot_spots.append(new_candidate_id)
             self.__medoids.update({new_candidate_id: self.__medoids[sv]})
@@ -274,19 +274,19 @@ class HotspotBased:
 
     def __choose_steiner_vertices(self, k, clone_hotspots, max_wd):
         R = set()
-        S = {h: gr for h, gr in self.__gain_ratios.items()}
+        S = {h: gr for h, gr in self.__gain_ratios.iteritems()}
         while len(S) > 0:
             S_ = dict(S)
             leaves_subtree_svs = {}
-            for h, gr in S_.items():
+            for h, gr in S_.iteritems():
                 loss_ratios = {t: self.__loss_ratios[t][h] for t in self.__leaves_subtree_sv[h]}
                 S_[h], leaves_subtree_svs[h] = self.__accommodate_k_terminals(h, loss_ratios, k, max_wd)
-                # Lk = sorted(loss_ratios.items(), key=operator.itemgetter(1))
+                # Lk = sorted(loss_ratios.iteritems(), key=operator.itemgetter(1))
                 # if k < sys.maxint:
                 #     S_[h], leaves_subtree_svs[h] = self.__accommodate_k_terminals(h, Lk, k)
                 # else:
                 #     S_[h], leaves_subtree_svs[h] = self.__max_gain_ratio(gr, h, Lk)
-            S_ord_ = sorted(S_.items(), key=operator.itemgetter(1), reverse=True)
+            S_ord_ = sorted(S_.iteritems(), key=operator.itemgetter(1), reverse=True)
             # while len(S_ord_) > 0 and len(leaves_subtree_svs[S_ord_[0][0]]) == 1:
             while len(S_ord_) > 0 and len(leaves_subtree_svs[S_ord_[0][0]]) < 2:
                 del S_ord_[0]
@@ -303,12 +303,12 @@ class HotspotBased:
                         self.__drop_leaf_from_subtree_sv(t, ha)
             else:
                 break
-            S = {h: gr for h, gr in self.__gain_ratios.items() if h not in R}
+            S = {h: gr for h, gr in self.__gain_ratios.iteritems() if h not in R}
 
     def __build_steiner_forest(self):
         forest = SuitabilityDigraph()
         dist = cost = occupancy = 0
-        for t, dest in self.__confirmed.items():
+        for t, dest in self.__confirmed.iteritems():
             if dest is None:
                 dest = self.__medoids[t]
                 self.__confirmed[t] = dest
@@ -337,13 +337,13 @@ class HotspotBased:
     #     if steiner_vertex in self.__terminals:
     #         return 1
     #     nt = 0
-    #     for l, sv in self.__confirmed.items():
+    #     for l, sv in self.__confirmed.iteritems():
     #         if sv == steiner_vertex:
     #             nt += self.__num_terminals(l)
     #     return nt
     #
     # def __check_k(self, k):
-    #     for v, w in self.__confirmed.items():
+    #     for v, w in self.__confirmed.iteritems():
     #         if w in self.__pois:
     #             nt = self.__num_terminals(v)
     #             if nt > k:
@@ -351,7 +351,7 @@ class HotspotBased:
 
     def __get_lowest_steiner_vertices(self):
         steiner_vertices = {}
-        for v, w in self.__confirmed.items():
+        for v, w in self.__confirmed.iteritems():
             if v in self.__terminals and w not in self.__pois:
                 dist_v_w = self.__graph.dist[tuple(sorted([v, w]))]
                 try:
@@ -363,7 +363,7 @@ class HotspotBased:
     def __compute_avg_occupancy_rate(self, k):
         num_trees = 0
         o_rate = 0
-        for v, w in self.__confirmed.items():
+        for v, w in self.__confirmed.iteritems():
             if w in self.__pois:
                 # print v, self.__cum_num_terms[v]
                 o_rate += float(self.__cum_num_terms[v]) / k
@@ -389,13 +389,13 @@ class HotspotBased:
                 self.__aware.append(t)
         while True:
             self.__create_well_formed_subtree_svs(terminals, max_dr)
-            terminals_with_no_dest = [t for t, dest in self.__confirmed.items() if dest is None]
+            terminals_with_no_dest = [t for t, dest in self.__confirmed.iteritems() if dest is None]
             if len(terminals_with_no_dest) == 0:
                 break
             self.__compute_gain_ratios()
             self.__compute_loss_ratios(terminals_with_no_dest)
             self.__choose_steiner_vertices(k, clone_hotspots, max_wd)
-            terminals = [t for t, dest in self.__confirmed.items() if dest is None]
+            terminals = [t for t, dest in self.__confirmed.iteritems() if dest is None]
             if set(terminals_with_no_dest) == set(terminals):
                 break
         forest, cost, avg_oc = self.__build_steiner_forest()

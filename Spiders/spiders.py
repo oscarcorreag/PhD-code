@@ -119,7 +119,7 @@ class Spiders:
             # Once the distances dictionary is ready for the current node, a list of tuples (subtree, distance) ordered
             # by distance is calculated and stored as a value for the entry -> node: sorted_list_of_subtrees_by_distance
             # The entry is stored in a dictionary which is a class variable.
-            ordering = sorted(self.__dist_paths_node_subtree[n][0].items(), key=operator.itemgetter(1))
+            ordering = sorted(self.__dist_paths_node_subtree[n][0].iteritems(), key=operator.itemgetter(1))
             self.__ordered_subtrees[n] = ordering
 
     '''
@@ -483,7 +483,7 @@ class Spiders:
             #           enumerate(meeting_nodes)]
             #
             # ngh.draw_graph(nodes_2=[self.__poi], nodes_1=self.__terminals,
-            #                subgraphs_2=[subtree for _, subtree in self.__subtrees.items()],
+            #                subgraphs_2=[subtree for _, subtree in self.__subtrees.iteritems()],
             #                node_weight_generator=SuitableNodeWeightGenerator(),
             #                legend=legend,
             #                node_labels=True)

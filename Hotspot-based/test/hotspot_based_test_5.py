@@ -31,7 +31,7 @@ if __name__ == '__main__':
     regions = suitability_graph.get_suitable_regions(generator)
 
     special_nodes = [(pois, "#0000FF", 45), (terminals, "#000000", 45)]
-    special_subgraphs = [(r, "#00FF00") for _, (r, _, _, _, _, _) in regions.items()]
+    special_subgraphs = [(r, "#00FF00") for _, (r, _, _, _, _, _) in regions.iteritems()]
 
     ngh = NetworkXGraphHelper(graph)
     ngh.draw_graph(special_nodes=special_nodes,

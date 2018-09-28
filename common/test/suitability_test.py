@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     ngh = NetworkXGraphHelper(suitability_graph)
     ngh.draw_graph(special_nodes=[([poi], None, None), (terminals, None, None)],
-                   special_subgraphs=[(r, "#00FF00") for _, (r, _, _, _, _, _) in regions.items()],
+                   special_subgraphs=[(r, "#00FF00") for _, (r, _, _, _, _, _) in regions.iteritems()],
                    print_node_labels=True)
 
     suitability_graph.contract_suitable_regions(generator)

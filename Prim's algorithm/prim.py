@@ -29,7 +29,7 @@ class Prim:
                     adj_nodes = self.__graph[v]
                 else:
                     adj_nodes = self.__graph[v][1]
-                for w, edge_cost in adj_nodes.items():
+                for w, edge_cost in adj_nodes.iteritems():
                     if w in marked_nodes:
                         continue
                     if edge_cost < distances_to[w]:
@@ -37,7 +37,7 @@ class Prim:
                         edges_to[w] = (v, w)
                         priority_queue[w] = distances_to[w]
         spanning_tree = Digraph()
-        for _, (v, w) in edges_to.items():
+        for _, (v, w) in edges_to.iteritems():
             if node_weighted:
                 edge_cost = self.__graph[v][1][w]
                 if v in spanning_tree:

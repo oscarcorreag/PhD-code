@@ -433,9 +433,9 @@ class LazySteinerTree:
         while child[5] == 'E':
             child_node = child[1]
             distances, paths = dijkstra(self.__graph, parent_node, [child_node])
-            # for k, v in distances.items():
+            # for k, v in distances.iteritems():
             #     self.__distances[tuple(sorted([parent_node, k]))] = (v, 'N')
-            # for k, v in paths.items():
+            # for k, v in paths.iteritems():
             #     self.__paths[tuple(sorted([parent_node, k]))] = v
             # try:
             #     self.__paths[tuple(sorted([parent_node, child_node]))] = paths[child_node]

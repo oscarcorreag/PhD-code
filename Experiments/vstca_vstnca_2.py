@@ -86,7 +86,7 @@ def main(argv):
                 #
                 occupied_t = set()
                 occupied_p = set()
-                for i, pois_z in ppq.items():
+                for i, pois_z in ppq.iteritems():
                     np.random.seed(sample * i)
                     #
                     where_t = set(free_nodes).difference(occupied_t)

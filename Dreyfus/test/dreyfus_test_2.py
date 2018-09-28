@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
     cost, node_cost = steiner_tree.calculate_costs(terminals)
 
-    special_subgraphs = [(r, "#00FF00") for _, (r, _, _, _, _, _) in regions.items()]
+    special_subgraphs = [(r, "#00FF00") for _, (r, _, _, _, _, _) in regions.iteritems()]
     special_subgraphs.append((steiner_tree, "#FF0000"))
 
     ngh = NetworkXGraphHelper(suitability_graph)

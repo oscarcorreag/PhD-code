@@ -7,7 +7,7 @@ from helper import assign_users_to_pois
 class DreyfusBasedWOC:
 
     def __init__(self, graph):
-        self.__graph = graph
+        self.__graph = graph.copy()
         self.congestion = {e: 0 for e in self.__graph.get_edges()}
 
         self.__graph.compute_dist_paths(compute_paths=False)
@@ -20,13 +20,13 @@ class DreyfusBasedWOC:
             except KeyError:
                 groups_[p] = [u]
         groups = []
-        for p, group in groups_.items():
+        for p, group in groups_.iteritems():
             while len(group) > z:
                 # If group size > z, create a new group with the farthest user and their z - 1 nearest neighbours.
                 dists = {u: self.__graph.dist[tuple(sorted(([u, p])))] for u in group}
-                farthest = max(dists.items(), key=operator.itemgetter(1))[0]
+                farthest = max(dists.iteritems(), key=operator.itemgetter(1))[0]
                 dists_to_u = {u: self.__graph.dist[tuple(sorted(([u, farthest])))] for u in group}
-                new_group = [u for u, _ in sorted(dists_to_u.items(), key=operator.itemgetter(1))[:z]]
+                new_group = [u for u, _ in sorted(dists_to_u.iteritems(), key=operator.itemgetter(1))[:z]]
                 groups.append((p, new_group))
                 group = list(set(group).difference(new_group))
             if len(group) > 0:

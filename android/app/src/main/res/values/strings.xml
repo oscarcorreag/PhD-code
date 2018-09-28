@@ -1,3 +1,22 @@
 <resources>
-    <string name="app_name">ridesharing</string>
+    <string name="app_name">Activity-Based Ride-Sharing</string>
+    <string name="no_data">No data</string>
+    <string name="activity_placeholder">[Activity]</string>
+    <string name="continue_text">Continue</string>
+    <integer-array name="activity_ids">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </integer-array>
+    <string-array name="activities">
+        <item>Supermarket</item>
+        <item>Cafe</item>
+        <item>Convenience Store</item>
+    </string-array>
+    <array name="activities_icons">
+        <item>@drawable/ic_supermarket</item>
+        <item>@drawable/ic_cafe</item>
+        <item>@drawable/ic_convenience</item>
+    </array>
+    <string name="title_activity_plan">Plan</string>
 </resources>

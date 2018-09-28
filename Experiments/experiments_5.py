@@ -13,7 +13,7 @@ if __name__ == '__main__':
     files = {21303: 'maribyrnong'}
     samples = range(5)
     results = []
-    for sa3_code11, file_ in files.items():
+    for sa3_code11, file_ in files.iteritems():
         act_dh = {}
         dep_hours = osm.get_departure_hours(file_)
         for dh in dep_hours:
@@ -23,7 +23,7 @@ if __name__ == '__main__':
                     act_dh[act].append(dh)
                 except KeyError:
                     act_dh[act] = [dh]
-        for act, dhs in act_dh.items():
+        for act, dhs in act_dh.iteritems():
             if act[0] == 805:
                 continue
             graph, hotspots, pois, nodes_by_sa1_code, _ = osm.generate_graph_for_file(file_, act[0], generator)
@@ -69,6 +69,6 @@ if __name__ == '__main__':
         temp.extend(result[:-1])
         wr_r.writerow(temp)
         lsv = result[-1]
-        for sv, ts in lsv.items():
-            for t, d in ts.items():
+        for sv, ts in lsv.iteritems():
+            for t, d in ts.iteritems():
                 wr_l.writerow([i, sv, t, d])

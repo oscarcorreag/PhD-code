@@ -37,12 +37,12 @@ class VoronoiBased:
         #     s_betweenness = {n: 0 for n in temp}
         #     for n1 in temp:
         #         paths = self.__dist_paths[n1][1]
-        #         for _, path in paths.items():
+        #         for _, path in paths.iteritems():
         #             if len(path) > 2:
         #                 for n2 in path[1:-1]:
         #                     if n2 in temp:
         #                         s_betweenness[n2] += 1
-        #     self.__betweenness = sorted(s_betweenness.items(), key=operator.itemgetter(1), reverse=True)
+        #     self.__betweenness = sorted(s_betweenness.iteritems(), key=operator.itemgetter(1), reverse=True)
 
     '''
     Return the minimal-cost Steiner forest after trying with different number of Steiner points. A Steiner point is the
@@ -59,7 +59,7 @@ class VoronoiBased:
             forest = SuitabilityDigraph()
             # Compute as many S-Voronoi cells as [sp]
             s_cells = self.__get_s_cells(sp)
-            for s, c in s_cells.items():
+            for s, c in s_cells.iteritems():
                 poi = self.__nodes_p_medoid[s]
                 term_s_cell = set(c).intersection(self.__terminals)
                 for t in term_s_cell:
@@ -106,7 +106,7 @@ class VoronoiBased:
             while len(set(prev_medoids).intersection(medoids)) != len(medoids) and iterations < max_iter:
                 cells, _ = self.__get_voronoi_cells(temp, medoids)
                 prev_medoids = list(medoids)
-                medoids = [self.__get_suitable_medoid(c) for _, c in cells.items()]
+                medoids = [self.__get_suitable_medoid(c) for _, c in cells.iteritems()]
                 iterations += 1
             # print iterations
             # When convergence was attained, loop is broken.
@@ -127,7 +127,7 @@ class VoronoiBased:
         # Each node from the set [nodes] is assigned to its closest medoid.
         for n in nodes:
             dists = {m: self.__graph.dist[tuple(sorted([n, m]))] for m in medoids}
-            medoid = min(dists.items(), key=operator.itemgetter(1))[0]
+            medoid = min(dists.iteritems(), key=operator.itemgetter(1))[0]
             cells[medoid].append(n)  # Medoids are the keys and the nodes are the elements of the cell.
             nodes_medoid[n] = medoid  # Nodes are the keys and the value is its corresponding medoid.
         return cells, nodes_medoid

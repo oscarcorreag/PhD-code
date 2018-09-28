@@ -16,8 +16,8 @@ from link_performance import bpr, bpr_log
 def get_suitability_graph_from_session(request):
     graph = request.session['graph']
     suitability_graph = SuitabilityDigraph()
-    for node_id, (node_weight, adj_dict, data) in graph.items():
-        new_adj_dict = {int(neighbour): edge_cost for neighbour, edge_cost in adj_dict.items()}
+    for node_id, (node_weight, adj_dict, data) in graph.iteritems():
+        new_adj_dict = {int(neighbour): edge_cost for neighbour, edge_cost in adj_dict.iteritems()}
         suitability_graph[int(node_id)] = (node_weight, new_adj_dict, data)
     return suitability_graph
 
@@ -68,7 +68,7 @@ def index(request):
                                             cost_type="travel_time")
             #
             request.session['graph'] = graph
-            # request.session['graph'] = {(str(e[0]), str(e[1])): v for e, v in graph.edges.items()}
+            # request.session['graph'] = {(str(e[0]), str(e[1])): v for e, v in graph.edges.iteritems()}
             request.session['pois'] = pois
             #
             geo_pois = [(graph[p][2]['lat'], graph[p][2]['lon'], p, graph[p][2]['subtype']) for p in pois]
@@ -120,7 +120,7 @@ def index(request):
             ts_subtype = dict()
             occupied = set()
             np.random.seed(int(seed))
-            for subtype, pois_ in ps_subtype.items():
+            for subtype, pois_ in ps_subtype.iteritems():
                 where = set(s_nodes).difference(occupied)
                 terminals = np.random.choice(a=list(where), size=nuq, replace=False)
                 queries.append(([str(t) for t in terminals], pois_, subtype))
@@ -131,7 +131,7 @@ def index(request):
             #
             geo_pois = [(graph[p][2]['lat'], graph[p][2]['lon'], p, graph[p][2]['subtype']) for p in pois]
             geo_terminals = []
-            for subtype, ts in ts_subtype.items():
+            for subtype, ts in ts_subtype.iteritems():
                 for t in ts:
                     geo_terminals.append((graph[t][2]['lat'], graph[t][2]['lon'], str(t), subtype))
 

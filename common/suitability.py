@@ -126,17 +126,17 @@ class SuitabilityDigraph(Digraph):
             excluded_nodes = []
 
         if degree_equals_to is not None:
-            suitable_nodes = [v for v, value in self.items()
+            suitable_nodes = [v for v, value in self.iteritems()
                               if value[0] in generator.suitable_weights and
                               len(value[1].keys()) == degree_equals_to and
                               v not in excluded_nodes]
         elif degree_more_than is not None:
-            suitable_nodes = [v for v, value in self.items()
+            suitable_nodes = [v for v, value in self.iteritems()
                               if value[0] in generator.suitable_weights and
                               len(value[1].keys()) > degree_more_than and
                               v not in excluded_nodes]
         else:
-            suitable_nodes = [v for v, value in self.items()
+            suitable_nodes = [v for v, value in self.iteritems()
                               if value[0] in generator.suitable_weights and
                               v not in excluded_nodes]
 
@@ -179,7 +179,7 @@ class SuitabilityDigraph(Digraph):
         # When an adjacent node to a region has more than one neighbour within the region, an auxiliary node is created
         # for every edge between this adjacent node and the region.
         # For each region...
-        for region_id, (region, border_nodes, _, _, _, dist_paths) in self.contracted_regions.items():
+        for region_id, (region, border_nodes, _, _, _, dist_paths) in self.contracted_regions.iteritems():
             # Create a dictionary of adjacent nodes with their corresponding border nodes of the region.
             adj_nodes_to_region = {}
             for bn in border_nodes:
@@ -194,7 +194,7 @@ class SuitabilityDigraph(Digraph):
                 generator.weights["VERY_SUITABLE"][0], {}, {'contracted': True, 'dist_paths': dist_paths})
             # Wire the adjacent nodes with the new nodes (region nodes or auxiliary nodes).
             dropped_edges = {}
-            for adj_node, bns in adj_nodes_to_region.items():
+            for adj_node, bns in adj_nodes_to_region.iteritems():
                 # When an adjacent node has only one neighbour in the region...
                 if len(bns) == 1:
                     # Wire the adjacent node with the new region node and drop the edge between the adjacent node and

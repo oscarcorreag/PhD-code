@@ -113,7 +113,7 @@ if __name__ == '__main__':
     max_dist = 2
 
     dist_to_poi = {n: dist_paths_node_node[n][0][poi] for n in suitable_nodes}
-    ord_suit_nodes = sorted(dist_to_poi.items(), key=operator.itemgetter(1))
+    ord_suit_nodes = sorted(dist_to_poi.iteritems(), key=operator.itemgetter(1))
     for n, _ in ord_suit_nodes:
         mass = __calculate_mass_suitable_node(suitability_graph, terminals, poi, dist_paths_node_node, n)
         __attract_nodes_to(suitability_graph, dist_paths_node_node, max_dist, n, mass, n, 2, 0, [])

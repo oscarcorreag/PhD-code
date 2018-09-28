@@ -54,7 +54,7 @@ def generate_graph(results, generator, cost_type="distance", capacitated=False):
     nodes_by_sa1_code = {}
     nodes_by_sa2_code = {}
     #
-    for node_id, info in graph.items():
+    for node_id, info in graph.iteritems():
         if len(info[1]) == 0 or (len(info[1]) == 1 and info[1].keys()[0] == node_id):
             isolated.append(node_id)
         else:
@@ -145,7 +145,7 @@ def osm_avg(distance, hw_type):
 
 class OsmManager:
     def __init__(self):
-        self.__osmdbmngr = OsmDBManager("postgres", "anabelle1803!", "osm")
+        self.__osmdbmngr = OsmDBManager("postgres", "naya0105", "osm")
 
     def get_nodes_for_bbox(self, min_lon, min_lat, max_lon, max_lat, hotspots=True, pois=True):
         nodes = dict()
@@ -184,7 +184,7 @@ class OsmManager:
                 people_by_sa1_code[orig_sa1_code] = 1
         #
         terminals = set()
-        for orig_sa1_code, c in people_by_sa1_code.items():
+        for orig_sa1_code, c in people_by_sa1_code.iteritems():
             nodes = list(set(nodes_by_sa1_code[orig_sa1_code]).difference(excluded_nodes))
             indices = np.random.choice(a=len(nodes), size=c)
             terminals.update([nodes[i] for i in indices])
@@ -243,7 +243,7 @@ class OsmManager:
         #
         samples = []
         for dh, td, mt, da, nt in stats:
-            for sa2_5dig11, sa1_codes in sa2_codes.items():
+            for sa2_5dig11, sa1_codes in sa2_codes.iteritems():
                 nt_sa2 = int(nt * float(pop_stats[sa2_5dig11]) / tot_pop)
                 print nt_sa2
                 for _ in range(nt_sa2):

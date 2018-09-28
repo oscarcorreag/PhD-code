@@ -41,7 +41,7 @@ if __name__ == '__main__':
     ngh = NetworkXGraphHelper(suitability_graph)
     ngh.draw_graph(nodes_1=terminals,
                    node_weight_generator=generator,
-                   subgraphs_1=[r for _, (r, _, _, _, _, _) in regions.items()],
+                   subgraphs_1=[r for _, (r, _, _, _, _, _) in regions.iteritems()],
                    subgraphs_2=[steiner_tree],
                    title_2="elapsed time: " + str(elapsed_time),
                    print_node_labels=True,

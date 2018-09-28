@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     regions = suitability_graph.get_suitable_regions(generator)
 
-    for _, (r, _, _, _, _, _) in regions.items():
+    for _, (r, _, _, _, _, _) in regions.iteritems():
         df = Dreyfus(r)
         print("region:", r)
         for v in r:
@@ -39,4 +39,4 @@ if __name__ == '__main__':
     ngh.draw_graph(node_weight_generator=generator,
                    print_node_labels=True,
                    node_size=15,
-                   subgraphs_1=[r for _, (r, _, _, _, _, _) in regions.items()])
+                   subgraphs_1=[r for _, (r, _, _, _, _, _) in regions.iteritems()])

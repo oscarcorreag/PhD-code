@@ -20,7 +20,7 @@ class STA:
         no_iter = 0
         while no_iter <= max_iter:
             self.load = {e: 0 for e in self.__edges}
-            for (o, d), no_users in O_D.items():
+            for (o, d), no_users in O_D.iteritems():
                 if self.__graph.is_undirected():
                     o_d = tuple(sorted([o, d]))
                 else:

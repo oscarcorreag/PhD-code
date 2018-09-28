@@ -42,7 +42,7 @@ class Charikar:
                         dists = {}
                         for t in self.__terminals:
                             dists[t] = self.__dist[tuple(sorted([v, t]))]
-                        ord_term = sorted(dists.items(), key=operator.itemgetter(1))
+                        ord_term = sorted(dists.iteritems(), key=operator.itemgetter(1))
                         Tprime = SuitabilityDigraph()
                         for j in range(kprime):
                             p = self.__paths[tuple(sorted([v, ord_term[j][0]]))]

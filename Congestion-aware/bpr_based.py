@@ -11,7 +11,7 @@ class BPRBased:
         self.__edges = self.__graph.get_edges()
         self.__capacities = self.__graph.get_capacities()
         self.congestion = {e: 0 for e in self.__edges}
-        self.__weights = {e: le for e, le in self.__edges.items()}
+        self.__weights = {e: le for e, le in self.__edges.iteritems()}
 
     def compute_weight(self, e):
         return self.__weights[e] * (1 + 0.15 * (self.congestion[e] / self.__capacities[e])**2)
@@ -36,14 +36,14 @@ class BPRBased:
         #         A = len(E_Ti)
         #         self.__graph.update_edge_weights(
         #             {e: self.__weights[e] * A ** (self.congestion[e] - cmax) for e in self.__edges})
-        #         self.__graph.update_edge_weights({e: le / A for e, le in E_Ti.items()})
+        #         self.__graph.update_edge_weights({e: le / A for e, le in E_Ti.iteritems()})
                 mz = VST_RS(self.__graph)
                 Ti_, l, _, _, _, _, _ = mz.steiner_forest(terminals, pois, k, sys.maxint)
                 weights = dict()
                 for e in Ti_.get_edges():
                     weights[e] = self.compute_weight(e)
                 self.__graph.update_edge_weights(weights)
-        #         self.__graph.update_edge_weights({e: le * A for e, le in E_Ti.items()})
+        #         self.__graph.update_edge_weights({e: le * A for e, le in E_Ti.iteritems()})
                 if MSTs[i][1] > l:
                     for e in MSTs[i][0].get_edges():
                         self.congestion[e] -= 1

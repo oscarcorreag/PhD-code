@@ -3,7 +3,7 @@ from math import log
 
 def bpr(edges, load, cap, alpha=0.15, beta=4.0):
     new_weights = dict()
-    for e, weight in edges.items():
+    for e, weight in edges.iteritems():
         rl = 0.0
         if e in load and e in cap:
             if load[e] > 0 and cap[e] > 0:
@@ -14,7 +14,7 @@ def bpr(edges, load, cap, alpha=0.15, beta=4.0):
 
 def bpr_log(edges, load, cap, alpha=0.15, beta=4.0):
     new_weights = dict()
-    for e, weight in edges.items():
+    for e, weight in edges.iteritems():
         rl = 0.0
         if e in load and e in cap:
             if load[e] > 0 and cap[e] > 1:

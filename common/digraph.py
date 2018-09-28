@@ -38,14 +38,14 @@ class Digraph(dict):
 
     def update_node_weights(self, weights):
         if self.node_weighted:
-            for v, weight in weights.items():
+            for v, weight in weights.iteritems():
                 l_value = list(self[v])
                 l_value[0] = weight
                 self[v] = tuple(l_value)
 
     def update_edge_weights(self, weights):
         od_to_recompute = set()
-        for (v, w), weight in weights.items():
+        for (v, w), weight in weights.iteritems():
             # Check whether the edge is present.
             if self.undirected:
                 v_w = tuple(sorted([v, w]))
@@ -75,7 +75,7 @@ class Digraph(dict):
     def perturb_edge_weights(self):
         perturbed = set()
         od_to_recompute = set(self.pairs_dist_paths)
-        for v, val in self.items():
+        for v, val in self.iteritems():
             if self.node_weighted:
                 for w in val[1]:
                     if (v, w) in perturbed:
@@ -191,12 +191,12 @@ class Digraph(dict):
             raise (ValueError, "Graph: Can't append a source graph which is not capacitated.")
         source_capacities = source_graph.get_capacities()
         # Start iterating the nodes in the source graph.
-        for v, val in source_graph.items():
+        for v, val in source_graph.iteritems():
             # When v (source graph's node) is present in this graph...
             if v in self:
                 if self.node_weighted:
                     # Iterate v's neighbourhood.
-                    for w, weight in val[1].items():
+                    for w, weight in val[1].iteritems():
                         # When w is NOT present in this graph, an edge is added.
                         if w not in self[v][1]:
                             self[v][1][w] = weight
@@ -216,7 +216,7 @@ class Digraph(dict):
                     else:
                         adj_nodes = val
                     # Iterate v's neighbourhood.
-                    for w, weight in adj_nodes.items():
+                    for w, weight in adj_nodes.iteritems():
                         # When w is NOT present in this graph, an edge is added.
                         if w not in self[v]:
                             self[v][w] = weight
@@ -243,7 +243,7 @@ class Digraph(dict):
                         adj_nodes = val
                     self[v] = adj_nodes.copy()
                 # Add edges corresponding to the whole neighbourhood.
-                for w, weight in adj_nodes.items():
+                for w, weight in adj_nodes.iteritems():
                     if self.undirected:
                         edge = tuple(sorted([v, w]))
                     else:
@@ -255,7 +255,7 @@ class Digraph(dict):
 
     def copy(self):
         new_graph = Digraph()
-        for v, val in self.items():
+        for v, val in self.iteritems():
             if self.node_weighted:
                 new_graph[v] = (val[0], val[1].copy(), val[2].copy())
             else:
@@ -291,11 +291,11 @@ class Digraph(dict):
         subgraph = Digraph()
         if self.node_weighted:
             for n in nodes:
-                adj = {w: edge_weight for w, edge_weight in self[n][1].items() if w in nodes}
+                adj = {w: edge_weight for w, edge_weight in self[n][1].iteritems() if w in nodes}
                 subgraph[n] = (self[n][0], adj, self[n][2].copy())
         else:
             for n in nodes:
-                subgraph[n] = {w: edge_weight for w, edge_weight in self[n].items() if w in nodes}
+                subgraph[n] = {w: edge_weight for w, edge_weight in self[n].iteritems() if w in nodes}
         return subgraph
 
     def build_metric_closure(self, nodes, excluded_edges=None):
@@ -320,7 +320,7 @@ class Digraph(dict):
                 temp[1].update(neighbourhood)
             else:
                 metric_closure[nodes[i]] = (self[nodes[i]][0], neighbourhood, self[nodes[i]][2].copy())
-            for n, edge_weight in neighbourhood.items():
+            for n, edge_weight in neighbourhood.iteritems():
                 if n in metric_closure:
                     temp = list(metric_closure[n])
                     temp[1][nodes[i]] = edge_weight
@@ -333,13 +333,13 @@ class Digraph(dict):
             return self.__edges
         if self.node_weighted:
             for n in self:
-                for w, edge_weight in self[n][1].items():
+                for w, edge_weight in self[n][1].iteritems():
                     edge = tuple(sorted([n, w]))
                     if edge not in self.__edges:
                         self.__edges[edge] = edge_weight
         else:
             for n in self:
-                for w, edge_weight in self[n].items():
+                for w, edge_weight in self[n].iteritems():
                     edge = tuple(sorted([n, w]))
                     if edge not in self.__edges:
                         self.__edges[edge] = edge_weight
@@ -409,7 +409,7 @@ class Digraph(dict):
                     requests[o].append(d)
                 except KeyError:
                     requests[o] = [d]
-            for v, ds in requests.items():
+            for v, ds in requests.iteritems():
                 dist, p = self.__dijkstra(v, ds, end_mode=end_mode, compute_paths=compute_paths,
                                           track_edges=track_edges)
                 for w in ds:
@@ -461,7 +461,7 @@ class Digraph(dict):
                 else:
                     n_m = (n, m)
                 dists[m] = self.dist[n_m]
-            medoid = min(dists.items(), key=operator.itemgetter(1))[0]
+            medoid = min(dists.iteritems(), key=operator.itemgetter(1))[0]
             cells[medoid].append(n)  # Medoids are the keys and the nodes are the elements of the cell.
             nodes_medoid[n] = medoid  # Nodes are the keys and the value is its corresponding medoid.
         return cells, nodes_medoid
@@ -477,7 +477,7 @@ class Digraph(dict):
                 else:
                     sum_ += self.dist[(v, w)]
             sums[v] = sum_
-        return min(sums.items(), key=operator.itemgetter(1))[0]
+        return min(sums.iteritems(), key=operator.itemgetter(1))[0]
 
     def get_k_closest_destinations(self, n, k, destinations=None):
         if destinations is None:
@@ -491,7 +491,7 @@ class Digraph(dict):
             else:
                 n_d = (n, d)
             distances[d] = self.dist[n_d]
-        sorted_dist = sorted(distances.items(), key=operator.itemgetter(1))
+        sorted_dist = sorted(distances.iteritems(), key=operator.itemgetter(1))
         if k > len(sorted_dist):
             return sorted_dist
         return sorted_dist[:k]
@@ -544,11 +544,11 @@ class Digraph(dict):
                 if end_mode == 'all':
                     if len(set(destinations) - set(reached_nodes)) == 0:
                         # Trim distances.
-                        distances = {u: dist for u, dist in distances.items() if u in destinations}
+                        distances = {u: dist for u, dist in distances.iteritems() if u in destinations}
                         break
                 elif end_mode == 'first':
                     # Trim distances.
-                    distances = {u: dist for u, dist in distances.items() if u == v}
+                    distances = {u: dist for u, dist in distances.iteritems() if u == v}
                     break
                 else:
                     raise (RuntimeError, "dijkstra: End mode has not been implemented!")
@@ -558,7 +558,7 @@ class Digraph(dict):
             else:
                 adj_nodes = self[v][1]
 
-            for w, dist in adj_nodes.items():
+            for w, dist in adj_nodes.iteritems():
                 vw_length = distances[v] + dist
                 if self.node_weighted:
                     internal_dist = 0

@@ -13,10 +13,15 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 import os
 import sys
 
-sys.path.append("C:\\Users\\oscarcg\\Dropbox\\Education\\Unimelb PhD\\code\\common")
-sys.path.append("C:\\Users\\oscarcg\\Dropbox\\Education\\Unimelb PhD\\code\\VST-RS")
-sys.path.append("C:\\Users\\oscarcg\\Dropbox\\Education\\Unimelb PhD\\code\\Hotspot-based")
-sys.path.append("C:\\Users\\oscarcg\\Dropbox\\Education\\Unimelb PhD\\code\\Traffic")
+# sys.path.append("C:\\Users\\oscarcg\\Dropbox\\Education\\Unimelb PhD\\code\\common")
+# sys.path.append("C:\\Users\\oscarcg\\Dropbox\\Education\\Unimelb PhD\\code\\VST-RS")
+# sys.path.append("C:\\Users\\oscarcg\\Dropbox\\Education\\Unimelb PhD\\code\\Hotspot-based")
+# sys.path.append("C:\\Users\\oscarcg\\Dropbox\\Education\\Unimelb PhD\\code\\Traffic")
+
+sys.path.append("../common")
+sys.path.append("../VST-RS")
+sys.path.append("../Hotspot-based")
+sys.path.append("../Traffic")
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -84,9 +89,12 @@ WSGI_APPLICATION = 'ridesharing_django.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        # 'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.db.backends.sqlite3',
         'NAME': 'osm',
         'USER': 'hotspots',
+        'HOST': '10.13.223.83',
+        'PORT': '5432',
     }
 }
 

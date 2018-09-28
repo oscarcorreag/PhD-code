@@ -12,7 +12,7 @@ if __name__ == '__main__':
     generator = SuitableNodeWeightGenerator()
     files = {21303: 'maribyrnong'}
     samples = range(5)
-    for sa3_code11, file_ in files.items():
+    for sa3_code11, file_ in files.iteritems():
         dep_hours = osm.get_departure_hours(file_)
         for dh in dep_hours:
             dest_acts = osm.get_dest_activities(file_, dh)

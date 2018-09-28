@@ -129,7 +129,7 @@ def merge_two_zones(zones, np1, np2, seed=0):
             j_ = 1
         else:
             j_ = j - 1
-    zones_ = {k: nodes for k, nodes in zones.items() if k != (i, j) and k != (i_, j_)}
+    zones_ = {k: nodes for k, nodes in zones.iteritems() if k != (i, j) and k != (i_, j_)}
     new_zone = list(zones[(i, j)])
     new_zone.extend(zones[i_, j_])
     zones_["m"] = new_zone
@@ -172,7 +172,7 @@ def distribute_pois_in_queries(dims, nq, npq, seed=0):
     qpp = assign_query_to_poi(nq, npq, seed=seed)
     ppq = dict()
     w = 0
-    for k, nodes in zones_.items():
+    for k, nodes in zones_.iteritems():
         pois = np.random.choice(a=nodes, size=npz[k], replace=False)
         # Assign which query each POI belongs to.
         ass = zip(qpp[w:w + npz[k]], pois)

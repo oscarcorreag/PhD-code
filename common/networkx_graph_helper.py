@@ -35,12 +35,12 @@ class NetworkXGraphHelper:
         if graph.is_node_weighted():
             for node in graph:
                 self.__graph_x.add_node(node, weight=graph[node][0])
-                for adj_node, weight in graph[node][1].items():
+                for adj_node, weight in graph[node][1].iteritems():
                     self.__graph_x.add_edge(node, adj_node, weight=weight)
         else:
             for node in graph:
                 self.__graph_x.add_node(node)
-                for adj_node, weight in graph[node].items():
+                for adj_node, weight in graph[node].iteritems():
                     self.__graph_x.add_edge(node, adj_node, weight=weight)
 
         # Spectral layout looks better for grid graphs.

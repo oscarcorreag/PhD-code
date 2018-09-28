@@ -41,12 +41,12 @@ class ExactC_VSF:
     def __compute_configurations(self, C):
         R = {}
         visited = []
-        for t1, cs1 in C.items():
+        for t1, cs1 in C.iteritems():
             X1 = self.__get_candidates_terminal(t1)
             visited.append(t1)
             for c1 in cs1:
-                C_ = {t: cs for t, cs in C.items() if t not in c1}
-                for t2, cs2 in C_.items():
+                C_ = {t: cs for t, cs in C.iteritems() if t not in c1}
+                for t2, cs2 in C_.iteritems():
                     if t2 in visited:
                         continue
                     X2 = self.__get_candidates_terminal(t2)
@@ -74,7 +74,7 @@ class ExactC_VSF:
             C[t] = {frozenset([t])}
         R = self.__compute_configurations(C)
         while len(R) > 0:
-            for h, cs in R.items():
+            for h, cs in R.iteritems():
                 m = self.__medoids[h]
                 for c in cs:
                     for t in c:
@@ -134,11 +134,11 @@ class ExactC_VSF:
         print len(branches)
         for b in branches:
             groups = {}
-            for t, m in b.items():
+            for t, m in b.iteritems():
                 if m in groups:
                     groups[m].append(t)
                 else:
                     groups[m] = [t]
-            forest, cost = mz.steiner_forest([ts for _, ts in groups.items()], self.__terminals, self.__pois, k, S)
+            forest, cost = mz.steiner_forest([ts for _, ts in groups.iteritems()], self.__terminals, self.__pois, k, S)
             forests[cost] = forest
         return forests[min(forests)], min(forests)

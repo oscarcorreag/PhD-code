@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # special = []
     occupied_t = set()
     # occupied_p = set()
-    for i, pois_z in ppq.items():
+    for i, pois_z in ppq.iteritems():
         np.random.seed(0)
         #
         where_t = set(free_nodes).difference(occupied_t)

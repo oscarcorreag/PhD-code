@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     print et
 
-    special_subgraphs = [(MST, None) for _, (MST, cost) in MSTs.items()]
+    special_subgraphs = [(MST, None) for _, (MST, cost) in MSTs.iteritems()]
 
     ngh = NetworkXGraphHelper(graph)
     ngh.draw_graph(special_nodes=[(req_1[0], '#000000', 50), (req_1[1], '#000000', 100),

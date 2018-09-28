@@ -19,7 +19,7 @@ def get_travel_method_code(travel_method):
 
 class OsmDBManager:
     def __init__(self, user, password, database):
-        self.__conn = pg8000.connect(user=user, password=password, database=database)
+        self.__conn = pg8000.connect(user=user, password=password, database=database, host="10.13.223.83")
         self.__cursor = self.__conn.cursor()
 
     def get_inc_nodes_by_type(self, target_table, key_, value_):
@@ -344,7 +344,7 @@ class OsmDBManager:
                  "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         stmt_2 = "INSERT INTO experiment_details (id, alg, node_id, node_type) VALUES (%s, %s, %s, %s)"
         id_ = int(round(time.time() * 1000))
-        for alg, (values, hs) in experiment.items():
+        for alg, (values, hs) in experiment.iteritems():
             values.extend([id_, alg])
             self.__cursor.execute(stmt_1, tuple(values))
             if not save_details:

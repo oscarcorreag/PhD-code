@@ -46,6 +46,6 @@ if __name__ == '__main__':
 
     ngh = NetworkXGraphHelper(suitability_graph)
     ngh.draw_graph(special_nodes=[(terminals, None, None), ([poi], None, None)],
-                   # subgraphs_1=[r for _, (r, _, _, _, _, _) in regions.items()],
+                   # subgraphs_1=[r for _, (r, _, _, _, _, _) in regions.iteritems()],
                    special_subgraphs=[(tree, None)],
                    print_node_labels=False)

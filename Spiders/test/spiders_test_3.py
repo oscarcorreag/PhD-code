@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     ngh = NetworkXGraphHelper(suitability_graph)
     ngh.draw_graph(special_nodes=[(terminals, None, None)],
-                   # special_subgraphs=[r for _, (r, _, _) in regions.items()],
+                   # special_subgraphs=[r for _, (r, _, _) in regions.iteritems()],
                    special_subgraphs=[(steiner_tree, None)],
                    title_1="Spiders V2, seed = " + str(seed),
                    title_2="Cost: " + str(cost - node_cost) + ", elapsed time: " + str(elapsed_time),

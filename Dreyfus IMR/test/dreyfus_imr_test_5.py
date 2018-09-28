@@ -68,7 +68,7 @@ if __name__ == '__main__':
     ngh.draw_graph(nodes_1=terminals,
                    nodes_2=c,
                    node_weight_generator=generator,
-                   subgraphs_1=[r for _, (r, _, _, _, _, _) in regions.items()],
+                   subgraphs_1=[r for _, (r, _, _, _, _, _) in regions.iteritems()],
                    subgraphs_2=[steiner_tree],
                    title_1="Extended Dreyfus, seed = " + str(seed),
                    title_2="Cost: " + str(cost - node_cost) + ", Upper bound: " + str(upper_bound),

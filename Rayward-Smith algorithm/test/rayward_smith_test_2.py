@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     ngh = NetworkXGraphHelper(suitability_graph)
     ngh.draw_graph(nodes_2=terminals,
-                   subgraphs_1=[r for _, (r, _, _) in regions.items()],
+                   subgraphs_1=[r for _, (r, _, _) in regions.iteritems()],
                    subgraphs_2=[steiner_tree],
                    node_weight_generator=generator,
                    title_1="Rayward-Smith (metric closure), seed = " + str(seed),

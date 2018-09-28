@@ -41,7 +41,7 @@ class Gravitation:
         # ngh = NetworkXGraphHelper(self.__original_graph)
         # ngh.draw_graph(nodes_1=terminals,
         #                nodes_2=[poi],
-        #                subgraphs_1=[r for _, (r, _, _) in self.__graph.contracted_regions.items()],
+        #                subgraphs_1=[r for _, (r, _, _) in self.__graph.contracted_regions.iteritems()],
         #                node_weight_generator=generator,
         #                node_size=25)
         # #
@@ -96,8 +96,8 @@ class Gravitation:
             except KeyError:
                 dist_to_poi[n] = sys.maxint
         # dist_to_poi = {n: self.__dist_paths_node_node[n][0][poi] for n in self.__suitable_nodes}
-        # ord_suit_nodes = sorted(dist_to_poi.items(), key=operator.itemgetter(1), reverse=True)
-        ord_suit_nodes = sorted(dist_to_poi.items(), key=operator.itemgetter(1))
+        # ord_suit_nodes = sorted(dist_to_poi.iteritems(), key=operator.itemgetter(1), reverse=True)
+        ord_suit_nodes = sorted(dist_to_poi.iteritems(), key=operator.itemgetter(1))
         for n, _ in ord_suit_nodes:
             mass = self.__calculate_mass_suitable_node(n)
             self.__attract_nodes_to(n, mass, n, max_level_attraction, 0, [])

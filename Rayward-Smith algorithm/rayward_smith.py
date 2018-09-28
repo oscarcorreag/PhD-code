@@ -62,7 +62,7 @@ class RaywardSmith:
             # Once the distances dictionary is ready for the current node, a list of tuples (subtree, distance) ordered
             # by distance is calculated and stored as a value for the entry -> node: sorted_list_of_subtrees_by_distance
             # The entry is stored in a dictionary which is a class variable.
-            ordering = sorted(self.__dist_paths_node_subtree[n][0].items(), key=operator.itemgetter(1))
+            ordering = sorted(self.__dist_paths_node_subtree[n][0].iteritems(), key=operator.itemgetter(1))
             self.__ordered_subtrees[n] = ordering
 
     '''
@@ -202,7 +202,7 @@ class RaywardSmith:
             best_node = self.__get_best_node()
             # best_nodes.append(best_node)
             self.__merge_subtrees_and_node(best_node)
-            # ngh.draw_graph(self.__terminals, [subtree for _, subtree in self.__subtrees.items()],
+            # ngh.draw_graph(self.__terminals, [subtree for _, subtree in self.__subtrees.iteritems()],
             # best_nodes=best_nodes)
         steiner_tree = self.__subtrees[self.__subtrees.keys()[0]]
         # return steiner_tree, self.__calculate_tree_cost(steiner_tree), best_nodes

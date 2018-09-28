@@ -15,7 +15,7 @@ def shortest_path_primal(graph, start):
         else:
             adj_nodes = graph[v][1]
         constraint = {}
-        for w, dist in adj_nodes.items():
+        for w, dist in adj_nodes.iteritems():
             var1 = (v, w)
             var2 = (w, v)
             variables.add(var1)
@@ -71,7 +71,7 @@ def shortest_path_dual(graph, start):
             adj_nodes = graph[v]
         else:
             adj_nodes = graph[v][1]
-        for w, dist in adj_nodes.items():
+        for w, dist in adj_nodes.iteritems():
             constraint = {v: -1, w: 1}
             constraints.append(constraint)
             b_ub.append(dist)
