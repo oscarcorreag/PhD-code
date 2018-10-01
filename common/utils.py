@@ -32,6 +32,13 @@ def comb_v(l, n, v):
     return res
 
 
+def comb_upto_n(l, n):
+    res = []
+    for i in range(1, n + 1):
+        res.extend(comb(l, i))
+    return res
+
+
 def entropy(X):
     grouped = {k: len(list(v)) for k, v in itertools.groupby(sorted(X))}
     total = float(sum(grouped.values()))
