@@ -145,7 +145,7 @@ def osm_avg(distance, hw_type):
 
 class OsmManager:
     def __init__(self):
-        self.__osmdbmngr = OsmDBManager("postgres", "naya0105", "osm")
+        self.__osmdbmngr = OsmDBManager("postgres", "naya0105", "osm", "localhost")
 
     def get_nodes_for_bbox(self, min_lon, min_lat, max_lon, max_lat, hotspots=True, pois=True):
         nodes = dict()
@@ -251,3 +251,6 @@ class OsmManager:
                     sample = [sa1_codes[ind], da, dh, td, mt]
                     samples.append(sample)
         self.__osmdbmngr.save_samples(samples, sample_table)
+
+    def get_knn(self, lon, lat, k):
+        return self.__osmdbmngr.get_knn(lon, lat, k)

@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'hotspots',
     'congestion',
+    'rest_framework',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -89,12 +90,9 @@ WSGI_APPLICATION = 'ridesharing_django.wsgi.application'
 
 DATABASES = {
     'default': {
-        # 'ENGINE': 'django.db.backends.postgresql',
-        'ENGINE': 'django.db.backends.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'osm',
-        'USER': 'hotspots',
-        'HOST': '10.13.223.83',
-        'PORT': '5432',
+        'USER': 'postgres',
     }
 }
 

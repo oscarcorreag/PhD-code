@@ -11,6 +11,10 @@ from osmmanager import OsmManager
 from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
 from vst_rs import VST_RS
 
+from django.contrib.auth.models import User, Group
+from rest_framework import viewsets
+from hotspots.serializers import UserSerializer, GroupSerializer
+
 
 def get_suitability_graph_from_session(request):
     graph = request.session['graph']
@@ -166,3 +170,19 @@ def index(request):
 
     else:
         return render(request, 'hotspots/index.html', {})
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
+
+
+class GroupViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows groups to be viewed or edited.
+    """
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
