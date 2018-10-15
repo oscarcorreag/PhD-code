@@ -355,13 +355,15 @@ class OsmDBManager:
 
     def get_knn(self, lon, lat, k):
 
-        stmt = "SELECT ST_Distance(geom, 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry), " \
-               "       node_id, " \
-               "       latitude, " \
-               "       longitude " \
-               "FROM	graph_nodes_2 " \
+        stmt = "SELECT  node_id, " \
+               "        latitude, " \
+               "        longitude, " \
+               "        ST_Distance(geom, 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry) distance " \
+               "FROM    graph_nodes_2 " \
                "ORDER BY " \
-               "       geom <-> 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry limit " + str(k)
+               "        geom <-> 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry limit " + str(k)
 
         self.__cursor.execute(stmt)
-        return self.__cursor.fetchall()
+        queryset = self.__cursor.fetchall()
+
+        return [{'node_id': node[0], 'latitude': node[1], 'longitude': node[2], 'distance': node[3]} for node in queryset]

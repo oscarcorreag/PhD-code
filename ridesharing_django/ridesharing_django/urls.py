@@ -16,11 +16,12 @@ Including another URLconf
 from django.conf.urls import include, url
 from django.contrib import admin
 from rest_framework import routers
-from hotspots import views
+import views
 
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
+router.register(r'knnnodes', views.KNNNodeViewSet, base_name='knnnodes')
 
 urlpatterns = [
     url(r'^hotspots/', include('hotspots.urls')),
