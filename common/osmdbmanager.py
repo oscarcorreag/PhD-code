@@ -18,8 +18,8 @@ def get_travel_method_code(travel_method):
 
 
 class OsmDBManager:
-    def __init__(self, user, password, database):
-        self.__conn = pg8000.connect(user=user, password=password, database=database, host="10.13.223.83")
+    def __init__(self, user, password, database, host):
+        self.__conn = pg8000.connect(user=user, password=password, database=database, host=host)
         self.__cursor = self.__conn.cursor()
 
     def get_inc_nodes_by_type(self, target_table, key_, value_):
@@ -352,3 +352,18 @@ class OsmDBManager:
             for h in hs:
                 self.__cursor.execute(stmt_2, (id_, alg, h, 'hotspot'))
         self.__conn.commit()
+
+    def get_knn(self, lon, lat, k):
+
+        stmt = "SELECT  node_id, " \
+               "        latitude, " \
+               "        longitude, " \
+               "        ST_Distance(geom, 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry) distance " \
+               "FROM    graph_nodes_2 " \
+               "ORDER BY " \
+               "        geom <-> 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry limit " + str(k)
+
+        self.__cursor.execute(stmt)
+        queryset = self.__cursor.fetchall()
+
+        return [{'node_id': node[0], 'latitude': node[1], 'longitude': node[2], 'distance': node[3]} for node in queryset]

@@ -8,7 +8,7 @@ from hotspot_based import HotspotBased
 
 if __name__ == '__main__':
     osm = OsmManager()
-    osmdbmngr = OsmDBManager("postgres", "anabelle1803!", "osm")
+    osmdbmngr = OsmDBManager("postgres", "naya0105", "osm", "localhost")
     generator = SuitableNodeWeightGenerator()
     files = {21303: 'maribyrnong'}
     samples = range(5)
