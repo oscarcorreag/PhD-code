@@ -19,4 +19,7 @@
         <item>@drawable/ic_convenience</item>
     </array>
     <string name="title_activity_plan">Plan</string>
+    <string name="action_settings">Settings</string>
+    <string name="section_format">Hello World from section: %1$d</string>
+    <string name="title_activity_origins">Origin</string>
 </resources>

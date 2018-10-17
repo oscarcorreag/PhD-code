@@ -1,11 +1,11 @@
-package unimelb.edu.au.ridesharing;
+package unimelb.edu.au.ridesharing.model;
 
 public class Activity {
     private int id;
     private String name;
     private int resourceId;
 
-    Activity(int id, String name, int resourceId) {
+    public Activity(int id, String name, int resourceId) {
         this.id = id;
         this.name = name;
         this.resourceId = resourceId;

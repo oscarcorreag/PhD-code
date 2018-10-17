@@ -8,6 +8,8 @@ import android.widget.ListView;
 
 import java.util.ArrayList;
 
+import unimelb.edu.au.ridesharing.model.Activity;
+
 public class ActivityListActivity extends AppCompatActivity {
 
     @Override
@@ -24,9 +26,9 @@ public class ActivityListActivity extends AppCompatActivity {
         lvActivities.setAdapter(adapter);
     }
 
-    public void sendMessage(View view)
+    public void showOrigins(View view)
     {
-        Intent intent = new Intent(ActivityListActivity.this, PlanActivity.class);
+        Intent intent = new Intent(ActivityListActivity.this, OriginsActivity.class);
         startActivity(intent);
     }
 }

@@ -5,6 +5,8 @@ import android.content.res.TypedArray;
 
 import java.util.ArrayList;
 
+import unimelb.edu.au.ridesharing.model.Activity;
+
 public class ActivityManager {
 
     private Context context;

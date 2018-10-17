@@ -12,6 +12,8 @@ import android.widget.TextView;
 
 import java.util.List;
 
+import unimelb.edu.au.ridesharing.model.Activity;
+
 public class ActivityListViewAdapter extends ArrayAdapter<Activity> {
 
     ActivityListViewAdapter(@NonNull Context context, int resource, @NonNull List<Activity> objects) {

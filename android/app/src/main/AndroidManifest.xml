@@ -37,10 +37,21 @@
 
         <activity
             android:name=".PlanActivity"
-            android:label="@string/title_activity_plan"></activity>
+            android:label="@string/title_activity_plan" />
 
-        <!--TODO: Why is this needed for the emulator in MacOS?-->
-        <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+        <!-- TODO: Why is this needed for the emulator in MacOS? -->
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
+
+        <activity
+            android:name=".OriginsActivity"
+            android:label="@string/title_activity_origins"
+            android:parentActivityName=".ActivityListActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="unimelb.edu.au.ridesharing.ActivityListActivity" />
+        </activity>
     </application>
 
 </manifest>
