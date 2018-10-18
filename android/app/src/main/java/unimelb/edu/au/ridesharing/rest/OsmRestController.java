@@ -16,7 +16,7 @@ import unimelb.edu.au.ridesharing.model.KNNNode;
 public class OsmRestController implements Callback<List<KNNNode>> {
 
 //    static final String API_URL = "http://4000L-122353-W:8000/";
-    static final String API_URL = "http://10.13.196.38:8000/";
+    static final String API_URL = "http://localhost:8000/rs/";
 
     public void start() {
         Gson gson = new GsonBuilder()
@@ -36,7 +36,7 @@ public class OsmRestController implements Callback<List<KNNNode>> {
         if (response.isSuccessful()) {
             List<KNNNode> nodes = response.body();
             if (nodes != null) {
-                nodes.forEach(node -> System.out.println(node.getNodeId()));
+//                nodes.forEach(node -> System.out.println(node.getNodeId()));
             }
         } else {
             System.out.println(response.errorBody());
