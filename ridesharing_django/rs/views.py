@@ -51,5 +51,5 @@ class KnnNodeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class SessionViewSet(viewsets.ModelViewSet):
-    queryset = Session.objects.all()
+    queryset = Session.objects.all().order_by('-start_time')
     serializer_class = SessionSerializer

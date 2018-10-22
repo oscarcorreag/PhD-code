@@ -17,6 +17,9 @@ class Session(models.Model):
     end_time = models.DateTimeField(null=True)
     city = models.CharField(max_length=20, choices=CITIES)
     current = models.BooleanField()
+    creator = models.ForeignKey(User, on_delete=models.CASCADE)
+    real_users = models.SmallIntegerField()
+    simulated_users = models.SmallIntegerField()
 
 
 class SessionUser(models.Model):
@@ -42,6 +45,7 @@ class SessionUser(models.Model):
     origin = models.BigIntegerField()
     destination = models.BigIntegerField()
     activity = models.CharField(max_length=50, choices=ACTIVITIES)
+    vehicle = models.SmallIntegerField(null=True)
 
 
 class SessionPlan(models.Model):

@@ -31,4 +31,4 @@ class KnnNodeSerializer(serializers.Serializer):
 class SessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Session
-        fields = ('start_time', 'end_time', 'city', 'current')
+        fields = ('start_time', 'end_time', 'city', 'current', 'creator', 'real_users', 'simulated_users')
