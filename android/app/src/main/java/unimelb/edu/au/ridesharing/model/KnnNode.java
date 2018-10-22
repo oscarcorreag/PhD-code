@@ -1,17 +1,18 @@
 package unimelb.edu.au.ridesharing.model;
 
-public class KNNNode {
-    private long nodeId;
+public class KnnNode {
+
+    private long node;
     private double longitude;
     private double latitude;
     private double distance;
 
-    public long getNodeId() {
-        return nodeId;
+    public long getNode() {
+        return node;
     }
 
-    public void setNodeId(long nodeId) {
-        this.nodeId = nodeId;
+    public void setNode(long node) {
+        this.node = node;
     }
 
     public double getLongitude() {
