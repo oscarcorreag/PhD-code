@@ -366,4 +366,4 @@ class OsmDBManager:
         self.__cursor.execute(stmt)
         queryset = self.__cursor.fetchall()
 
-        return [{'node_id': node[0], 'latitude': node[1], 'longitude': node[2], 'distance': node[3]} for node in queryset]
+        return [{'node': node[0], 'latitude': node[1], 'longitude': node[2], 'distance': node[3]} for node in queryset]

@@ -1,5 +1,6 @@
-from django.contrib.auth.models import User, Group
 from rest_framework import serializers
+from django.contrib.auth.models import User, Group
+from models import Session
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -14,14 +15,20 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('url', 'name')
 
 
-class KNNNodeSerializer(serializers.Serializer):
+class KnnNodeSerializer(serializers.Serializer):
     def create(self, validated_data):
         pass
 
     def update(self, instance, validated_data):
         pass
 
-    node_id = serializers.IntegerField(read_only=True)
+    node = serializers.IntegerField(read_only=True)
     longitude = serializers.FloatField(read_only=True)
     latitude = serializers.FloatField(read_only=True)
     distance = serializers.FloatField(read_only=True)
+
+
+class SessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Session
+        fields = ('start_time', 'end_time', 'city', 'current', 'creator', 'real_users', 'simulated_users')
