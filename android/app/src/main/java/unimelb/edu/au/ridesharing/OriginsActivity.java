@@ -14,7 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import unimelb.edu.au.ridesharing.rest.OsmRestController;
+import unimelb.edu.au.ridesharing.rest.KnnNodesController;
 
 public class OriginsActivity extends AppCompatActivity {
 
@@ -46,8 +46,8 @@ public class OriginsActivity extends AppCompatActivity {
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
 
-        OsmRestController controller = new OsmRestController();
-        controller.start();
+        KnnNodesController controller = new KnnNodesController();
+        controller.get(144, -37, 10);
 
     }
 
