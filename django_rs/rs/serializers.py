@@ -6,7 +6,7 @@ from models import Session
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
-        fields = ('url', 'username', 'email', 'groups')
+        fields = ('id', 'url', 'username', 'email')
 
 
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
@@ -31,4 +31,4 @@ class KnnNodeSerializer(serializers.Serializer):
 class SessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Session
-        fields = ('start_time', 'end_time', 'city', 'current', 'creator', 'real_users', 'simulated_users')
+        fields = ('id', 'start_time', 'end_time', 'city', 'active', 'creator', 'real_users', 'simulated_users')
