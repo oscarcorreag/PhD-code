@@ -1,4 +1,4 @@
-package unimelb.edu.au.ridesharing;
+package unimelb.edu.au.ridesharing.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -9,6 +9,7 @@ import android.widget.Spinner;
 
 import java.util.List;
 
+import unimelb.edu.au.ridesharing.R;
 import unimelb.edu.au.ridesharing.model.User;
 import unimelb.edu.au.ridesharing.rest.UserController;
 
@@ -41,7 +42,7 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public void manageSession(View view) {
-        Intent intent = new Intent(this, SessionActivity.class);
+        Intent intent = new Intent(this, ManageSessionActivity.class);
         intent.putExtra("user", (User) mUsersSpinner.getSelectedItem());
         startActivity(intent);
     }

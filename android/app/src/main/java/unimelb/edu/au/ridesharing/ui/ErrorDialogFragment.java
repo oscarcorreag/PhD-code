@@ -1,4 +1,4 @@
-package unimelb.edu.au.ridesharing;
+package unimelb.edu.au.ridesharing.ui;
 
 import android.app.Dialog;
 import android.content.DialogInterface;

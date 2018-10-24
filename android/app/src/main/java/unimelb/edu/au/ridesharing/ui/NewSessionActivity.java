@@ -1,9 +1,8 @@
-package unimelb.edu.au.ridesharing;
+package unimelb.edu.au.ridesharing.ui;
 
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -11,6 +10,8 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import unimelb.edu.au.ridesharing.R;
+import unimelb.edu.au.ridesharing.ResponseStatus;
 import unimelb.edu.au.ridesharing.model.Session;
 import unimelb.edu.au.ridesharing.model.User;
 import unimelb.edu.au.ridesharing.rest.SessionController;

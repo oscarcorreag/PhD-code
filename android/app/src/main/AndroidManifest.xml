@@ -19,7 +19,7 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.MainActivity"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -28,16 +28,15 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".SessionActivity"
+            android:name=".ui.ManageSessionActivity"
             android:label="Manage Session" />
         <activity
-            android:name=".NewSessionActivity"
+            android:name=".ui.NewSessionActivity"
             android:label="New Session" />
         <activity
-            android:name=".ExistingSessionsActivity"
+            android:name=".ui.ExistingSessionsActivity"
             android:label="Existing Sessions" />
-        <activity android:name=".ActivityListActivity" />
-
+        <activity android:name=".ui.ActivityListActivity"/>
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").
@@ -51,22 +50,13 @@
             android:value="@string/google_maps_key" />
 
         <activity
-            android:name=".PlanActivity"
+            android:name=".ui.PlanActivity"
             android:label="@string/title_activity_plan" />
 
         <!-- TODO: Why is this needed for the emulator in MacOS? -->
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
-
-        <activity
-            android:name=".OriginsActivity"
-            android:label="@string/title_activity_origins"
-            android:parentActivityName=".ActivityListActivity">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="unimelb.edu.au.ridesharing.ActivityListActivity" />
-        </activity>
 
     </application>
 

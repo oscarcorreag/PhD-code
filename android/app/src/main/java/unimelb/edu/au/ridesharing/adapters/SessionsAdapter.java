@@ -51,7 +51,7 @@ public class SessionsAdapter extends ArrayAdapter<Session> {
 
         TextView usersTextView = view.findViewById(R.id.users_textView);
         usersTextView.setText(String.format(Locale.getDefault(),
-                "Real: %d\tSimulated: %d",
+                "Real: %d\t\tSimulated: %d",
                 session.getRealUsers(),
                 session.getSimulatedUsers()));
 

@@ -1,14 +1,16 @@
-package unimelb.edu.au.ridesharing;
+package unimelb.edu.au.ridesharing.ui;
 
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 
+import unimelb.edu.au.ridesharing.R;
 import unimelb.edu.au.ridesharing.model.User;
+import unimelb.edu.au.ridesharing.ui.ExistingSessionsActivity;
+import unimelb.edu.au.ridesharing.ui.NewSessionActivity;
 
-public class SessionActivity extends AppCompatActivity {
+public class ManageSessionActivity extends AppCompatActivity {
 
     private static final String TAG = "SessionActivity";
 

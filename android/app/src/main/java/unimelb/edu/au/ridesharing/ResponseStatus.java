@@ -1,5 +1,13 @@
 package unimelb.edu.au.ridesharing;
 
+import android.util.Log;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+
+import retrofit2.Response;
 import unimelb.edu.au.ridesharing.rest.StatusCode;
 
 public class ResponseStatus {
@@ -9,6 +17,30 @@ public class ResponseStatus {
     public ResponseStatus(StatusCode mCode, String mDetail) {
         this.mCode = mCode;
         this.mDetail = mDetail;
+    }
+
+    public ResponseStatus(JSONObject jsonObject) {
+        try {
+            this.mCode = StatusCode.valueOf(jsonObject.getInt("status_code"));
+            this.mDetail = jsonObject.getString("detail");
+        } catch (JSONException e) {
+            this.mCode = StatusCode.INTERNAL_SERVER_ERROR;
+            this.mDetail = "Unknown error.";
+        }
+    }
+
+    public static ResponseStatus createFrom(Response response, StatusCode defaultCode, String defaultDetail) {
+        ResponseStatus responseStatus = null;
+        try {
+            JSONObject jsonObject = new JSONObject(response.errorBody().string());
+            responseStatus = new ResponseStatus(jsonObject);
+        } catch (IOException | JSONException e) {
+            e.printStackTrace();
+        }
+        if (responseStatus == null) {
+            responseStatus = new ResponseStatus(defaultCode, defaultDetail);
+        }
+        return responseStatus;
     }
 
     public StatusCode getCode() {

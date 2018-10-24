@@ -18,6 +18,7 @@ import unimelb.edu.au.ridesharing.model.Session;
 public class SessionController {
 
     private static final String TAG = "SessionController";
+    private static final StatusCode DEFAULT_STATUS_CODE = StatusCode.INTERNAL_SERVER_ERROR;
 
     public interface SessionListControllerListener {
         void processSessions(List<Session> sessions, ResponseStatus status);
@@ -48,17 +49,15 @@ public class SessionController {
                     StatusCode statusCode = StatusCode.valueOf(response.code());
                     mSessionListListener.processSessions(sessions, new ResponseStatus(statusCode, "Session list retrieved successfully."));
                 } else {
-                    try {
-                        Log.e(TAG, response.errorBody().string());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    String defaultDetail = "An error occurred while the session list was being retrieved.";
+                    mNewSessionListener.processNewSession(null, ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail));
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<List<Session>> call, @NonNull Throwable t) {
                 Log.e(TAG, t.getLocalizedMessage());
+                mNewSessionListener.processNewSession(null, new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage()));
             }
         });
     }
@@ -73,24 +72,15 @@ public class SessionController {
                     StatusCode statusCode = StatusCode.valueOf(response.code());
                     mNewSessionListener.processNewSession(s, new ResponseStatus(statusCode, "New session was created successfully."));
                 } else {
-                    StatusCode statusCode = StatusCode.INTERNAL_SERVER_ERROR;
-                    String detail = "An error occurred while a new session was being created.";
-                    try {
-                        JSONObject jsonObject = new JSONObject(response.errorBody().string());
-                        int code = jsonObject.getInt("status_code");
-                        detail = jsonObject.getString("detail");
-                        statusCode = StatusCode.valueOf(code);
-                        Log.e(TAG, jsonObject.toString());
-                    } catch (IOException | JSONException e) {
-                        e.printStackTrace();
-                    }
-                    mNewSessionListener.processNewSession(null, new ResponseStatus(statusCode, detail));
+                    String defaultDetail = "An error occurred while a new session was being created.";
+                    mNewSessionListener.processNewSession(null, ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail));
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<Session> call, @NonNull Throwable t) {
                 Log.e(TAG, t.getLocalizedMessage());
+                mNewSessionListener.processNewSession(null, new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage()));
             }
         });
     }

@@ -1,4 +1,4 @@
-package unimelb.edu.au.ridesharing;
+package unimelb.edu.au.ridesharing.adapters;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -12,11 +12,12 @@ import android.widget.TextView;
 
 import java.util.List;
 
-import unimelb.edu.au.ridesharing.model.Activity;
+import unimelb.edu.au.ridesharing.R;
+import unimelb.edu.au.ridesharing.model.SessionActivity;
 
-public class ActivityListViewAdapter extends ArrayAdapter<Activity> {
+public class ActivityListViewAdapter extends ArrayAdapter<SessionActivity> {
 
-    ActivityListViewAdapter(@NonNull Context context, int resource, @NonNull List<Activity> objects) {
+    ActivityListViewAdapter(@NonNull Context context, int resource, @NonNull List<SessionActivity> objects) {
         super(context, resource, objects);
     }
 
@@ -26,13 +27,13 @@ public class ActivityListViewAdapter extends ArrayAdapter<Activity> {
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.item_activity, parent, false);
         }
-        Activity activity = getItem(position);
+        SessionActivity sessionActivity = getItem(position);
 
         ImageView imgActivity = convertView.findViewById(R.id.img_activity);
         TextView txtActivity = convertView.findViewById(R.id.txt_activity);
-        if (activity != null) {
-            imgActivity.setImageResource(activity.getResourceId());
-            txtActivity.setText(activity.getName());
+        if (sessionActivity != null) {
+            imgActivity.setImageResource(sessionActivity.getResourceId());
+            txtActivity.setText(sessionActivity.getName());
         }
 
         return convertView;
