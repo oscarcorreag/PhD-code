@@ -11,7 +11,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import unimelb.edu.au.ridesharing.model.User;
 
-public class UserController implements Callback<List<User>> {
+public class UserController {
 
     private static final String TAG = "UserController";
 
@@ -27,25 +27,26 @@ public class UserController implements Callback<List<User>> {
 
     public void getUsers() {
         Call<List<User>> call = RsRestService.getInstance().getService().getUsers();
-        call.enqueue(this);
-    }
-
-    @Override
-    public void onResponse(@NonNull Call<List<User>> call, @NonNull Response<List<User>> response) {
-        if (response.isSuccessful()) {
-            List<User> users = response.body();
-            mListener.processUsers(users);
-        } else {
-            try {
-                Log.e(TAG, response.errorBody().string());
-            } catch (IOException e) {
-                e.printStackTrace();
+        call.enqueue(new Callback<List<User>>() {
+            @Override
+            public void onResponse(@NonNull Call<List<User>> call, @NonNull Response<List<User>> response) {
+                if (response.isSuccessful()) {
+                    List<User> users = response.body();
+                    mListener.processUsers(users);
+                } else {
+                    try {
+                        Log.e(TAG, response.errorBody().string());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
-        }
+
+            @Override
+            public void onFailure(@NonNull Call<List<User>> call, @NonNull Throwable t) {
+                Log.e(TAG, t.getLocalizedMessage());
+            }
+        });
     }
 
-    @Override
-    public void onFailure(@NonNull Call<List<User>> call, @NonNull Throwable t) {
-        Log.e(TAG, t.getLocalizedMessage());
-    }
 }

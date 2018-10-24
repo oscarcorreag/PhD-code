@@ -3,13 +3,20 @@ package unimelb.edu.au.ridesharing.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.gson.annotations.SerializedName;
+
 public class User implements Parcelable {
-    private String username;
-    private String email;
+    @SerializedName("id")
+    private int mId;
+    @SerializedName("username")
+    private String mUsername;
+    @SerializedName("email")
+    private String mEmail;
 
     protected User(Parcel in) {
-        username = in.readString();
-        email = in.readString();
+        mId = in.readInt();
+        mUsername = in.readString();
+        mEmail = in.readString();
     }
 
     public static final Creator<User> CREATOR = new Creator<User>() {
@@ -24,25 +31,33 @@ public class User implements Parcelable {
         }
     };
 
+    public int getId() {
+        return mId;
+    }
+
+    public void setId(int mId) {
+        this.mId = mId;
+    }
+
     public String getUsername() {
-        return username;
+        return mUsername;
     }
 
     public void setUsername(String username) {
-        this.username = username;
+        this.mUsername = username;
     }
 
     public String getEmail() {
-        return email;
+        return mEmail;
     }
 
     public void setEmail(String email) {
-        this.email = email;
+        this.mEmail = email;
     }
 
     @Override
     public String toString() {
-        return String.format("%s: %s", username, email);
+        return String.format("%s: %s", mUsername, mEmail);
     }
 
     @Override
@@ -52,7 +67,8 @@ public class User implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(username);
-        dest.writeString(email);
+        dest.writeInt(mId);
+        dest.writeString(mUsername);
+        dest.writeString(mEmail);
     }
 }

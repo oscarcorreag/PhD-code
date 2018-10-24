@@ -1,13 +1,76 @@
 package unimelb.edu.au.ridesharing;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.Spinner;
+import android.widget.Toast;
 
-public class NewSessionActivity extends AppCompatActivity {
+import unimelb.edu.au.ridesharing.model.Session;
+import unimelb.edu.au.ridesharing.model.User;
+import unimelb.edu.au.ridesharing.rest.SessionController;
+
+public class NewSessionActivity extends AppCompatActivity implements SessionController.NewSessionControllerListener {
+
+    private static final String TAG = "NewSessionActivity";
+
+    User mSelectedUser;
+    Spinner mCitiesSpinner;
+    ProgressBar mCreateProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_session);
+
+        mSelectedUser = getIntent().getParcelableExtra("user");
+
+        mCitiesSpinner = findViewById(R.id.city_spinner);
+        mCreateProgressBar = findViewById(R.id.create_progressBar);
+
+        ArrayAdapter<CharSequence> adapter =
+                ArrayAdapter.createFromResource(
+                        this,
+                        R.array.cities_array,
+                        android.R.layout.simple_spinner_item);
+
+        mCitiesSpinner.setAdapter(adapter);
+    }
+
+    public void createSession(View view) {
+        String city = (String) mCitiesSpinner.getSelectedItem();
+
+        EditText realUsersEditText = findViewById(R.id.real_users_editText);
+        int realUsers = Integer.parseInt(realUsersEditText.getText().toString());
+
+        EditText simulatedUsersEditText = findViewById(R.id.simulated_users_editText);
+        int simulatedUsers = Integer.parseInt(simulatedUsersEditText.getText().toString());
+
+        Session session = new Session(city, mSelectedUser.getId(), realUsers, simulatedUsers);
+
+        SessionController sessionController = new SessionController();
+        sessionController.setNewSessionListener(this);
+        sessionController.postSession(session);
+    }
+
+    @Override
+    public void processNewSession(Session session, ResponseStatus responseStatus) {
+        if (responseStatus.isSuccessful()) {
+            Toast.makeText(this, responseStatus.getDetail(), Toast.LENGTH_LONG).show();
+            Intent intent = new Intent(this, ActivityListActivity.class);
+            intent.putExtra("session", session);
+            startActivity(intent);
+        } else {
+            ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
+            Bundle args = new Bundle();
+            args.putCharSequence("message", responseStatus.getDetail());
+            errorDialogFragment.setArguments(args);
+            errorDialogFragment.show(getSupportFragmentManager(), "ErrorDialogFragment");
+        }
     }
 }

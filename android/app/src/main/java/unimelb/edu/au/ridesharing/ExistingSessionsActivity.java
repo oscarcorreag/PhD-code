@@ -11,7 +11,7 @@ import unimelb.edu.au.ridesharing.model.Session;
 import unimelb.edu.au.ridesharing.rest.SessionController;
 
 public class ExistingSessionsActivity extends AppCompatActivity implements
-        SessionController.SessionControllerListener {
+        SessionController.SessionListControllerListener {
 
     private static final String TAG = "ExistingSessionActivity";
 
@@ -24,13 +24,22 @@ public class ExistingSessionsActivity extends AppCompatActivity implements
 
         mSessionsListView = findViewById(R.id.sessions_listView);
 
-        SessionController sessionController = new SessionController(this);
+        SessionController sessionController = new SessionController();
+        sessionController.setSessionListListener(this);
         sessionController.getSessions();
     }
 
     @Override
-    public void processSessions(List<Session> sessions) {
-        SessionsAdapter sessionsAdapter = new SessionsAdapter(this, R.layout.item_session, sessions);
-        mSessionsListView.setAdapter(sessionsAdapter);
+    public void processSessions(List<Session> sessions, ResponseStatus responseStatus) {
+        if (responseStatus.isSuccessful()) {
+            SessionsAdapter sessionsAdapter = new SessionsAdapter(this, R.layout.item_session, sessions);
+            mSessionsListView.setAdapter(sessionsAdapter);
+        } else {
+            ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
+            Bundle args = new Bundle();
+            args.putCharSequence("message", responseStatus.getDetail());
+            errorDialogFragment.setArguments(args);
+            errorDialogFragment.show(getSupportFragmentManager(), "ErrorDialogFragment");
+        }
     }
 }
