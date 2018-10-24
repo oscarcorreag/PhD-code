@@ -1,75 +1,134 @@
 package unimelb.edu.au.ridesharing.model;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import com.google.gson.annotations.SerializedName;
 
 import java.util.Date;
 
-public class Session {
+public class Session implements Parcelable {
+    @SerializedName("id")
+    private int mId;
     @SerializedName("start_time")
-    private Date startTime;
+    private Date mStartTime;
     @SerializedName("end_time")
-    private Date endTime;
-    private String city;
-    private boolean current;
-    private int creator;
+    private Date mEndTime;
+    @SerializedName("city")
+    private String mCity;
+    @SerializedName("active")
+    private boolean mActive;
+    @SerializedName("creator")
+    private int mCreator;
     @SerializedName("real_users")
-    private int realUsers;
+    private int mRealUsers;
     @SerializedName("simulated_users")
-    private int simulatedUsers;
+    private int mSimulatedUsers;
+
+    public Session(String city, int creator, int realUsers, int simulatedUsers) {
+        mCity = city;
+        mCreator = creator;
+        mRealUsers = realUsers;
+        mSimulatedUsers = simulatedUsers;
+    }
+
+    protected Session(Parcel in) {
+        mId = in.readInt();
+        mCity = in.readString();
+        mActive = in.readByte() != 0;
+        mCreator = in.readInt();
+        mRealUsers = in.readInt();
+        mSimulatedUsers = in.readInt();
+    }
+
+    public static final Creator<Session> CREATOR = new Creator<Session>() {
+        @Override
+        public Session createFromParcel(Parcel in) {
+            return new Session(in);
+        }
+
+        @Override
+        public Session[] newArray(int size) {
+            return new Session[size];
+        }
+    };
+
+    public int getId() {
+        return mId;
+    }
+
+    public void setId(int id) {
+        this.mId = id;
+    }
 
     public Date getStartTime() {
-        return startTime;
+        return mStartTime;
     }
 
     public void setStartTime(Date startTime) {
-        this.startTime = startTime;
+        this.mStartTime = startTime;
     }
 
     public Date getEndTime() {
-        return endTime;
+        return mEndTime;
     }
 
     public void setEndTime(Date endTime) {
-        this.endTime = endTime;
+        this.mEndTime = endTime;
     }
 
     public String getCity() {
-        return city;
+        return mCity;
     }
 
     public void setCity(String city) {
-        this.city = city;
+        this.mCity = city;
     }
 
-    public boolean isCurrent() {
-        return current;
+    public boolean isActive() {
+        return mActive;
     }
 
-    public void setCurrent(boolean current) {
-        this.current = current;
+    public void setActive(boolean active) {
+        this.mActive = active;
     }
 
     public int getCreator() {
-        return creator;
+        return mCreator;
     }
 
     public void setCreator(int creator) {
-        this.creator = creator;
+        this.mCreator = creator;
     }
 
     public int getRealUsers() {
-        return realUsers;
+        return mRealUsers;
     }
 
     public void setRealUsers(int realUsers) {
-        this.realUsers = realUsers;
+        this.mRealUsers = realUsers;
     }
 
     public int getSimulatedUsers() {
-        return simulatedUsers;
+        return mSimulatedUsers;
     }
 
     public void setSimulatedUsers(int simulatedUsers) {
-        this.simulatedUsers = simulatedUsers;
+        this.mSimulatedUsers = simulatedUsers;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(mId);
+        dest.writeString(mCity);
+        dest.writeByte((byte) (mActive ? 1 : 0));
+        dest.writeInt(mCreator);
+        dest.writeInt(mRealUsers);
+        dest.writeInt(mSimulatedUsers);
     }
 }
