@@ -21,10 +21,10 @@ public class ActivityManager {
         int[] ids = context.getResources().getIntArray(R.array.activity_ids);
         String[] names = context.getResources().getStringArray(R.array.activities);
         TypedArray icons = context.getResources().obtainTypedArray(R.array.activities_icons);
-        for (int i = 0; i < ids.length; i++) {
-            SessionActivity sessionActivity = new SessionActivity(ids[i], names[i], icons.getResourceId(i, 0));
-            activities.add(sessionActivity);
-        }
+//        for (int i = 0; i < ids.length; i++) {
+//            SessionActivity sessionActivity = new SessionActivity(ids[i], names[i], icons.getResourceId(i, 0));
+//            activities.add(sessionActivity);
+//        }
         icons.recycle();
         return activities;
     }

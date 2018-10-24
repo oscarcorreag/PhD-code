@@ -31,10 +31,10 @@ public class ActivityListViewAdapter extends ArrayAdapter<SessionActivity> {
 
         ImageView imgActivity = convertView.findViewById(R.id.img_activity);
         TextView txtActivity = convertView.findViewById(R.id.txt_activity);
-        if (sessionActivity != null) {
-            imgActivity.setImageResource(sessionActivity.getResourceId());
-            txtActivity.setText(sessionActivity.getName());
-        }
+//        if (sessionActivity != null) {
+//            imgActivity.setImageResource(sessionActivity.getResourceId());
+//            txtActivity.setText(sessionActivity.getName());
+//        }
 
         return convertView;
     }

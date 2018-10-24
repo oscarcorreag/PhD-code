@@ -44,6 +44,9 @@ public class NewSessionActivity extends AppCompatActivity implements SessionCont
     }
 
     public void createSession(View view) {
+
+        mCreateProgressBar.setVisibility(View.VISIBLE);
+
         String city = (String) mCitiesSpinner.getSelectedItem();
 
         EditText realUsersEditText = findViewById(R.id.real_users_editText);
@@ -61,6 +64,9 @@ public class NewSessionActivity extends AppCompatActivity implements SessionCont
 
     @Override
     public void processNewSession(Session session, ResponseStatus responseStatus) {
+
+        mCreateProgressBar.setVisibility(View.GONE);
+
         if (responseStatus.isSuccessful()) {
             Toast.makeText(this, responseStatus.getDetail(), Toast.LENGTH_LONG).show();
             Intent intent = new Intent(this, ActivityListActivity.class);
