@@ -20,7 +20,7 @@
         android:usesCleartextTraffic="true">
         <activity
             android:name=".ui.MainActivity"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:label="Who are you?">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -36,7 +36,9 @@
         <activity
             android:name=".ui.ExistingSessionsActivity"
             android:label="Existing Sessions" />
-        <activity android:name=".ui.ActivityListActivity"/>
+        <activity
+            android:name=".ui.ActivityListActivity"
+            android:label="What do you want to do?"/>
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").
