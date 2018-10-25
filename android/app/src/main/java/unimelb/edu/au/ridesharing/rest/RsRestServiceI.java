@@ -30,4 +30,7 @@ public interface RsRestServiceI {
 
     @GET("/rs/sessions/{session}/activities")
     Call<List<SessionActivity>> getActivities(@Path("session") int sessionId);
+
+    @POST("/rs/sessions/join/")
+    Call<Session> joinSession(@Query("user") int userId);
 }

@@ -1,7 +1,5 @@
 package unimelb.edu.au.ridesharing;
 
-import android.util.Log;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -21,7 +19,7 @@ public class ResponseStatus {
 
     public ResponseStatus(JSONObject jsonObject) {
         try {
-            this.mCode = StatusCode.valueOf(jsonObject.getInt("status_code"));
+            this.mCode = StatusCode.fromValue(jsonObject.getInt("status_code"));
             this.mDetail = jsonObject.getString("detail");
         } catch (JSONException e) {
             this.mCode = StatusCode.INTERNAL_SERVER_ERROR;

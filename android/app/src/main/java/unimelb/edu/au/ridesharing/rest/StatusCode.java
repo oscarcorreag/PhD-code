@@ -1,5 +1,7 @@
 package unimelb.edu.au.ridesharing.rest;
 
+import android.annotation.SuppressLint;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,6 +13,7 @@ public enum StatusCode {
     private final int mCode;
     private final String mDetailCode;
 
+    @SuppressLint("UseSparseArrays")
     private static Map<Integer, StatusCode> map = new HashMap<>();
 
     static {
@@ -32,7 +35,7 @@ public enum StatusCode {
         return mDetailCode;
     }
 
-    public static StatusCode valueOf(int code) {
+    public static StatusCode fromValue(int code) {
         return map.get(code);
     }
 }

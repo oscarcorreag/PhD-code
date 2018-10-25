@@ -12,6 +12,7 @@ import android.widget.Toast;
 
 import unimelb.edu.au.ridesharing.R;
 import unimelb.edu.au.ridesharing.ResponseStatus;
+import unimelb.edu.au.ridesharing.model.City;
 import unimelb.edu.au.ridesharing.model.Session;
 import unimelb.edu.au.ridesharing.model.User;
 import unimelb.edu.au.ridesharing.rest.SessionController;
@@ -34,11 +35,11 @@ public class NewSessionActivity extends AppCompatActivity implements SessionCont
         mCitiesSpinner = findViewById(R.id.city_spinner);
         mCreateProgressBar = findViewById(R.id.create_progressBar);
 
-        ArrayAdapter<CharSequence> adapter =
-                ArrayAdapter.createFromResource(
+        ArrayAdapter<City> adapter =
+                new ArrayAdapter<>(
                         this,
-                        R.array.cities_array,
-                        android.R.layout.simple_spinner_item);
+                        R.layout.support_simple_spinner_dropdown_item,
+                        City.values());
 
         mCitiesSpinner.setAdapter(adapter);
     }
@@ -47,7 +48,7 @@ public class NewSessionActivity extends AppCompatActivity implements SessionCont
 
         mCreateProgressBar.setVisibility(View.VISIBLE);
 
-        String city = (String) mCitiesSpinner.getSelectedItem();
+        City city = (City) mCitiesSpinner.getSelectedItem();
 
         EditText realUsersEditText = findViewById(R.id.real_users_editText);
         int realUsers = Integer.parseInt(realUsersEditText.getText().toString());
@@ -55,7 +56,7 @@ public class NewSessionActivity extends AppCompatActivity implements SessionCont
         EditText simulatedUsersEditText = findViewById(R.id.simulated_users_editText);
         int simulatedUsers = Integer.parseInt(simulatedUsersEditText.getText().toString());
 
-        Session session = new Session(city, mSelectedUser.getId(), realUsers, simulatedUsers);
+        Session session = new Session(city.getIataCode(), mSelectedUser.getId(), realUsers, simulatedUsers);
 
         SessionController sessionController = new SessionController();
         sessionController.setNewSessionListener(this);
