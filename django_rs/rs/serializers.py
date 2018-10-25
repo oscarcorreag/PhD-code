@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User, Group
-from models import Session
+from models import Session, SessionActivity
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -32,3 +32,9 @@ class SessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Session
         fields = ('id', 'start_time', 'end_time', 'city', 'active', 'creator', 'real_users', 'simulated_users')
+
+
+class SessionActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SessionActivity
+        fields = ('activity',)

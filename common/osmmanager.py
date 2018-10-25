@@ -252,5 +252,8 @@ class OsmManager:
                     samples.append(sample)
         self.__osmdbmngr.save_samples(samples, sample_table)
 
-    def get_knn(self, lon, lat, k):
-        return self.__osmdbmngr.get_knn(lon, lat, k)
+    def get_knn(self, lon, lat, k, min_dist=None):
+        return self.__osmdbmngr.get_knn(lon, lat, k, min_dist)
+
+    def get_coordinates(self, node):
+        return self.__osmdbmngr.get_coordinates(node)

@@ -21,7 +21,7 @@ public class KnnNodesController implements Callback<List<KnnNode>> {
         if (response.isSuccessful()) {
             List<KnnNode> nodes = response.body();
             if (nodes != null) {
-                nodes.forEach(node -> System.out.println("node:" + node.getNode()));
+//                nodes.forEach(node -> System.out.println("node:" + node.getNode()));
             }
         } else {
             System.out.println(response.errorBody());

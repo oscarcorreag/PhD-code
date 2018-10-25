@@ -26,6 +26,10 @@ class Session(models.Model):
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     real_users = models.SmallIntegerField()
     simulated_users = models.SmallIntegerField()
+    min_lon = models.FloatField()
+    min_lat = models.FloatField()
+    max_lon = models.FloatField()
+    max_lat = models.FloatField()
 
 
 class SessionUser(models.Model):
@@ -48,7 +52,7 @@ class SessionUser(models.Model):
     join_time = models.DateTimeField(auto_now_add=True)
     origin = models.BigIntegerField()
     destination = models.BigIntegerField(null=True)
-    activity = models.CharField(max_length=50, choices=ACTIVITIES)
+    activity = models.CharField(max_length=50, choices=ACTIVITIES, null=True)
     vehicle = models.SmallIntegerField(null=True)
 
 
@@ -59,23 +63,37 @@ class SessionPlan(models.Model):
 
 class SessionPlanDetail(models.Model):
     plan = models.ForeignKey(SessionPlan, on_delete=models.CASCADE)
-    edge_i = models.BigIntegerField()
-    edge_j = models.BigIntegerField()
+    node_i = models.BigIntegerField()
+    node_j = models.BigIntegerField()
 
 
-class SessionGraph(models.Model):
+class SessionGraphEdge(models.Model):
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
-    edge_i = models.BigIntegerField()
-    edge_j = models.BigIntegerField()
+    node_i = models.BigIntegerField()
+    node_j = models.BigIntegerField()
     weight = models.FloatField()
 
 
-class SessionGraphPoi(models.Model):
+# class SessionGraphPoi(models.Model):
+#     session = models.ForeignKey(Session, on_delete=models.CASCADE)
+#     poi = models.BigIntegerField()
+#     activity = models.CharField(max_length=50)
+#
+#
+# class SessionGraphHotspot(models.Model):
+#     session = models.ForeignKey(Session, on_delete=models.CASCADE)
+#     hotspot = models.BigIntegerField()
+
+
+class SessionGraphNode(models.Model):
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
-    poi = models.BigIntegerField()
+    node = models.BigIntegerField()
+    node_type = models.CharField(max_length=1)
+    activity = models.CharField(max_length=50, null=True)
+
+
+class SessionActivity(models.Model):
+    session = models.ForeignKey(Session, on_delete=models.CASCADE)
     activity = models.CharField(max_length=50)
 
 
-class SessionGraphHotspot(models.Model):
-    session = models.ForeignKey(Session, on_delete=models.CASCADE)
-    hotspot = models.BigIntegerField()

@@ -353,13 +353,18 @@ class OsmDBManager:
                 self.__cursor.execute(stmt_2, (id_, alg, h, 'hotspot'))
         self.__conn.commit()
 
-    def get_knn(self, lon, lat, k):
+    def get_knn(self, lon, lat, k, min_dist=None):
+
+        where_stmt = ""
+        if min_dist:
+            where_stmt = "WHERE ST_Distance(geom, 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry) >= " \
+                         + str(min_dist / 111111.)
 
         stmt = "SELECT  node_id, " \
                "        latitude, " \
                "        longitude, " \
                "        ST_Distance(geom, 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry) distance " \
-               "FROM    graph_nodes_2 " \
+               "FROM    graph_nodes_2 " + where_stmt + " " \
                "ORDER BY " \
                "        geom <-> 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry limit " + str(k)
 
@@ -367,3 +372,14 @@ class OsmDBManager:
         queryset = self.__cursor.fetchall()
 
         return [{'node': node[0], 'latitude': node[1], 'longitude': node[2], 'distance': node[3]} for node in queryset]
+
+    def get_coordinates(self, node):
+        stmt = "SELECT  longitude, " \
+               "        latitude " \
+               "FROM    nodes " \
+               "WHERE   node_id = %s"
+        self.__cursor.execute(stmt, (node,))
+        record = self.__cursor.fetchone()
+        if not record:
+            return {}
+        return {'longitude': record[0], 'latitude': record[1]}

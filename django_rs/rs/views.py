@@ -1,26 +1,27 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.utils import DatabaseError
-from rest_framework.response import Response
 from rest_framework import viewsets, status
-
-from django.contrib.auth.models import User, Group
-from models import Session, SessionUser
-from model_less import KnnNode
-from rs.exceptions import NotEnoughNodesException, ActiveSessionExistsException, NewSessionTransactionException
-
-from serializers import UserSerializer, GroupSerializer, KnnNodeSerializer, SessionSerializer
-
-from osmmanager import OsmManager
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from controllers import SessionController
+from model_less import KnnNode
+from models import Session, SessionActivity, SessionUser
+from osmmanager import OsmManager
+from rs.exceptions import ActiveSessionExistsException, NewSessionTransactionException, NoActiveSessionExistsException, \
+    NotAllowedToJoinSessionException
+from serializers import UserSerializer, KnnNodeSerializer, SessionSerializer, SessionActivitySerializer
 
 # import logging
 
 
 # logger = logging.getLogger('django')
+
+MIN_DIST = 200
 
 
 # Create your views here.
@@ -32,12 +33,12 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
 
-class GroupViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows groups to be viewed or edited.
-    """
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
+# class GroupViewSet(viewsets.ModelViewSet):
+#     """
+#     API endpoint that allows groups to be viewed or edited.
+#     """
+#     queryset = Group.objects.all()
+#     serializer_class = GroupSerializer
 
 
 class KnnNodeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -69,34 +70,76 @@ class SessionViewSet(viewsets.ModelViewSet):
         if SessionController.active_exists():
             # logger.error(ActiveSessionExistsException.default_detail)
             raise ActiveSessionExistsException
-        # Get the session object to associate it with its corresponding details.
-        session = Session(**serializer.validated_data)
-        session.active = True
         # Prepare new session: create detail objects for the new session.
-        graph_model, pois_model, hotspots_model, users_model = SessionController.prepare_new(session)
-        # It may happen the sample yields no graph nodes.
-        if len(graph_model) == 0 or len(pois_model) == 0 or len(hotspots_model) == 0 or len(users_model) == 0:
-            # logger.error(NotEnoughNodesException.default_detail)
-            raise NotEnoughNodesException
+        simulated_users = serializer.validated_data['simulated_users']
+        city = serializer.validated_data['city']
+        edges, nodes, users, activities, min_lon, min_lat, max_lon, max_lat, origin_creator = \
+            SessionController.prepare_new(simulated_users, city)
         try:
             with transaction.atomic():
-                session.save()
-                # Save graph.
-                for edge_model in graph_model:
-                    edge_model.session = session
-                    edge_model.save()
-                # Save POIs.
-                for poi_model in pois_model:
-                    poi_model.session = session
-                    poi_model.save()
-                # Save hot-spots.
-                for hotspot_model in hotspots_model:
-                    hotspot_model.session = session
-                    hotspot_model.save()
+                session = serializer.save(
+                    active=True,
+                    min_lon=min_lon,
+                    min_lat=min_lat,
+                    max_lon=max_lon,
+                    max_lat=max_lat)
+                # Save graph edges
+                for edge in edges:
+                    edge.session = session
+                    edge.save()
+                # Save nodes.
+                for node in nodes:
+                    node.session = session
+                    node.save()
                 # Save users.
-                for user_model in users_model:
-                    user_model.session = session
-                    user_model.save()
+                users.append(SessionUser(origin=origin_creator, user=session.creator))
+                for user in users:
+                    user.session = session
+                    user.save()
+                # Save activities.
+                for activity in activities:
+                    activity.session = session
+                    activity.save()
         except DatabaseError:
             raise NewSessionTransactionException
-        return Response(session, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    def join(self, request):
+        # Retrieve the active session.
+        queryset = Session.objects.filter(active=True)
+        if not queryset:
+            raise NoActiveSessionExistsException
+        active_session = queryset[0]
+        serializer = self.get_serializer(active_session)
+        # Get real users already in the session.
+        real_session_users = SessionUser.objects.filter(user__isnull=False)
+        # If the user who made the request is NOT in the session already AND the number of real users has been reached,
+        # the user is NOT allowed to join the session.
+        user_id = int(request.query_params["user"])
+        joined_before = False
+        for u in real_session_users:
+            if u.user.id == user_id:
+                joined_before = True
+        if not joined_before and active_session.real_users == len(real_session_users):
+            raise NotAllowedToJoinSessionException
+        # If the user who made the request is NOT in the session already, SessionUser object corresponding to this user
+        # is created.
+        if not joined_before:
+            other_user = User.objects.get(pk=user_id)
+            # There must be at least one real user. Choose the first one.
+            real_user = real_session_users[0]
+            osm = OsmManager()
+            coords = osm.get_coordinates(real_user.origin)
+            # Origin of this new session user is close (>= MIN_DIST) to the chosen one.
+            one_nn = osm.get_knn(coords["longitude"], coords["latitude"], 1, MIN_DIST)[0]
+            other_user = SessionUser(origin=one_nn['node'], user=other_user, session=active_session)
+            other_user.save()
+        return Response(serializer.data)
+
+
+class SessionActivityViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = SessionActivitySerializer
+
+    def get_queryset(self):
+        session = self.kwargs['session']
+        return SessionActivity.objects.filter(session__id=session)
