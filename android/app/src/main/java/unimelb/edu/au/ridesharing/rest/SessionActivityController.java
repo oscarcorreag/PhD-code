@@ -37,14 +37,17 @@ public class SessionActivityController {
                     mActivityListListener.processActivities(activities, new ResponseStatus(statusCode, "Activity list retrieved successfully."));
                 } else {
                     String defaultDetail = "An error occurred while the activity list was being retrieved.";
-                    mActivityListListener.processActivities(null, ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail));
+                    ResponseStatus responseStatus = ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail);
+                    Log.e(TAG, responseStatus.getDetail());
+                    mActivityListListener.processActivities(null, responseStatus);
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<List<SessionActivity>> call, @NonNull Throwable t) {
-                Log.e(TAG, t.getLocalizedMessage());
-                mActivityListListener.processActivities(null, new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage()));
+                ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
+//                Log.e(TAG, responseStatus.getDetail());
+                mActivityListListener.processActivities(null, responseStatus);
             }
         });
     }

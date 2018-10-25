@@ -55,14 +55,17 @@ public class SessionController {
                     mSessionListListener.processSessions(sessions, new ResponseStatus(statusCode, "Session list retrieved successfully."));
                 } else {
                     String defaultDetail = "An error occurred while the session list was being retrieved.";
-                    mSessionListListener.processSessions(null, ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail));
+                    ResponseStatus responseStatus = ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail);
+                    Log.e(TAG, responseStatus.getDetail());
+                    mSessionListListener.processSessions(null, responseStatus);
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<List<Session>> call, @NonNull Throwable t) {
-                Log.e(TAG, t.getLocalizedMessage());
-                mSessionListListener.processSessions(null, new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage()));
+                ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
+//                Log.e(TAG, responseStatus.getDetail());
+                mSessionListListener.processSessions(null, responseStatus);
             }
         });
     }
@@ -87,7 +90,7 @@ public class SessionController {
             @Override
             public void onFailure(@NonNull Call<Session> call, @NonNull Throwable t) {
                 ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
-                Log.e(TAG, responseStatus.getDetail());
+//                Log.e(TAG, responseStatus.getDetail());
                 // TODO: Since this seems to be a client-side error, e.g., timeout, it may be possible a session was indeed created. Therefore, reloading is an option. UPDATE: However, this can be workarounded by joining to active session.
                 mNewSessionListener.processNewSession(null, responseStatus);
             }
@@ -114,7 +117,7 @@ public class SessionController {
             @Override
             public void onFailure(@NonNull Call<Session> call, @NonNull Throwable t) {
                 ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
-                Log.e(TAG, responseStatus.getDetail());
+//                Log.e(TAG, responseStatus.getDetail());
                 mJoinSessionListener.processActiveSession(null, responseStatus);
             }
         });

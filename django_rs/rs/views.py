@@ -115,25 +115,31 @@ class SessionViewSet(viewsets.ModelViewSet):
         real_session_users = SessionUser.objects.filter(user__isnull=False)
         # If the user who made the request is NOT in the session already AND the number of real users has been reached,
         # the user is NOT allowed to join the session.
-        user_id = int(request.query_params["user"])
-        joined_before = False
-        for u in real_session_users:
-            if u.user.id == user_id:
-                joined_before = True
+        new_user_id = int(request.query_params["user"])
+        ids = {u.user.id for u in real_session_users}
+        joined_before = new_user_id in ids
+        # for u in real_session_users:
+        #     if u.user.id == user_id:
+        #         joined_before = True
         if not joined_before and active_session.real_users == len(real_session_users):
             raise NotAllowedToJoinSessionException
         # If the user who made the request is NOT in the session already, SessionUser object corresponding to this user
         # is created.
         if not joined_before:
-            other_user = User.objects.get(pk=user_id)
+            new_user = User.objects.get(pk=new_user_id)
             # There must be at least one real user. Choose the first one.
-            real_user = real_session_users[0]
+            chosen_session_user = real_session_users[0]
             osm = OsmManager()
-            coords = osm.get_coordinates(real_user.origin)
-            # Origin of this new session user is close (>= MIN_DIST) to the chosen one.
-            one_nn = osm.get_knn(coords["longitude"], coords["latitude"], 1, MIN_DIST)[0]
-            other_user = SessionUser(origin=one_nn['node'], user=other_user, session=active_session)
-            other_user.save()
+            coords = osm.get_coordinates(chosen_session_user.origin)
+            # Origin of this new session user is close (>= MIN_DIST) to the chosen one but it is different from other
+            # real users' origins.
+            knn = osm.get_knn(coords["longitude"], coords["latitude"], len(real_session_users), MIN_DIST)
+            origins = {u.origin for u in real_session_users}
+            knn_ = {nn["node"] for nn in knn}
+            temp = list(knn_.difference(origins))
+            assert len(temp) == 1
+            new_session_user = SessionUser(origin=temp[0], user=new_user, session=active_session)
+            new_session_user.save()
         return Response(serializer.data)
 
 
