@@ -12,6 +12,7 @@ import retrofit2.http.Query;
 import unimelb.edu.au.ridesharing.model.KnnNode;
 import unimelb.edu.au.ridesharing.model.Session;
 import unimelb.edu.au.ridesharing.model.SessionActivity;
+import unimelb.edu.au.ridesharing.model.SessionUser;
 import unimelb.edu.au.ridesharing.model.User;
 
 public interface RsRestServiceI {
@@ -33,4 +34,10 @@ public interface RsRestServiceI {
 
     @POST("/rs/sessions/join/")
     Call<Session> joinSession(@Query("user") int userId);
+
+    @GET("/rs/sessions/{session}/users/{user}")
+    Call<SessionUser> getSessionUser(@Path("session") int sessionId, @Path("user") int userId);
+
+    @POST("rs/session/{session}/plan/")
+    Call<Session> plan(@Path("session") int sessionId, @Query("user") int userId, @Query("activity") String activity);
 }

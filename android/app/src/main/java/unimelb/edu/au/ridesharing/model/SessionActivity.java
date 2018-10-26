@@ -1,13 +1,26 @@
 package unimelb.edu.au.ridesharing.model;
 
+import com.google.gson.annotations.SerializedName;
+
 public class SessionActivity {
-    private String activity;
+    @SerializedName("session")
+    private int mSessionId;
+    @SerializedName("activity")
+    private String mActivity;
+
+    public int getSessionId() {
+        return mSessionId;
+    }
+
+    public void setSessionId(int sessionId) {
+        this.mSessionId = sessionId;
+    }
 
     public String getActivity() {
-        return activity;
+        return mActivity;
     }
 
     public void setActivity(String activity) {
-        this.activity = activity;
+        this.mActivity = activity;
     }
 }
