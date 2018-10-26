@@ -13,13 +13,14 @@ from model_less import KnnNode
 from models import Session, SessionActivity, SessionUser
 from osmmanager import OsmManager
 from rs.exceptions import ActiveSessionExistsException, NewSessionTransactionException, NoActiveSessionExistsException, \
-    NotAllowedToJoinSessionException
-from serializers import UserSerializer, KnnNodeSerializer, SessionSerializer, SessionActivitySerializer
+    NotAllowedToJoinSessionException, NoSessionUserException
+from serializers import UserSerializer, KnnNodeSerializer, SessionSerializer, SessionActivitySerializer, \
+    SessionUserSerializer
 
 # import logging
 
 
-# logger = logging.getLogger('django')
+# logger = logging.getLogger("django")
 
 MIN_DIST = 200
 
@@ -29,7 +30,7 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-    queryset = User.objects.all().order_by('-date_joined')
+    queryset = User.objects.all().order_by("-date_joined")
     serializer_class = UserSerializer
 
 
@@ -46,13 +47,14 @@ class KnnNodeViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = KnnNodeSerializer
 
     def get_queryset(self):
-        longitude = self.request.query_params.get('longitude')
-        latitude = self.request.query_params.get('latitude')
-        k = self.request.query_params.get('k')
+        longitude = self.request.query_params.get("longitude")
+        latitude = self.request.query_params.get("latitude")
+        k = self.request.query_params.get("k")
         return OsmManager().get_knn(longitude, latitude, k)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
+        # TODO: This should be within get_queryset(self)
         knn_nodes = []
         for node in queryset:
             knn_node = KnnNode(**node)
@@ -62,7 +64,7 @@ class KnnNodeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class SessionViewSet(viewsets.ModelViewSet):
-    queryset = Session.objects.all().order_by('-start_time')
+    queryset = Session.objects.all().order_by("-start_time")
     serializer_class = SessionSerializer
 
     def perform_create(self, serializer):
@@ -71,8 +73,8 @@ class SessionViewSet(viewsets.ModelViewSet):
             # logger.error(ActiveSessionExistsException.default_detail)
             raise ActiveSessionExistsException
         # Prepare new session: create detail objects for the new session.
-        simulated_users = serializer.validated_data['simulated_users']
-        city = serializer.validated_data['city']
+        simulated_users = serializer.validated_data["simulated_users"]
+        city = serializer.validated_data["city"]
         edges, nodes, users, activities, min_lon, min_lat, max_lon, max_lat, origin_creator = \
             SessionController.prepare_new(simulated_users, city)
         try:
@@ -103,13 +105,13 @@ class SessionViewSet(viewsets.ModelViewSet):
         except DatabaseError:
             raise NewSessionTransactionException
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def join(self, request):
         # Retrieve the active session.
-        queryset = Session.objects.filter(active=True)
-        if not queryset:
+        try:
+            active_session = Session.objects.get(active=True)
+        except Session.DoesNotExist:
             raise NoActiveSessionExistsException
-        active_session = queryset[0]
         serializer = self.get_serializer(active_session)
         # Get real users already in the session.
         real_session_users = SessionUser.objects.filter(user__isnull=False)
@@ -118,14 +120,12 @@ class SessionViewSet(viewsets.ModelViewSet):
         new_user_id = int(request.query_params["user"])
         ids = {u.user.id for u in real_session_users}
         joined_before = new_user_id in ids
-        # for u in real_session_users:
-        #     if u.user.id == user_id:
-        #         joined_before = True
         if not joined_before and active_session.real_users == len(real_session_users):
             raise NotAllowedToJoinSessionException
         # If the user who made the request is NOT in the session already, SessionUser object corresponding to this user
         # is created.
         if not joined_before:
+            # Retrieve the User object that will be set as FK.
             new_user = User.objects.get(pk=new_user_id)
             # There must be at least one real user. Choose the first one.
             chosen_session_user = real_session_users[0]
@@ -142,10 +142,58 @@ class SessionViewSet(viewsets.ModelViewSet):
             new_session_user.save()
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"])
+    def plan(self, request):
+        session = self.get_object()
+        # Update user is ready to travel.
+        user_id = int(request.query_params["user"])
+        activity = request.query_params["activity"]
+        session_user = SessionUser.objects.get(session=session, user__id=user_id)
+        session_user.save(ready_to_travel=True, activity=activity)
+        # Am I the last user who issue the request to compute the plan?
+        users_ready = SessionUser.objects.filter(ready_to_travel=True)
+        if len(users_ready) < session.real_users:
+            return Response({"status_code": 100, "detail": "You must wait till all users are ready to travel."})
+        return Response({"status_code": 200, "detail": "OK"})
+
 
 class SessionActivityViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SessionActivitySerializer
 
     def get_queryset(self):
-        session = self.kwargs['session']
-        return SessionActivity.objects.filter(session__id=session)
+        session_id = self.kwargs["session"]
+        return SessionActivity.objects.filter(session__id=session_id)
+
+
+def session_user_from_record(record):
+    session_user = SessionUser(**record)
+    session_user.user = User(id=record["user_id"])
+    session_user.longitude = record["longitude"]
+    session_user.latitude = record["latitude"]
+    return session_user
+
+
+class SessionUserViewSet(viewsets.ModelViewSet):
+    serializer_class = SessionUserSerializer
+
+    def get_object(self):
+        session_id = self.kwargs["session"]
+        user_id = self.kwargs["pk"]
+        # queryset = OsmManager().get_session_user_by_pk(user_id)
+        record = OsmManager().get_session_user(session_id, user_id)
+        if not record:
+            raise NoSessionUserException
+        session_user = session_user_from_record(record)
+        session_user.session = Session(id=session_id)
+        return session_user
+
+    def get_queryset(self):
+        session_id = self.kwargs["session"]
+        res = OsmManager().get_session_users(session_id)
+        session_users = []
+        for user in res:
+            session_user = session_user_from_record(user)
+            session_user.session = Session(id=session_id)
+            session_users.append(session_user)
+        return session_users
+

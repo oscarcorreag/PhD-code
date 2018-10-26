@@ -54,3 +54,9 @@ class NotAllowedToJoinSessionException(APIException):
     status_code = 500
     default_detail = 'The number of real users has been reached.'
     default_code = 'internal_server_error'
+
+
+class NoSessionUserException(APIException):
+    status_code = 500
+    default_detail = 'This user is not in this session.'
+    default_code = 'internal_server_error'

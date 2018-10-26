@@ -22,7 +22,7 @@ class Session(models.Model):
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField(null=True)
     city = models.CharField(max_length=20, choices=CITIES)
-    active = models.BooleanField()
+    active = models.BooleanField(default=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     real_users = models.SmallIntegerField()
     simulated_users = models.SmallIntegerField()
@@ -54,6 +54,27 @@ class SessionUser(models.Model):
     destination = models.BigIntegerField(null=True)
     activity = models.CharField(max_length=50, choices=ACTIVITIES, null=True)
     vehicle = models.SmallIntegerField(null=True)
+    ready_to_travel = models.BooleanField(default=False)
+
+    def __init__(self, *args, **kwargs):
+        super(SessionUser, self).__init__(*args, **kwargs)
+        self._longitude = 0.0
+        self._latitude = 0.0
+
+    def get_longitude(self):
+        return self._longitude
+
+    def set_longitude(self, value):
+        self._longitude = value
+
+    def get_latitude(self):
+        return self._latitude
+
+    def set_latitude(self, value):
+        self._latitude = value
+
+    longitude = property(get_longitude, set_longitude)
+    latitude = property(get_latitude, set_latitude)
 
 
 class SessionPlan(models.Model):

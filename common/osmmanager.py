@@ -257,3 +257,13 @@ class OsmManager:
 
     def get_coordinates(self, node):
         return self.__osmdbmngr.get_coordinates(node)
+
+    def get_session_users(self, session_id):
+        return self.__osmdbmngr.get_session_users(session_id)
+
+    def get_session_user_by_pk(self, pk):
+        return self.__osmdbmngr.get_session_user_by_pk(pk)
+
+    def get_session_user(self, session_id, user_id):
+        return self.__osmdbmngr.get_session_user(session_id, user_id)
+

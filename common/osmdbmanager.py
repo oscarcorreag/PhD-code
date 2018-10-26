@@ -17,6 +17,22 @@ def get_travel_method_code(travel_method):
     return 2
 
 
+FIELDS_SESSION_USER = ["id",
+                       "user_id",
+                       "join_time",
+                       "origin",
+                       "destination",
+                       "activity",
+                       "vehicle",
+                       "ready_to_travel",
+                       "longitude",
+                       "latitude"]
+
+
+def map_record_session_user(record):
+    return {field: record[i] for i, field in enumerate(FIELDS_SESSION_USER)}
+
+
 class OsmDBManager:
     def __init__(self, user, password, database, host):
         self.__conn = pg8000.connect(user=user, password=password, database=database, host=host)
@@ -83,7 +99,7 @@ class OsmDBManager:
             self.__cursor.execute("INSERT INTO hotspots (node_id, hotspot_type) VALUES (%s, %s)", (h[0], h[1]))
 
     def copy_hotspots_by_type(self, key_, value_):
-
+        # BEFORE HAVE A LOOK AT C:\Users\oscarcg\Dropbox\Education\Unimelb PhD\datasets\OSM utils\Get hotspots.sql
         hotspots = self.get_inc_nodes_by_type("hotspots", key_, value_)
         hotspots_w_type = [[h[0], key_ + ":" + value_] for h in hotspots]
         self.save_hotspots(hotspots_w_type)
@@ -371,7 +387,7 @@ class OsmDBManager:
         self.__cursor.execute(stmt)
         queryset = self.__cursor.fetchall()
 
-        return [{'node': node[0], 'latitude': node[1], 'longitude': node[2], 'distance': node[3]} for node in queryset]
+        return [{"node": node[0], "latitude": node[1], "longitude": node[2], "distance": node[3]} for node in queryset]
 
     def get_coordinates(self, node):
         stmt = "SELECT  longitude, " \
@@ -382,4 +398,52 @@ class OsmDBManager:
         record = self.__cursor.fetchone()
         if not record:
             return {}
-        return {'longitude': record[0], 'latitude': record[1]}
+        return {"longitude": record[0], "latitude": record[1]}
+
+    def get_session_users(self, session_id):
+
+        stmt = "SELECT  " + ', '.join(FIELDS_SESSION_USER) + " " \
+               "FROM    rs_sessionuser " \
+               "INNER JOIN " \
+               "        nodes " \
+               "ON      rs_sessionuser.origin = nodes.node_id " \
+               "WHERE   session_id = %s"
+        self.__cursor.execute(stmt, (session_id,))
+        queryset = self.__cursor.fetchall()
+
+        return [map_record_session_user(user) for user in queryset]
+
+    def get_session_user_by_pk(self, pk):
+
+        stmt = "SELECT  " + ', '.join(FIELDS_SESSION_USER) + " " \
+               "FROM    rs_sessionuser " \
+               "INNER JOIN " \
+               "        nodes " \
+               "ON      rs_sessionuser.origin = nodes.node_id " \
+               "WHERE   id = %s"
+
+        self.__cursor.execute(stmt, (pk,))
+        queryset = self.__cursor.fetchall()
+
+        result = {}
+        if len(queryset) == 1:
+            result = map_record_session_user(queryset[0])
+        return result
+
+    def get_session_user(self, session_id, user_id):
+
+        stmt = "SELECT  " + ', '.join(FIELDS_SESSION_USER) + " " \
+               "FROM    rs_sessionuser " \
+               "INNER JOIN " \
+               "        nodes " \
+               "ON      rs_sessionuser.origin = nodes.node_id " \
+               "WHERE   session_id = %s " \
+               "AND     user_id = %s"
+
+        self.__cursor.execute(stmt, (session_id, user_id))
+        queryset = self.__cursor.fetchall()
+
+        result = {}
+        if len(queryset) == 1:
+            result = map_record_session_user(queryset[0])
+        return result
