@@ -3,10 +3,11 @@ package unimelb.edu.au.ridesharing.ui;
 import unimelb.edu.au.ridesharing.R;
 import unimelb.edu.au.ridesharing.ResponseStatus;
 import unimelb.edu.au.ridesharing.adapters.ActivitiesAdapter;
-import unimelb.edu.au.ridesharing.model.Session;
 import unimelb.edu.au.ridesharing.model.SessionActivity;
+import unimelb.edu.au.ridesharing.model.SessionUser;
 import unimelb.edu.au.ridesharing.rest.SessionActivityController;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -23,7 +24,7 @@ public class ActivityListActivity extends AppCompatActivity implements
 
     private static final String TAG = "ActivityListActivity";
 
-    Session mSession;
+    SessionUser mSessionUser;
     ListView mActivitiesListView;
     ProgressBar mActivitiesProgressBar;
     RadioButton mSelectRadioButton = null;
@@ -33,13 +34,13 @@ public class ActivityListActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list);
 
-        mSession = getIntent().getParcelableExtra("session");
+        mSessionUser = getIntent().getParcelableExtra("sessionUser");
 
         mActivitiesListView = findViewById(R.id.activities_listView);
 
         SessionActivityController sessionActivityController = new SessionActivityController();
         sessionActivityController.setActivityListListener(this);
-        sessionActivityController.getActivities(mSession.getId());
+        sessionActivityController.getActivities(mSessionUser.getSessionId());
 
         mActivitiesProgressBar = findViewById(R.id.activities_progressBar);
         mActivitiesProgressBar.setVisibility(View.VISIBLE);
@@ -71,5 +72,11 @@ public class ActivityListActivity extends AppCompatActivity implements
             mSelectRadioButton.setChecked(false);
         }
         mSelectRadioButton = (RadioButton) v;
+    }
+
+    public void seeOrigins(View v) {
+        Intent intent = new Intent(this, OriginActivity.class);
+        intent.putExtra("sessionUser", mSessionUser);
+        startActivity(intent);
     }
 }

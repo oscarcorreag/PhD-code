@@ -8,4 +8,5 @@
     <string name="section_format">Hello World from section: %1$d</string>
     <string name="title_activity_origins">Origin</string>
     <string name="title_activity_existing_sessions">ExistingSessionsActivity</string>
+    <string name="title_activity_origin">Where is everyone?</string>
 </resources>

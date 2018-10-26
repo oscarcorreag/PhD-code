@@ -10,6 +10,7 @@ import android.widget.Toast;
 import unimelb.edu.au.ridesharing.R;
 import unimelb.edu.au.ridesharing.ResponseStatus;
 import unimelb.edu.au.ridesharing.model.Session;
+import unimelb.edu.au.ridesharing.model.SessionUser;
 import unimelb.edu.au.ridesharing.model.User;
 import unimelb.edu.au.ridesharing.rest.SessionController;
 
@@ -31,6 +32,7 @@ public class ManageSessionActivity extends AppCompatActivity implements SessionC
     }
 
     public void createSession(View view) {
+        // TODO: Check first whether there is already an active session.
         Intent intent = new Intent(this, NewSessionActivity.class);
         intent.putExtra("user", mSelectedUser);
         startActivity(intent);
@@ -55,8 +57,11 @@ public class ManageSessionActivity extends AppCompatActivity implements SessionC
 
         if (responseStatus.isSuccessful()) {
             Toast.makeText(this, responseStatus.getDetail(), Toast.LENGTH_LONG).show();
+
+            SessionUser sessionUser = new SessionUser(session.getId(), mSelectedUser.getId());
+
             Intent intent = new Intent(this, ActivityListActivity.class);
-            intent.putExtra("session", session);
+            intent.putExtra("sessionUser", sessionUser);
             startActivity(intent);
         } else {
             ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
