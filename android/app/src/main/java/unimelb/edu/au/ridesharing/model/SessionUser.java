@@ -8,6 +8,11 @@ import com.google.gson.annotations.SerializedName;
 import java.util.Date;
 
 public class SessionUser implements Parcelable {
+
+    private Session mSession;
+
+    private User mUser;
+
     @SerializedName("id")
     private int mId;
     @SerializedName("session")
@@ -37,6 +42,8 @@ public class SessionUser implements Parcelable {
     }
 
     protected SessionUser(Parcel in) {
+        mSession = in.readParcelable(Session.class.getClassLoader());
+        mUser = in.readParcelable(User.class.getClassLoader());
         mId = in.readInt();
         mSessionId = in.readInt();
         mUserId = in.readInt();
@@ -60,6 +67,22 @@ public class SessionUser implements Parcelable {
             return new SessionUser[size];
         }
     };
+
+    public Session getSession() {
+        return mSession;
+    }
+
+    public void setSession(Session session) {
+        this.mSession = session;
+    }
+
+    public User getUser() {
+        return mUser;
+    }
+
+    public void setUser(User user) {
+        this.mUser = user;
+    }
 
     public int getId() {
         return mId;
@@ -156,6 +179,8 @@ public class SessionUser implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        dest.writeParcelable(mSession, flags);
+        dest.writeParcelable(mUser, flags);
         dest.writeInt(mId);
         dest.writeInt(mSessionId);
         dest.writeInt(mUserId);
@@ -166,5 +191,16 @@ public class SessionUser implements Parcelable {
         dest.writeByte((byte) (mReadyToTravel ? 1 : 0));
         dest.writeDouble(mLongitude);
         dest.writeDouble(mLatitude);
+    }
+
+    public void update(SessionUser other) {
+        this.mId = other.mId;
+        this.mOrigin = other.mOrigin;
+        this.mDestination = other.mDestination;
+        this.mActivity = other.mActivity;
+        this.mVehicle = other.mVehicle;
+        this.mReadyToTravel = other.mReadyToTravel;
+        this.mLongitude = other.mLongitude;
+        this.mLatitude = other.mLatitude;
     }
 }

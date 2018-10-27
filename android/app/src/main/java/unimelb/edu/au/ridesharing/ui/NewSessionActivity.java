@@ -49,6 +49,8 @@ public class NewSessionActivity extends AppCompatActivity implements SessionCont
 
         mCreateProgressBar.setVisibility(View.VISIBLE);
 
+        // TODO: Validate input.
+
         City city = (City) mCitiesSpinner.getSelectedItem();
 
         EditText realUsersEditText = findViewById(R.id.real_users_editText);
@@ -73,6 +75,8 @@ public class NewSessionActivity extends AppCompatActivity implements SessionCont
             Toast.makeText(this, responseStatus.getDetail(), Toast.LENGTH_LONG).show();
 
             SessionUser sessionUser = new SessionUser(session.getId(), mSelectedUser.getId());
+            sessionUser.setSession(session);
+            sessionUser.setUser(mSelectedUser);
 
             Intent intent = new Intent(this, ActivityListActivity.class);
             intent.putExtra("sessionUser", sessionUser);

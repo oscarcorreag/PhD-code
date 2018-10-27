@@ -3,6 +3,8 @@ package unimelb.edu.au.ridesharing.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.Date;
@@ -24,6 +26,14 @@ public class Session implements Parcelable {
     private int mRealUsers;
     @SerializedName("simulated_users")
     private int mSimulatedUsers;
+    @SerializedName("min_lon")
+    private double mMinLon;
+    @SerializedName("min_lat")
+    private double mMinLat;
+    @SerializedName("max_lon")
+    private double mMaxLon;
+    @SerializedName("max_lat")
+    private double mMaxLat;
 
     public Session(String city, int creator, int realUsers, int simulatedUsers) {
         mCity = city;
@@ -39,6 +49,10 @@ public class Session implements Parcelable {
         mCreator = in.readInt();
         mRealUsers = in.readInt();
         mSimulatedUsers = in.readInt();
+        mMinLon = in.readDouble();
+        mMinLat = in.readDouble();
+        mMaxLon = in.readDouble();
+        mMaxLat = in.readDouble();
     }
 
     public static final Creator<Session> CREATOR = new Creator<Session>() {
@@ -117,6 +131,44 @@ public class Session implements Parcelable {
         this.mSimulatedUsers = simulatedUsers;
     }
 
+    public double getMinLon() {
+        return mMinLon;
+    }
+
+    public void setMinLon(double minLon) {
+        this.mMinLon = minLon;
+    }
+
+    public double getMinLat() {
+        return mMinLat;
+    }
+
+    public void setMinLat(double minLat) {
+        this.mMinLat = minLat;
+    }
+
+    public double getMaxLon() {
+        return mMaxLon;
+    }
+
+    public void setMaxLon(double maxLon) {
+        this.mMaxLon = maxLon;
+    }
+
+    public double getMaxLat() {
+        return mMaxLat;
+    }
+
+    public void setMaxLat(double maxLat) {
+        this.mMaxLat = maxLat;
+    }
+
+    public LatLngBounds getBounds() {
+        LatLng sw = new LatLng(this.mMinLat, this.mMinLon);
+        LatLng ne = new LatLng(this.mMaxLat, this.mMaxLon);
+        return new LatLngBounds(sw, ne);
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -130,5 +182,9 @@ public class Session implements Parcelable {
         dest.writeInt(mCreator);
         dest.writeInt(mRealUsers);
         dest.writeInt(mSimulatedUsers);
+        dest.writeDouble(mMinLon);
+        dest.writeDouble(mMinLat);
+        dest.writeDouble(mMaxLon);
+        dest.writeDouble(mMaxLat);
     }
 }
