@@ -3,6 +3,9 @@ package unimelb.edu.au.ridesharing.rest;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.List;
 
 import retrofit2.Call;
@@ -20,6 +23,10 @@ public class SessionController {
         void processSessions(List<Session> sessions, ResponseStatus status);
     }
 
+    public interface CanCreateSessionControllerListener {
+        void processResponse(ResponseStatus status);
+    }
+
     public interface NewSessionControllerListener {
         void processNewSession(Session session, ResponseStatus status);
     }
@@ -29,11 +36,16 @@ public class SessionController {
     }
 
     private SessionListControllerListener mSessionListListener;
+    private CanCreateSessionControllerListener mCanCreateSessionListener;
     private NewSessionControllerListener mNewSessionListener;
     private JoinSessionControllerListener mJoinSessionListener;
 
     public void setSessionListListener(SessionListControllerListener sessionListListener) {
         this.mSessionListListener = sessionListListener;
+    }
+
+    public void setCanCreateSessionListener(CanCreateSessionControllerListener canCreateSessionListener) {
+        this.mCanCreateSessionListener = canCreateSessionListener;
     }
 
     public void setNewSessionListener(NewSessionControllerListener newSessionListener) {
@@ -66,6 +78,33 @@ public class SessionController {
                 ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
 //                Log.e(TAG, responseStatus.getDetail());
                 mSessionListListener.processSessions(null, responseStatus);
+            }
+        });
+    }
+
+    public void canCreate() {
+        Call<ResponseStatus> call = RsRestService.getInstance().getService().canCreateSession();
+        call.enqueue(new Callback<ResponseStatus>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseStatus> call, @NonNull Response<ResponseStatus> response) {
+                if (response.isSuccessful()) {
+                    ResponseStatus status = response.body();
+                    StatusCode statusCode = StatusCode.fromValue(response.code());
+                    assert status != null;
+                    status.setCode(statusCode);
+                    mCanCreateSessionListener.processResponse(status);
+                } else {
+                    String defaultDetail = "An error occurred while querying whether a new session can be created.";
+                    ResponseStatus responseStatus = ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail);
+                    Log.e(TAG, responseStatus.getDetail());
+                    mCanCreateSessionListener.processResponse(responseStatus);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseStatus> call, @NonNull Throwable t) {
+                ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
+                mCanCreateSessionListener.processResponse(responseStatus);
             }
         });
     }

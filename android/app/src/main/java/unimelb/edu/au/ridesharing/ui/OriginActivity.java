@@ -8,6 +8,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import unimelb.edu.au.ridesharing.R;
@@ -32,6 +33,7 @@ public class OriginActivity extends FragmentActivity implements
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
+        assert mapFragment != null;
         mapFragment.getMapAsync(this);
     }
 
@@ -57,11 +59,15 @@ public class OriginActivity extends FragmentActivity implements
     @Override
     public void processSessionUser(SessionUser sessionUser, ResponseStatus responseStatus) {
         if (responseStatus.isSuccessful()) {
-            mSessionUser = sessionUser;
+            // DO NOT OVERRIDE Session and User objects.
+            mSessionUser.update(sessionUser);
+
+            // Set the camera to the greatest possible zoom level that includes the session bounds.
+            mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(mSessionUser.getSession().getBounds(), 0));
 
             // Add a marker in origin and move the camera.
             LatLng origin = new LatLng(mSessionUser.getLatitude(), mSessionUser.getLongitude());
-            mMap.addMarker(new MarkerOptions().position(origin).title("Marker in Sydney"));
+            mMap.addMarker(new MarkerOptions().position(origin).title(mSessionUser.getUser().getUsername()));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(origin));
         }
     }

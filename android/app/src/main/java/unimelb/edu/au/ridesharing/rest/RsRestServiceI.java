@@ -1,5 +1,7 @@
 package unimelb.edu.au.ridesharing.rest;
 
+import org.json.JSONObject;
+
 import java.util.List;
 
 import retrofit2.Call;
@@ -9,6 +11,7 @@ import retrofit2.http.GET;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
+import unimelb.edu.au.ridesharing.ResponseStatus;
 import unimelb.edu.au.ridesharing.model.KnnNode;
 import unimelb.edu.au.ridesharing.model.Session;
 import unimelb.edu.au.ridesharing.model.SessionActivity;
@@ -25,6 +28,9 @@ public interface RsRestServiceI {
 
     @GET("/rs/sessions")
     Call<List<Session>> getSessions();
+
+    @GET("/rs/sessions/can_create")
+    Call<ResponseStatus> canCreateSession();
 
     @POST("/rs/sessions/")
     Call<Session> postSession(@Body Session session);

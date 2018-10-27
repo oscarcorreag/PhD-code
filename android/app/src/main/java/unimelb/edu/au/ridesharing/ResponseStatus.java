@@ -1,5 +1,7 @@
 package unimelb.edu.au.ridesharing;
 
+import com.google.gson.annotations.SerializedName;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -9,7 +11,9 @@ import retrofit2.Response;
 import unimelb.edu.au.ridesharing.rest.StatusCode;
 
 public class ResponseStatus {
+    @SerializedName("status_code")
     private StatusCode mCode;
+    @SerializedName("detail")
     private String mDetail;
 
     public ResponseStatus(StatusCode mCode, String mDetail) {
