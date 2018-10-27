@@ -67,6 +67,14 @@ class SessionViewSet(viewsets.ModelViewSet):
     queryset = Session.objects.all().order_by("-start_time")
     serializer_class = SessionSerializer
 
+    @action(detail=False)
+    def can_create(self, request):
+        # Check whether an active session exists already.
+        if SessionController.active_exists():
+            # logger.error(ActiveSessionExistsException.default_detail)
+            raise ActiveSessionExistsException
+        return Response({"status_code": status.HTTP_200_OK, "detail": "A new session can be created."}, status=status.HTTP_200_OK)
+
     def perform_create(self, serializer):
         # Check whether an active session exists already.
         if SessionController.active_exists():

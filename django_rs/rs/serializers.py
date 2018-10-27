@@ -31,7 +31,18 @@ class KnnNodeSerializer(serializers.Serializer):
 class SessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Session
-        fields = ("id", "start_time", "end_time", "city", "active", "creator", "real_users", "simulated_users")
+        fields = ("id",
+                  "start_time",
+                  "end_time",
+                  "city",
+                  "active",
+                  "creator",
+                  "real_users",
+                  "simulated_users",
+                  "min_lon",
+                  "min_lat",
+                  "max_lon",
+                  "max_lat", )
 
 
 class SessionActivitySerializer(serializers.ModelSerializer):
