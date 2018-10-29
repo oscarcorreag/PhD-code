@@ -2,26 +2,39 @@ package unimelb.edu.au.ridesharing.ui;
 
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.ProgressBar;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.util.List;
+
 import unimelb.edu.au.ridesharing.R;
 import unimelb.edu.au.ridesharing.ResponseStatus;
+import unimelb.edu.au.ridesharing.model.SessionNode;
 import unimelb.edu.au.ridesharing.model.SessionUser;
+import unimelb.edu.au.ridesharing.rest.SessionController;
+import unimelb.edu.au.ridesharing.rest.SessionNodeController;
 import unimelb.edu.au.ridesharing.rest.SessionUserController;
 
 public class OriginActivity extends FragmentActivity implements
         OnMapReadyCallback,
-        SessionUserController.SessionUserControllerListener {
+        SessionUserController.SessionUserControllerListener,
+        SessionNodeController.PoisListener,
+        SessionController.ComputePlanSessionControllerListener {
 
     SessionUser mSessionUser;
+    String mActivity;
     private GoogleMap mMap;
+    ProgressBar mProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,11 +42,17 @@ public class OriginActivity extends FragmentActivity implements
         setContentView(R.layout.activity_origin);
 
         mSessionUser = getIntent().getParcelableExtra("sessionUser");
+        mActivity = getIntent().getStringExtra("activity");
+
+        mProgressBar = findViewById(R.id.origin_progressBar);
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         assert mapFragment != null;
+
+        mProgressBar.setVisibility(View.VISIBLE);
+
         mapFragment.getMapAsync(this);
     }
 
@@ -61,14 +80,55 @@ public class OriginActivity extends FragmentActivity implements
         if (responseStatus.isSuccessful()) {
             // DO NOT OVERRIDE Session and User objects.
             mSessionUser.update(sessionUser);
-
-            // Set the camera to the greatest possible zoom level that includes the session bounds.
-            mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(mSessionUser.getSession().getBounds(), 0));
-
             // Add a marker in origin and move the camera.
-            LatLng origin = new LatLng(mSessionUser.getLatitude(), mSessionUser.getLongitude());
-            mMap.addMarker(new MarkerOptions().position(origin).title(mSessionUser.getUser().getUsername()));
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(origin));
+            mMap.addMarker(new MarkerOptions().position(mSessionUser.getLatLngOrigin()).title(mSessionUser.getUser().getUsername()));
+//            mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(mSessionUser.getSession().getBounds(), 0));
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mSessionUser.getLatLngOrigin(), 15));
+
+            SessionNodeController sessionNodeController = new SessionNodeController();
+            sessionNodeController.setPoisListener(this);
+            sessionNodeController.getPois(mSessionUser.getSessionId(), mActivity);
+        } else{
+            mProgressBar.setVisibility(View.GONE);
+            showErrorFragment(responseStatus.getDetail());
+        }
+    }
+
+    @Override
+    public void processPois(List<SessionNode> pois, ResponseStatus responseStatus) {
+
+        mProgressBar.setVisibility(View.GONE);
+
+        if (responseStatus.isSuccessful()) {
+            BitmapDescriptor bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE);
+            for (SessionNode poi : pois) {
+                mMap.addMarker(new MarkerOptions()
+                        .position(poi.getLatLng())
+                        .icon(bitmapDescriptor));
+            }
+        } else {
+            showErrorFragment(responseStatus.getDetail());
+        }
+    }
+
+    private void showErrorFragment(String message) {
+        ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
+        Bundle args = new Bundle();
+        args.putCharSequence("message", message);
+        errorDialogFragment.setArguments(args);
+        errorDialogFragment.show(getSupportFragmentManager(), "ErrorDialogFragment");
+    }
+
+    public void computePlan(View v) {
+        SessionController sessionController = new SessionController();
+        sessionController.setComputePlanSessionListener(this);
+        sessionController.computePlan(mSessionUser.getSessionId(), mSessionUser.getUserId(), mActivity);
+    }
+
+    @Override
+    public void processResponse(ResponseStatus responseStatus) {
+        if (!responseStatus.isSuccessful()) {
+            showErrorFragment(responseStatus.getDetail());
         }
     }
 }
