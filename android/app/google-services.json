@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "214157559517",
+    "firebase_url": "https://abrs-unimelb.firebaseio.com",
+    "project_id": "abrs-unimelb",
+    "storage_bucket": "abrs-unimelb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:214157559517:android:83322dd38356bb25",
+        "android_client_info": {
+          "package_name": "unimelb.edu.au.ridesharing"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "214157559517-jd07fppk9g857m951hhirnl8pa1ko119.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "unimelb.edu.au.ridesharing",
+            "certificate_hash": "38d2683ef81d51f775ef754120addfd0644cfd3c"
+          }
+        },
+        {
+          "client_id": "214157559517-g08u8lvhl9ba19tjpggku5b4trh2j5ol.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAz03VI7RmlX5tWimajlWDgiXaMcZJAYgo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "214157559517-g08u8lvhl9ba19tjpggku5b4trh2j5ol.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
