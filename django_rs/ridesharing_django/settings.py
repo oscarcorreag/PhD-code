@@ -159,4 +159,4 @@ REST_FRAMEWORK = {
 }
 
 CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
-CELERY_RESULT_BACKEND = 'djcelery.backends.cache:CacheBackend'
+CELERY_CACHE_BACKEND = 'djcelery.backends.cache:CacheBackend'

@@ -15,7 +15,7 @@ import exceptions
 import serializers
 import osmmanager
 import suitability
-from tasks import compute_plan
+from rs.tasks import compute_plan
 # import vst_rs
 # from link_performance import identity
 
@@ -50,6 +50,15 @@ class SessionViewSet(viewsets.ModelViewSet):
         except models.Session.DoesNotExist:
             pass
         return active_session
+
+    @staticmethod
+    def computed_plan(session_id):
+        session = None
+        try:
+            session = models.Session.objects.get(pk=session_id, travel_cost__isnull=False)
+        except models.Session.DoesNotExist:
+            pass
+        return session
 
     @staticmethod
     def generate_graph(city, seed=None, delta_meters=5000):
@@ -284,7 +293,11 @@ class SessionViewSet(viewsets.ModelViewSet):
         if len(users_ready) < session.real_users:
             return Response({"status_code": 100, "detail": "You must wait till all users are ready to travel."},
                             status=status.HTTP_100_CONTINUE)
-        compute_plan(session)
+        if not SessionViewSet.computed_plan(session.id):
+            compute_plan(session)
+        else:
+            # TODO: Retrieve plan and send it back to user's device.
+            pass
         return Response({"status_code": 200, "detail": "You will be sent a notification with your plan details"},
                         status=status.HTTP_200_OK)
 

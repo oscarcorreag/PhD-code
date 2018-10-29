@@ -50,6 +50,12 @@ class SessionPlansTransactionException(APIException):
     default_code = 'internal_server_error'
 
 
+class DisconnectedGraphException(APIException):
+    status_code = 500
+    default_detail = 'The road network sample is not completely connected. This is a persistent error. Create a new session.'
+    default_code = 'internal_server_error'
+
+
 class NoActiveSessionExistsException(APIException):
     status_code = 500
     default_detail = 'There are no active sessions. Create a new one.'
