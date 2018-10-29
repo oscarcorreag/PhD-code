@@ -30,6 +30,7 @@ class Session(models.Model):
     min_lat = models.FloatField()
     max_lon = models.FloatField()
     max_lat = models.FloatField()
+    travel_cost = models.FloatField(null=True)
 
 
 class SessionUser(models.Model):
@@ -79,7 +80,8 @@ class SessionUser(models.Model):
 
 class SessionPlan(models.Model):
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
-    travel_cost = models.FloatField()
+    activity = models.CharField(max_length=50)
+    travel_cost = models.FloatField(null=True)
 
 
 class SessionPlanDetail(models.Model):
@@ -95,26 +97,33 @@ class SessionGraphEdge(models.Model):
     weight = models.FloatField()
 
 
-# class SessionGraphPoi(models.Model):
-#     session = models.ForeignKey(Session, on_delete=models.CASCADE)
-#     poi = models.BigIntegerField()
-#     activity = models.CharField(max_length=50)
-#
-#
-# class SessionGraphHotspot(models.Model):
-#     session = models.ForeignKey(Session, on_delete=models.CASCADE)
-#     hotspot = models.BigIntegerField()
-
-
 class SessionGraphNode(models.Model):
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
     node = models.BigIntegerField()
     node_type = models.CharField(max_length=1)
     activity = models.CharField(max_length=50, null=True)
 
+    def __init__(self, *args, **kwargs):
+        super(SessionGraphNode, self).__init__(*args, **kwargs)
+        self._longitude = 0.0
+        self._latitude = 0.0
+
+    def get_longitude(self):
+        return self._longitude
+
+    def set_longitude(self, value):
+        self._longitude = value
+
+    def get_latitude(self):
+        return self._latitude
+
+    def set_latitude(self, value):
+        self._latitude = value
+
+    longitude = property(get_longitude, set_longitude)
+    latitude = property(get_latitude, set_latitude)
+
 
 class SessionActivity(models.Model):
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
     activity = models.CharField(max_length=50)
-
-

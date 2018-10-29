@@ -36,7 +36,7 @@ SECRET_KEY = '53lb8h!9!8-7$ft^u_iwda=&l$-gd&&tn&0lm741%r1l))-w@)'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '4000L-122353-W', '10.13.196.38', '192.168.1.5', '10.13.219.130']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '4000L-122353-W', '10.13.196.38', '192.168.1.5', '10.13.197.205']
 
 
 # Application definition
@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     'congestion',
     'rs',
     'rest_framework',
+    # 'django_celery_results',
+    'djcelery',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -155,3 +157,6 @@ LOGGING = {
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'rs.exceptions.custom_exception_handler'
 }
+
+CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
+CELERY_RESULT_BACKEND = 'djcelery.backends.cache:CacheBackend'

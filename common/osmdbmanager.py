@@ -447,3 +447,29 @@ class OsmDBManager:
         if len(queryset) == 1:
             result = map_record_session_user(queryset[0])
         return result
+
+    def get_session_nodes(self, session_id, type_, activity=None):
+        stmt = "SELECT  id, " \
+               "        node, " \
+               "        node_type, " \
+               "        activity, " \
+               "        longitude, " \
+               "        latitude " \
+               "FROM    rs_sessiongraphnode " \
+               "INNER JOIN " \
+               "        nodes " \
+               "ON      rs_sessiongraphnode.node = nodes.node_id " \
+               "WHERE   session_id = %s " \
+               "AND     node_type = %s"
+        if activity:
+            stmt += " AND activity = %s"
+            self.__cursor.execute(stmt, (session_id, type_, activity))
+        else:
+            self.__cursor.execute(stmt, (session_id, type_))
+        queryset = self.__cursor.fetchall()
+        return [{"id": node[0],
+                 "node": node[1],
+                 "node_type": node[2],
+                 "activity": node[3],
+                 "longitude": node[4],
+                 "latitude": node[5]} for node in queryset]

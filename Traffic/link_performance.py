@@ -22,3 +22,6 @@ def bpr_log(edges, load, cap, alpha=0.15, beta=4.0):
         new_weights[e] = weight * (1 + alpha * rl ** beta)
     return new_weights
 
+
+def identity(edges, load, cap, alpha, beta):
+    return edges

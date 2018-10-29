@@ -44,6 +44,12 @@ class NewSessionTransactionException(APIException):
     default_code = 'internal_server_error'
 
 
+class SessionPlansTransactionException(APIException):
+    status_code = 500
+    default_detail = 'An error occurred when the session plan with its details was being saved. This is a persistent error. Contact the administrator.'
+    default_code = 'internal_server_error'
+
+
 class NoActiveSessionExistsException(APIException):
     status_code = 500
     default_detail = 'There are no active sessions. Create a new one.'

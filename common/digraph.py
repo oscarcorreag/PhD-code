@@ -113,7 +113,7 @@ class Digraph(dict):
         path = [edge[0], edge[1]]
         self.append_from_path(path, source_graph)
 
-    def append_edge_2(self, edge, weight=1, capacity=0, nodes_weights=(0, 0), nodes_info=({}, {})):
+    def append_edge_2(self, edge, weight=1, capacity=0, nodes_weights=(0, 0), nodes_info=({}, {}), check_exists=True):
         v = edge[0]
         w = edge[1]
         # First of all, the edge tuple is created to check whether it already exists.
@@ -122,8 +122,9 @@ class Digraph(dict):
         else:
             v_w = (v, w)
         # If that is the case, do nothing.
-        if v_w in self.get_edges():
-            return
+        if check_exists:
+            if v_w in self.get_edges():
+                return
         # (A) Let us take care of the adjacency list.
         # If the first node exists, just update its adjacency list.
         if v in self:

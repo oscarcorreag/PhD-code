@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User, Group
-from models import Session, SessionActivity, SessionUser
+from models import Session, SessionActivity, SessionUser, SessionGraphNode
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -66,3 +66,8 @@ class SessionUserSerializer(serializers.ModelSerializer):
                   "longitude",
                   "latitude")
 
+
+class SessionGraphNodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SessionGraphNode
+        fields = ("id", "session", "node", "node_type", "activity", "longitude", "latitude")

@@ -267,3 +267,5 @@ class OsmManager:
     def get_session_user(self, session_id, user_id):
         return self.__osmdbmngr.get_session_user(session_id, user_id)
 
+    def get_session_nodes(self, session_id, type_, activity=None):
+        return self.__osmdbmngr.get_session_nodes(session_id, type_, activity)
