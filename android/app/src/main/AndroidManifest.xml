@@ -40,16 +40,38 @@
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="New Session"
             android:screenOrientation="portrait" />
-        <!-- <activity -->
-        <!-- android:name=".ui.ExistingSessionsActivity" -->
-        <!-- android:label="Existing Sessions" -->
-        <!-- android:screenOrientation="portrait" -->
-        <!-- android:configChanges="keyboardHidden|orientation|screenSize"/> -->
         <activity
             android:name=".ui.ActivityListActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="What do you want to do?"
             android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.OriginActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:label="@string/title_activity_origin"
+            android:screenOrientation="portrait">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="unimelb.edu.au.ridesharing.ui.ActivityListActivity" />
+        </activity>
+        <activity
+            android:name=".ui.PlanActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:label="@string/title_activity_plan"
+            android:screenOrientation="portrait" />
+
+        <service
+            android:name=".fcm.Firebase">
+            <intent-filter>
+                <action android:name="com.google.firebase.INSTANCE_ID_EVENT"/>
+            </intent-filter>
+        </service>
+        <service
+            android:name=".fcm.FirebaseService">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+            </intent-filter>
+        </service>
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").
@@ -62,24 +84,14 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
-        <activity
-            android:name=".ui.PlanActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize"
-            android:label="@string/title_activity_plan"
-            android:screenOrientation="portrait" />
+
 
         <!-- TODO: Why is this needed for the emulator in MacOS? -->
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
 
-        <activity
-            android:name=".ui.OriginActivity"
-            android:label="@string/title_activity_origin">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="unimelb.edu.au.ridesharing.ui.ActivityListActivity" />
-        </activity>
+
     </application>
 
 </manifest>
