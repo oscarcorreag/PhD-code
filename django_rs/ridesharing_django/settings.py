@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'rest_framework',
     # 'django_celery_results',
     'djcelery',
+    'push_notifications',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -160,3 +161,7 @@ REST_FRAMEWORK = {
 
 CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
 CELERY_CACHE_BACKEND = 'djcelery.backends.cache:CacheBackend'
+
+PUSH_NOTIFICATIONS_SETTINGS = {
+    "FCM_API_KEY": "[your api key]",
+}
