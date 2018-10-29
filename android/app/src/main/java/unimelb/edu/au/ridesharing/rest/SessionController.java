@@ -3,9 +3,6 @@ package unimelb.edu.au.ridesharing.rest;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.List;
 
 import retrofit2.Call;
@@ -35,10 +32,15 @@ public class SessionController {
         void processActiveSession(Session session, ResponseStatus status);
     }
 
+    public interface ComputePlanSessionControllerListener {
+        void processResponse(ResponseStatus status);
+    }
+
     private SessionListControllerListener mSessionListListener;
     private CanCreateSessionControllerListener mCanCreateSessionListener;
     private NewSessionControllerListener mNewSessionListener;
     private JoinSessionControllerListener mJoinSessionListener;
+    private ComputePlanSessionControllerListener mComputePlanSessionListener;
 
     public void setSessionListListener(SessionListControllerListener sessionListListener) {
         this.mSessionListListener = sessionListListener;
@@ -54,6 +56,10 @@ public class SessionController {
 
     public void setJoinSessionListener(JoinSessionControllerListener joinSessionListener) {
         this.mJoinSessionListener = joinSessionListener;
+    }
+
+    public void setComputePlanSessionListener(ComputePlanSessionControllerListener computePlanSessionListener) {
+        this.mComputePlanSessionListener = computePlanSessionListener;
     }
 
     public void getSessions() {
@@ -158,6 +164,33 @@ public class SessionController {
                 ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
 //                Log.e(TAG, responseStatus.getDetail());
                 mJoinSessionListener.processActiveSession(null, responseStatus);
+            }
+        });
+    }
+
+    public void computePlan(int sessionId, int userId, String activity) {
+        Call<ResponseStatus> call = RsRestService.getInstance().getService().computePlan(sessionId, userId, activity);
+        call.enqueue(new Callback<ResponseStatus>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseStatus> call, @NonNull Response<ResponseStatus> response) {
+                if (response.isSuccessful()) {
+                    ResponseStatus status = response.body();
+                    StatusCode statusCode = StatusCode.fromValue(response.code());
+                    assert status != null;
+                    status.setCode(statusCode);
+                    mComputePlanSessionListener.processResponse(status);
+                } else {
+                    String defaultDetail = "An error occurred while a new travel plan request was issued.";
+                    ResponseStatus responseStatus = ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail);
+                    Log.e(TAG, responseStatus.getDetail());
+                    mComputePlanSessionListener.processResponse(responseStatus);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseStatus> call, @NonNull Throwable t) {
+                ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
+                mComputePlanSessionListener.processResponse(responseStatus);
             }
         });
     }

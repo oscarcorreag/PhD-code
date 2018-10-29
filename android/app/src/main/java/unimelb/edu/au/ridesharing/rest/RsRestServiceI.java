@@ -15,6 +15,7 @@ import unimelb.edu.au.ridesharing.ResponseStatus;
 import unimelb.edu.au.ridesharing.model.KnnNode;
 import unimelb.edu.au.ridesharing.model.Session;
 import unimelb.edu.au.ridesharing.model.SessionActivity;
+import unimelb.edu.au.ridesharing.model.SessionNode;
 import unimelb.edu.au.ridesharing.model.SessionUser;
 import unimelb.edu.au.ridesharing.model.User;
 
@@ -44,6 +45,9 @@ public interface RsRestServiceI {
     @GET("/rs/sessions/{session}/users/{user}")
     Call<SessionUser> getSessionUser(@Path("session") int sessionId, @Path("user") int userId);
 
-    @POST("rs/session/{session}/plan/")
-    Call<Session> plan(@Path("session") int sessionId, @Query("user") int userId, @Query("activity") String activity);
+    @GET("/rs/sessions/{session}/nodes/?type=P")
+    Call<List<SessionNode>> getPois(@Path("session") int sessionId, @Query("activity") String activity);
+
+    @POST("rs/sessions/{session}/plan/")
+    Call<ResponseStatus> computePlan(@Path("session") int sessionId, @Query("user") int userId, @Query("activity") String activity);
 }

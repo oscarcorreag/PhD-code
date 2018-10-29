@@ -3,6 +3,7 @@ package unimelb.edu.au.ridesharing.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.Date;
@@ -170,6 +171,10 @@ public class SessionUser implements Parcelable {
 
     public void setLatitude(double latitude) {
         this.mLatitude = latitude;
+    }
+
+    public LatLng getLatLngOrigin() {
+        return new LatLng(this.mLatitude, this.mLongitude);
     }
 
     @Override

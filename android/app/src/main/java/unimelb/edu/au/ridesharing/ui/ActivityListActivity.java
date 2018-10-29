@@ -56,11 +56,7 @@ public class ActivityListActivity extends AppCompatActivity implements
             activitiesAdapter.setOnSelectRadioButtonClickListener(this);
             mActivitiesListView.setAdapter(activitiesAdapter);
         } else {
-            ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
-            Bundle args = new Bundle();
-            args.putCharSequence("message", responseStatus.getDetail());
-            errorDialogFragment.setArguments(args);
-            errorDialogFragment.show(getSupportFragmentManager(), "ErrorDialogFragment");
+            showErrorFragment(responseStatus.getDetail());
         }
     }
 
@@ -75,8 +71,24 @@ public class ActivityListActivity extends AppCompatActivity implements
     }
 
     public void seeOrigins(View v) {
+        if (mSelectRadioButton == null) {
+            showErrorFragment("Choose an activity first.");
+            return;
+        }
+
+        SessionActivity sessionActivity = (SessionActivity) mSelectRadioButton.getTag();
+
         Intent intent = new Intent(this, OriginActivity.class);
         intent.putExtra("sessionUser", mSessionUser);
+        intent.putExtra("activity", sessionActivity.getActivity());
         startActivity(intent);
+    }
+
+    private void showErrorFragment(String message) {
+        ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
+        Bundle args = new Bundle();
+        args.putCharSequence("message", message);
+        errorDialogFragment.setArguments(args);
+        errorDialogFragment.show(getSupportFragmentManager(), "ErrorDialogFragment");
     }
 }
