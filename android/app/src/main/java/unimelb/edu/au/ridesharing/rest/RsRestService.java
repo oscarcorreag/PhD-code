@@ -10,8 +10,8 @@ public class RsRestService {
 
 //    private static final String API_URL = "http://4000L-122353-W:8000/rs/";
 //    private static final String API_URL = "http://10.13.196.38:8000";
-//    private static final String API_URL = "http://192.168.1.5:8000";
-    private static final String API_URL = "http://10.13.197.205:8000";
+    private static final String API_URL = "http://192.168.1.5:8000";
+//    private static final String API_URL = "http://10.13.197.205:8000";
 
     private static RsRestServiceI service;
 
