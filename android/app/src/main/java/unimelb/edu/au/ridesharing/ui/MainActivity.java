@@ -2,11 +2,19 @@ package unimelb.edu.au.ridesharing.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 
 import java.util.List;
 
@@ -18,7 +26,7 @@ import unimelb.edu.au.ridesharing.rest.UserController;
 public class MainActivity extends AppCompatActivity implements
         UserController.UserControllerListener {
 
-    private static final String TAG = "MainActivity";
+    private static final String TAG = MainActivity.class.getName();
 
     Spinner mUsersSpinner;
     ProgressBar mUsersProgressBar;
@@ -61,6 +69,25 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public void manageSession(View view) {
+
+        FirebaseInstanceId.getInstance().getInstanceId()
+                .addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "getInstanceId failed", task.getException());
+                            return;
+                        }
+                        // Get new Instance ID token
+                        String token = task.getResult().getToken();
+
+                        // Log and toast
+                        String msg = String.format("InstanceID Token: %s", token);
+                        Log.d(TAG, msg);
+                        Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+                    }
+                });
+
         Intent intent = new Intent(this, ManageSessionActivity.class);
         intent.putExtra("user", (User) mUsersSpinner.getSelectedItem());
         startActivity(intent);
