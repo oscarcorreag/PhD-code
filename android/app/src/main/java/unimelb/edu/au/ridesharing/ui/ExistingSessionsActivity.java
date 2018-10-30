@@ -11,7 +11,6 @@ import unimelb.edu.au.ridesharing.ResponseStatus;
 import unimelb.edu.au.ridesharing.adapters.SessionsAdapter;
 import unimelb.edu.au.ridesharing.model.Session;
 import unimelb.edu.au.ridesharing.rest.SessionController;
-import unimelb.edu.au.ridesharing.ui.ErrorDialogFragment;
 
 public class ExistingSessionsActivity extends AppCompatActivity implements
         SessionController.SessionListControllerListener {
@@ -38,11 +37,11 @@ public class ExistingSessionsActivity extends AppCompatActivity implements
             SessionsAdapter sessionsAdapter = new SessionsAdapter(this, R.layout.item_session, sessions);
             mSessionsListView.setAdapter(sessionsAdapter);
         } else {
-            ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
+            MsgDialogFragment msgDialogFragment = new MsgDialogFragment();
             Bundle args = new Bundle();
             args.putCharSequence("message", responseStatus.getDetail());
-            errorDialogFragment.setArguments(args);
-            errorDialogFragment.show(getSupportFragmentManager(), "ErrorDialogFragment");
+            msgDialogFragment.setArguments(args);
+            msgDialogFragment.show(getSupportFragmentManager(), "MsgDialogFragment");
         }
     }
 }

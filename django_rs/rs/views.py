@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import datetime
 import numpy as np
 
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.utils import DatabaseError
+from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -24,7 +26,7 @@ from rs.tasks import compute_plan
 
 # logger = logging.getLogger("django")
 
-MIN_DIST = 200
+MIN_DIST = 500
 
 
 # Create your views here.
@@ -42,7 +44,7 @@ class SessionViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.SessionSerializer
 
     @staticmethod
-    def active_exists():
+    def active_session_exists():
         # Is there active sessions?
         active_session = None
         try:
@@ -52,13 +54,23 @@ class SessionViewSet(viewsets.ModelViewSet):
         return active_session
 
     @staticmethod
-    def computed_plan(session_id):
+    def session_has_computed_plan(session_id):
         session = None
         try:
             session = models.Session.objects.get(pk=session_id, travel_cost__isnull=False)
         except models.Session.DoesNotExist:
             pass
         return session
+
+    @staticmethod
+    def active_session_for_user_exists(user_id):
+        # Is there active sessions?
+        active_session_for_user = None
+        try:
+            active_session_for_user = models.Session.objects.get(active=True, creator__id=user_id)
+        except models.Session.DoesNotExist:
+            pass
+        return active_session_for_user
 
     @staticmethod
     def generate_graph(city, seed=None, delta_meters=5000):
@@ -71,6 +83,10 @@ class SessionViewSet(viewsets.ModelViewSet):
         min_lat = np.random.uniform(bounds[1], bounds[3] - delta)
         max_lon = min_lon + delta
         max_lat = min_lat + delta
+        # min_lat = -37.773468
+        # min_lon = 144.941222
+        # max_lat = -37.741429
+        # max_lon = 145.013490
         # Generate network sample.
         osm = osmmanager.OsmManager()
         generator = suitability.SuitableNodeWeightGenerator()
@@ -196,17 +212,28 @@ class SessionViewSet(viewsets.ModelViewSet):
     @action(detail=False)
     def can_create(self, request):
         # Check whether an active session exists already.
-        if SessionViewSet.active_exists():
+        if SessionViewSet.active_session_exists():
             raise exceptions.ActiveSessionExistsException
         return Response({"status_code": status.HTTP_200_OK, "detail": "A new session can be created."},
                         status=status.HTTP_200_OK)
 
-    # @action(detail=False)
-    # def can_end(self, request):
+    @action(detail=False, methods=["post"])
+    def end(self, request):
+        user_id = request.query_params["user"]
+        # Check whether an active session for this user exists.
+        active_session_for_user = SessionViewSet.active_session_for_user_exists(user_id)
+        if not active_session_for_user:
+            raise exceptions.NoActiveSessionForUserExistsException
+        # End session.
+        active_session_for_user.end_time = timezone.now()
+        active_session_for_user.active = False
+        active_session_for_user.save()
+        return Response({"status_code": status.HTTP_200_OK, "detail": "The active session was ended successfully."},
+                        status=status.HTTP_200_OK)
 
     def perform_create(self, serializer):
         # Check whether an active session exists already.
-        if SessionViewSet.active_exists():
+        if SessionViewSet.active_session_exists():
             raise exceptions.ActiveSessionExistsException
         # Prepare new session: create detail objects for the new session.
         simulated_users = serializer.validated_data["simulated_users"]
@@ -245,12 +272,12 @@ class SessionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["post"])
     def join(self, request):
         # Retrieve the active session.
-        active_session = SessionViewSet.active_exists()
+        active_session = SessionViewSet.active_session_exists()
         if not active_session:
             raise exceptions.NoActiveSessionExistsException
         serializer = self.get_serializer(active_session)
         # Get real users already in the session.
-        real_session_users = models.SessionUser.objects.filter(user__isnull=False)
+        real_session_users = models.SessionUser.objects.filter(session=active_session, user__isnull=False)
         # If the user who made the request is NOT in the session already AND the number of real users has been reached,
         # the user is NOT allowed to join the session.
         new_user_id = int(request.query_params["user"])
@@ -289,12 +316,12 @@ class SessionViewSet(viewsets.ModelViewSet):
         session_user.activity = activity
         session_user.save()
         # Am I the last user who issue the request to compute the plan?
-        users_ready = models.SessionUser.objects.filter(ready_to_travel=True)
+        users_ready = models.SessionUser.objects.filter(session=session, ready_to_travel=True)
         if len(users_ready) < session.real_users:
-            return Response({"status_code": 100, "detail": "You must wait till all users are ready to travel."},
-                            status=status.HTTP_100_CONTINUE)
-        if not SessionViewSet.computed_plan(session.id):
-            compute_plan(session)
+            return Response({"status_code": 200, "detail": "You must wait till all users are ready to travel."},
+                            status=status.HTTP_200_OK)
+        if not SessionViewSet.session_has_computed_plan(session.id):
+            compute_plan.delay(session)
         else:
             # TODO: Retrieve plan and send it back to user's device.
             pass

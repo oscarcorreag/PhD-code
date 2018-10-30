@@ -62,6 +62,12 @@ class NoActiveSessionExistsException(APIException):
     default_code = 'internal_server_error'
 
 
+class NoActiveSessionForUserExistsException(APIException):
+    status_code = 500
+    default_detail = 'There are no active sessions for this user. If there is an active session, the creator is another user.'
+    default_code = 'internal_server_error'
+
+
 class NotAllowedToJoinSessionException(APIException):
     status_code = 500
     default_detail = 'The number of real users has been reached.'

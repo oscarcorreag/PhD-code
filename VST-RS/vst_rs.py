@@ -100,6 +100,7 @@ class VST_RS:
                 OptCost[t_cmb] = sys.maxint
                 OptPOI[t_cmb] = None
                 bestDiv[t_cmb] = {}
+                bestSubgrouping[t_cmb] = [None, None]
                 cost[t_cmb] = {}
                 for v in self.nodes:
                     cost[t_cmb][v] = sys.maxint
@@ -112,7 +113,8 @@ class VST_RS:
                 for comb1 in combs1:
                     comb2 = sorted(list(set(cmb) - set(comb1)))
                     temp = OptCost[tuple(comb1)] + OptCost[tuple(comb2)]
-                    if OptCost[t_cmb] > temp:
+                    # TODO: >= instead of > (30-OCT-2018)
+                    if OptCost[t_cmb] >= temp:
                         OptCost[t_cmb] = temp
                         bestSubgrouping[t_cmb] = [comb1, comb2]
                     XX = list(set(X[tuple(comb1)]).intersection(X[tuple(comb2)]))
@@ -124,8 +126,8 @@ class VST_RS:
                             cost[t_cmb][m] = temp
                             bestDiv[t_cmb][m] = [comb1, comb2]
                 X[t_cmb], cost[t_cmb], J[t_cmb], p, temp = self.find_nimp(M[t_cmb], cost[t_cmb])
-
-                if OptCost[t_cmb] > temp:
+                # TODO: >= instead of > (30-OCT-2018)
+                if OptCost[t_cmb] >= temp:
                     # It is better to ride-share than going independently.
                     OptCost[t_cmb] = temp
                     OptPOI[t_cmb] = p
@@ -143,6 +145,7 @@ class VST_RS:
                 t_cmb = tuple(cmb)
                 OptCost[t_cmb] = sys.maxint
                 combs1 = [[cmb[0]]]
+                bestSubgrouping[t_cmb] = [None, None]
                 for x in range(1, j - 1):
                     for y in utils.comb(cmb[1:], x):
                         t = [cmb[0]]
@@ -151,7 +154,8 @@ class VST_RS:
                 for comb1 in combs1:
                     comb2 = sorted(list(set(cmb) - set(comb1)))
                     temp = OptCost[tuple(comb1)] + OptCost[tuple(comb2)]
-                    if OptCost[t_cmb] > temp:
+                    # TODO: >= instead of > (30-OCT-2018)
+                    if OptCost[t_cmb] >= temp:
                         OptCost[t_cmb] = temp
                         bestSubgrouping[t_cmb] = [comb1, comb2]
         return OptCost, bestSubgrouping

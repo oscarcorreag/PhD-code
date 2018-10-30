@@ -8,7 +8,7 @@ import rs.models as models
 import suitability
 import vst_rs
 from link_performance import identity
-from rs.exceptions import SessionPlansTransactionException, DisconnectedGraphException
+from rs.exceptions import SessionPlansTransactionException
 
 
 def build_graph_from_model(session_id):
@@ -64,10 +64,7 @@ def compute_plan(session):
     queries = build_queries_from_model(session.id)
     # Compute plan
     queries_ = [(users, pois) for users, pois, _ in queries]
-    try:
-        vstrs = vst_rs.VST_RS(graph)
-    except KeyError:
-        raise DisconnectedGraphException
+    vstrs = vst_rs.VST_RS(graph)
     plans, c, _, _, _, _, _ = vstrs.non_congestion_aware(queries_, 4, 8, identity, merge_users=False, verbose=True)
     # Save plan and its details within a database transaction.
     try:
@@ -86,5 +83,7 @@ def compute_plan(session):
                     session_plan_edge.save()
     except DatabaseError:
         raise SessionPlansTransactionException
+    # Notify real users the plan is ready.
+
     return True
 

@@ -7,8 +7,6 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import org.json.JSONObject;
-
 import unimelb.edu.au.ridesharing.R;
 import unimelb.edu.au.ridesharing.ResponseStatus;
 import unimelb.edu.au.ridesharing.model.Session;
@@ -18,7 +16,8 @@ import unimelb.edu.au.ridesharing.rest.SessionController;
 
 public class ManageSessionActivity extends AppCompatActivity implements
         SessionController.CanCreateSessionControllerListener,
-        SessionController.JoinSessionControllerListener {
+        SessionController.JoinSessionControllerListener,
+        SessionController.EndSessionControllerListener {
 
     private static final String TAG = "ManageSessionActivity";
 
@@ -36,6 +35,7 @@ public class ManageSessionActivity extends AppCompatActivity implements
         mSessionController = new SessionController();
         mSessionController.setJoinSessionListener(this);
         mSessionController.setCanCreateSessionListener(this);
+        mSessionController.setEndSessionListener(this);
 
         mProgressBar = findViewById(R.id.join_progressBar);
     }
@@ -51,6 +51,8 @@ public class ManageSessionActivity extends AppCompatActivity implements
     }
 
     public void endSession(View view) {
+        mProgressBar.setVisibility(View.VISIBLE);
+        mSessionController.endSession(mSelectedUser.getId());
     }
 
     @Override
@@ -74,7 +76,7 @@ public class ManageSessionActivity extends AppCompatActivity implements
     }
 
     @Override
-    public void processResponse(ResponseStatus responseStatus) {
+    public void processResponseCanCreate(ResponseStatus responseStatus) {
 
         mProgressBar.setVisibility(View.GONE);
 
@@ -88,11 +90,22 @@ public class ManageSessionActivity extends AppCompatActivity implements
         }
     }
 
+    @Override
+    public void processResponseEndSession(ResponseStatus responseStatus) {
+        mProgressBar.setVisibility(View.GONE);
+
+        if (responseStatus.isSuccessful()) {
+            Toast.makeText(this, responseStatus.getDetail(), Toast.LENGTH_LONG).show();
+        } else {
+            showErrorFragment(responseStatus.getDetail());
+        }
+    }
+
     private void showErrorFragment(String message) {
-        ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
+        MsgDialogFragment msgDialogFragment = new MsgDialogFragment();
         Bundle args = new Bundle();
         args.putCharSequence("message", message);
-        errorDialogFragment.setArguments(args);
-        errorDialogFragment.show(getSupportFragmentManager(), "ErrorDialogFragment");
+        msgDialogFragment.setArguments(args);
+        msgDialogFragment.show(getSupportFragmentManager(), "MsgDialogFragment");
     }
 }

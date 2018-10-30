@@ -10,6 +10,11 @@ public class FirebaseService extends FirebaseMessagingService {
     private static final String TAG = FirebaseService.class.getName();
 
     @Override
+    public void onNewToken(String s) {
+        super.onNewToken(s);
+    }
+
+    @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         // ...
 

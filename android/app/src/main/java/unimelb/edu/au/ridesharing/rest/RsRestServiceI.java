@@ -42,6 +42,9 @@ public interface RsRestServiceI {
     @POST("/rs/sessions/join/")
     Call<Session> joinSession(@Query("user") int userId);
 
+    @POST("/rs/sessions/end/")
+    Call<ResponseStatus> endSession(@Query("user") int userId);
+
     @GET("/rs/sessions/{session}/users/{user}")
     Call<SessionUser> getSessionUser(@Path("session") int sessionId, @Path("user") int userId);
 
@@ -50,4 +53,7 @@ public interface RsRestServiceI {
 
     @POST("rs/sessions/{session}/plan/")
     Call<ResponseStatus> computePlan(@Path("session") int sessionId, @Query("user") int userId, @Query("activity") String activity);
+
+    @POST("/rs/device/gcm/")
+    Call<ResponseStatus> sendRegistrationToServer(@Query("registration_id") String token, @Query("device-id") String deviceId, @Query("user") int userId);
 }

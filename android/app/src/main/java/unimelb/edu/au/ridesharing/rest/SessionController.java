@@ -13,7 +13,7 @@ import unimelb.edu.au.ridesharing.model.Session;
 
 public class SessionController {
 
-    private static final String TAG = "SessionController";
+    private static final String TAG = SessionController.class.getName();
     private static final StatusCode DEFAULT_STATUS_CODE = StatusCode.INTERNAL_SERVER_ERROR;
 
     public interface SessionListControllerListener {
@@ -21,7 +21,7 @@ public class SessionController {
     }
 
     public interface CanCreateSessionControllerListener {
-        void processResponse(ResponseStatus status);
+        void processResponseCanCreate(ResponseStatus status);
     }
 
     public interface NewSessionControllerListener {
@@ -32,14 +32,19 @@ public class SessionController {
         void processActiveSession(Session session, ResponseStatus status);
     }
 
+    public interface EndSessionControllerListener {
+        void processResponseEndSession(ResponseStatus status);
+    }
+
     public interface ComputePlanSessionControllerListener {
-        void processResponse(ResponseStatus status);
+        void processResponseComputePlan(ResponseStatus status);
     }
 
     private SessionListControllerListener mSessionListListener;
     private CanCreateSessionControllerListener mCanCreateSessionListener;
     private NewSessionControllerListener mNewSessionListener;
     private JoinSessionControllerListener mJoinSessionListener;
+    private EndSessionControllerListener mEndSessionListener;
     private ComputePlanSessionControllerListener mComputePlanSessionListener;
 
     public void setSessionListListener(SessionListControllerListener sessionListListener) {
@@ -56,6 +61,10 @@ public class SessionController {
 
     public void setJoinSessionListener(JoinSessionControllerListener joinSessionListener) {
         this.mJoinSessionListener = joinSessionListener;
+    }
+
+    public void setEndSessionListener(EndSessionControllerListener endSessionListener) {
+        this.mEndSessionListener = endSessionListener;
     }
 
     public void setComputePlanSessionListener(ComputePlanSessionControllerListener computePlanSessionListener) {
@@ -98,19 +107,19 @@ public class SessionController {
                     StatusCode statusCode = StatusCode.fromValue(response.code());
                     assert status != null;
                     status.setCode(statusCode);
-                    mCanCreateSessionListener.processResponse(status);
+                    mCanCreateSessionListener.processResponseCanCreate(status);
                 } else {
                     String defaultDetail = "An error occurred while querying whether a new session can be created.";
                     ResponseStatus responseStatus = ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail);
                     Log.e(TAG, responseStatus.getDetail());
-                    mCanCreateSessionListener.processResponse(responseStatus);
+                    mCanCreateSessionListener.processResponseCanCreate(responseStatus);
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseStatus> call, @NonNull Throwable t) {
                 ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
-                mCanCreateSessionListener.processResponse(responseStatus);
+                mCanCreateSessionListener.processResponseCanCreate(responseStatus);
             }
         });
     }
@@ -168,6 +177,33 @@ public class SessionController {
         });
     }
 
+    public void endSession(int userId) {
+        Call<ResponseStatus> call = RsRestService.getInstance().getService().endSession(userId);
+        call.enqueue(new Callback<ResponseStatus>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseStatus> call, @NonNull Response<ResponseStatus> response) {
+                if (response.isSuccessful()) {
+                    ResponseStatus status = response.body();
+                    StatusCode statusCode = StatusCode.fromValue(response.code());
+                    assert status != null;
+                    status.setCode(statusCode);
+                    mEndSessionListener.processResponseEndSession(status);
+                } else {
+                    String defaultDetail = "An error occurred while ending the active session.";
+                    ResponseStatus responseStatus = ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail);
+                    Log.e(TAG, responseStatus.getDetail());
+                    mEndSessionListener.processResponseEndSession(responseStatus);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ResponseStatus> call, @NonNull Throwable t) {
+                ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
+                mEndSessionListener.processResponseEndSession(responseStatus);
+            }
+        });
+    }
+
     public void computePlan(int sessionId, int userId, String activity) {
         Call<ResponseStatus> call = RsRestService.getInstance().getService().computePlan(sessionId, userId, activity);
         call.enqueue(new Callback<ResponseStatus>() {
@@ -178,19 +214,19 @@ public class SessionController {
                     StatusCode statusCode = StatusCode.fromValue(response.code());
                     assert status != null;
                     status.setCode(statusCode);
-                    mComputePlanSessionListener.processResponse(status);
+                    mComputePlanSessionListener.processResponseComputePlan(status);
                 } else {
                     String defaultDetail = "An error occurred while a new travel plan request was issued.";
                     ResponseStatus responseStatus = ResponseStatus.createFrom(response, DEFAULT_STATUS_CODE, defaultDetail);
                     Log.e(TAG, responseStatus.getDetail());
-                    mComputePlanSessionListener.processResponse(responseStatus);
+                    mComputePlanSessionListener.processResponseComputePlan(responseStatus);
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<ResponseStatus> call, @NonNull Throwable t) {
                 ResponseStatus responseStatus = new ResponseStatus(DEFAULT_STATUS_CODE, t.getLocalizedMessage());
-                mComputePlanSessionListener.processResponse(responseStatus);
+                mComputePlanSessionListener.processResponseComputePlan(responseStatus);
             }
         });
     }

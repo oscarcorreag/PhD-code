@@ -82,11 +82,11 @@ public class NewSessionActivity extends AppCompatActivity implements SessionCont
             intent.putExtra("sessionUser", sessionUser);
             startActivity(intent);
         } else {
-            ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
+            MsgDialogFragment msgDialogFragment = new MsgDialogFragment();
             Bundle args = new Bundle();
             args.putCharSequence("message", responseStatus.getDetail());
-            errorDialogFragment.setArguments(args);
-            errorDialogFragment.show(getSupportFragmentManager(), "ErrorDialogFragment");
+            msgDialogFragment.setArguments(args);
+            msgDialogFragment.show(getSupportFragmentManager(), "MsgDialogFragment");
         }
     }
 }

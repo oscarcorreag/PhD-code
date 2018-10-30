@@ -11,8 +11,6 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.List;
@@ -30,6 +28,8 @@ public class OriginActivity extends FragmentActivity implements
         SessionUserController.SessionUserControllerListener,
         SessionNodeController.PoisListener,
         SessionController.ComputePlanSessionControllerListener {
+
+    private static final String TAG = OriginActivity.class.getName();
 
     SessionUser mSessionUser;
     String mActivity;
@@ -90,7 +90,7 @@ public class OriginActivity extends FragmentActivity implements
             sessionNodeController.getPois(mSessionUser.getSessionId(), mActivity);
         } else{
             mProgressBar.setVisibility(View.GONE);
-            showErrorFragment(responseStatus.getDetail());
+            showMsgFragment("Error", responseStatus.getDetail());
         }
     }
 
@@ -107,16 +107,18 @@ public class OriginActivity extends FragmentActivity implements
                         .icon(bitmapDescriptor));
             }
         } else {
-            showErrorFragment(responseStatus.getDetail());
+            showMsgFragment("Error", responseStatus.getDetail());
         }
     }
 
-    private void showErrorFragment(String message) {
-        ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
+    private void showMsgFragment(String title, String message) {
+        MsgDialogFragment msgDialogFragment = new MsgDialogFragment();
         Bundle args = new Bundle();
+
+        args.putCharSequence("title", title);
         args.putCharSequence("message", message);
-        errorDialogFragment.setArguments(args);
-        errorDialogFragment.show(getSupportFragmentManager(), "ErrorDialogFragment");
+        msgDialogFragment.setArguments(args);
+        msgDialogFragment.show(getSupportFragmentManager(), "MsgDialogFragment");
     }
 
     public void computePlan(View v) {
@@ -126,9 +128,11 @@ public class OriginActivity extends FragmentActivity implements
     }
 
     @Override
-    public void processResponse(ResponseStatus responseStatus) {
-        if (!responseStatus.isSuccessful()) {
-            showErrorFragment(responseStatus.getDetail());
+    public void processResponseComputePlan(ResponseStatus responseStatus) {
+        if (responseStatus.isSuccessful()) {
+            showMsgFragment("Info", responseStatus.getDetail());
+        } else {
+            showMsgFragment("Error", responseStatus.getDetail());
         }
     }
 }

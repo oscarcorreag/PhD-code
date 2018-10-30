@@ -85,10 +85,10 @@ public class ActivityListActivity extends AppCompatActivity implements
     }
 
     private void showErrorFragment(String message) {
-        ErrorDialogFragment errorDialogFragment = new ErrorDialogFragment();
+        MsgDialogFragment msgDialogFragment = new MsgDialogFragment();
         Bundle args = new Bundle();
         args.putCharSequence("message", message);
-        errorDialogFragment.setArguments(args);
-        errorDialogFragment.show(getSupportFragmentManager(), "ErrorDialogFragment");
+        msgDialogFragment.setArguments(args);
+        msgDialogFragment.show(getSupportFragmentManager(), "MsgDialogFragment");
     }
 }
