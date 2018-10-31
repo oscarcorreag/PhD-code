@@ -6,6 +6,7 @@ import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
@@ -54,6 +55,12 @@ public interface RsRestServiceI {
     @POST("rs/sessions/{session}/plan/")
     Call<ResponseStatus> computePlan(@Path("session") int sessionId, @Query("user") int userId, @Query("activity") String activity, @Query("username") String userName);
 
+    @FormUrlEncoded
     @POST("/rs/device/gcm/")
-    Call<ResponseStatus> sendRegistrationToServer(@Query("username") String userName, @Query("registration_id") String token, @Query("device_id") String deviceId);
+    Call<ResponseStatus> sendRegistrationToServer(
+            @Field("registration_id") String token,
+            @Field("device_id") String deviceId,
+            @Field("cloud_message_type") String messageType,
+            @Field("active") boolean isActive,
+            @Query("username") String userName);
 }

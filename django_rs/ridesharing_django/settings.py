@@ -163,6 +163,7 @@ CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
 # CELERY_CACHE_BACKEND = 'djcelery.backends.cache:CacheBackend'
 
 PUSH_NOTIFICATIONS_SETTINGS = {
+    "UPDATE_ON_DUPLICATE_REG_ID": True,
     "FCM_API_KEY": "AAAAMdzJBt0:APA91bH3SFuZ02FRI2LbSGQigqLdYV8kHbaZl7YTkW-QijJnL2zD806IeyiGzehkhSaY9ZTC80HsD3wkNH-AYM6T0KuJuVyKN5r5K0FwKRFGFLN5gjS3dXdnpgRh0UQ0_tOI5UQLHmp8",
-    "FCM_POST_URL": "https://fcm.googleapis.com/v1/projects/abrs-unimelb/messages:send HTTP/1.1"
+    # "FCM_POST_URL": "https://fcm.googleapis.com/v1/projects/abrs-unimelb/messages:send HTTP/1.1"
 }

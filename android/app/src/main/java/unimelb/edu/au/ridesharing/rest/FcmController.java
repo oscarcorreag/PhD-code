@@ -24,7 +24,7 @@ public class FcmController {
     }
 
     public void sendRegistrationToServer(String userName, String token, String deviceId) {
-        Call<ResponseStatus> call = RsRestService.getInstance().getService().sendRegistrationToServer(userName, token, deviceId);
+        Call<ResponseStatus> call = RsRestService.getInstance().getService().sendRegistrationToServer(token, deviceId, "FCM", true, userName);
         call.enqueue(new Callback<ResponseStatus>() {
             @Override
             public void onResponse(@NonNull Call<ResponseStatus> call, @NonNull Response<ResponseStatus> response) {

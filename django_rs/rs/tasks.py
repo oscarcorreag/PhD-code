@@ -1,8 +1,10 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
+from celery import Task
 
 from django.db import transaction
 from django.db.utils import DatabaseError
+from push_notifications.models import GCMDevice
 
 import rs.models as models
 import suitability
@@ -51,13 +53,35 @@ def build_queries_from_model(session_id):
     return queries
 
 
-# def prepare_plan_details(plan):
-#     details = []
-#     for edge in plan.get_edges():
-#         detail = models.SessionPlanDetail()
+class CallbackTask(Task):
+    def run(self, *args, **kwargs):
+        pass
+
+    def on_success(self, retval, task_id, args, kwargs):
+        session = args[0]
+        print "Session ID: {0}".format(session.id)
+        # Notify real users the plan is ready.
+        self.notify(session, "Your plan has been computed!", {"session_id": session.id})
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        session = args[0]
+        print "Failure CELERY task, session ID: {0}".format(session.id)
+        # Notify real users there was a failure.
+        self.notify(session, "A problem occurred when computing the plan.", {"session_id": session.id})
+
+    @staticmethod
+    def notify(session, message, payload):
+        session_users = models.SessionUser.objects.filter(session=session, user__isnull=False)
+        for session_user in session_users:
+            try:
+                device = GCMDevice.objects.get(user=session_user.user)
+                device.send_message(message, extra=payload)
+            except GCMDevice.DoesNotExist:
+                # This is because I am using the same device for different users. The first user is the one registered.
+                pass
 
 
-@shared_task
+@shared_task(base=CallbackTask)
 def compute_plan(session):
     # Build graph and queries for this session.
     graph = build_graph_from_model(session.id)
@@ -83,7 +107,5 @@ def compute_plan(session):
                     session_plan_edge.save()
     except DatabaseError:
         raise SessionPlansTransactionException
-    # Notify real users the plan is ready.
-
     return True
 

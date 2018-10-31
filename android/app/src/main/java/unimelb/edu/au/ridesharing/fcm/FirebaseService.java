@@ -2,7 +2,9 @@ package unimelb.edu.au.ridesharing.fcm;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
@@ -22,30 +24,8 @@ public class FirebaseService extends FirebaseMessagingService {
     @Override
     public void onNewToken(String token) {
         Log.d(TAG, "Refreshed token: " + token);
-        // Send token to the App Server.
-        FcmController fcmController = new FcmController();
-        fcmController.setRegistrationFcmListener(new FcmController.RegistrationFcmControllerListener() {
-            @Override
-            public void processResponseRegistration(ResponseStatus responseStatus) {
-                if (responseStatus.isSuccessful()) {
-                    Log.d(TAG, responseStatus.getDetail());
-                } else {
-                    Log.e(TAG, responseStatus.getDetail());
-                }
-            }
-        });
-        TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
-        fcmController.sendRegistrationToServer("admin", token, telephonyManager.getDeviceId());
+//        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+//        sharedPreferences.edit().putString("token", token).apply();
     }
 
     @Override
