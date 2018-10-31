@@ -23,7 +23,6 @@ FIELDS_SESSION_USER = ["id",
                        "origin",
                        "destination",
                        "activity",
-                       "vehicle",
                        "ready_to_travel",
                        "longitude",
                        "latitude"]

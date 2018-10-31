@@ -63,7 +63,6 @@ class SessionUserSerializer(serializers.ModelSerializer):
                   "origin",
                   "destination",
                   "activity",
-                  "vehicle",
                   "ready_to_travel",
                   "longitude",
                   "latitude")

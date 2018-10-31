@@ -54,7 +54,6 @@ class SessionUser(models.Model):
     origin = models.BigIntegerField()
     destination = models.BigIntegerField(null=True)
     activity = models.CharField(max_length=50, choices=ACTIVITIES, null=True)
-    vehicle = models.SmallIntegerField(null=True)
     ready_to_travel = models.BooleanField(default=False)
 
     def __init__(self, *args, **kwargs):
@@ -84,8 +83,23 @@ class SessionPlan(models.Model):
     travel_cost = models.FloatField(null=True)
 
 
-class SessionPlanDetail(models.Model):
+# class SessionPlanDetail(models.Model):
+#     plan = models.ForeignKey(SessionPlan, on_delete=models.CASCADE)
+#     node_i = models.BigIntegerField()
+#     node_j = models.BigIntegerField()
+
+
+class SessionPlanVehicle(models.Model):
     plan = models.ForeignKey(SessionPlan, on_delete=models.CASCADE)
+
+
+class SessionUserVehicle(models.Model):
+    vehicle = models.ForeignKey(SessionPlanVehicle, on_delete=models.CASCADE)
+    user = models.ForeignKey(SessionUser, on_delete=models.CASCADE)
+
+
+class SessionPlanVehicleRoute(models.Model):
+    vehicle = models.ForeignKey(SessionPlanVehicle, on_delete=models.CASCADE)
     node_i = models.BigIntegerField()
     node_j = models.BigIntegerField()
 

@@ -182,7 +182,7 @@ def index(request):
         elapsed_time = time.clock() - st
         #
         geo_edges = []
-        for ord_, plan in plans:
+        for ord_, plan, _ in plans:
             geo_edges.extend(get_geo_forest_edges(queries[ord_][2], plan, graph))
 
         return HttpResponse(json.dumps(dict(

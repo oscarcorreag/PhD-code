@@ -303,53 +303,53 @@ class VST_RS:
                         plans[ord_] = previous[ord_]
                 # Functions with the results are called.
                 for ord_, res in results:
-                    plan, _, _, _, _, _, _, load = res()
+                    plan, _, _, _, _, _, sts, load = res()
                     # Update plan only if its new cost is better.
                     if previous is not None:
-                        weights_0 = f(self.edges, previous[ord_][1], self.cap, alpha=alpha, beta=beta)
+                        weights_0 = f(self.edges, previous[ord_][2], self.cap, alpha=alpha, beta=beta)
                         weights_1 = f(self.edges, load, self.cap, alpha=alpha, beta=beta)
-                        cost_0 = sum([l * weights_0[e] for e, l in previous[ord_][1].iteritems()])
+                        cost_0 = sum([l * weights_0[e] for e, l in previous[ord_][2].iteritems()])
                         cost_1 = sum([l * weights_1[e] for e, l in load.iteritems()])
                         #
                         if cost_1 < cost_0:
-                            plans[ord_] = (plan, load)
+                            plans[ord_] = (plan, sts, load)
                         else:
                             plans[ord_] = previous[ord_]
                     else:
-                        plans[ord_] = (plan, load)
-            # # MPI ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            # elif p_method == "mpi":
-            #     # Create as many lists of queries as processors exist.
-            #     if rank == 0:
-            #         queries_proc = dict()
-            #         for ord_, q in enumerate(queries):
-            #             try:
-            #                 queries_proc[ord_ % size].append((ord_, q))
-            #             except KeyError:
-            #                 queries_proc[ord_ % size] = [(ord_, q)]
-            #     else:
-            #         queries_proc = None
-            #     queries_ = comm.scatter(queries_proc.values(), root=0)
-            #     plans_ = dict()
-            #     for ord_, (U, pois) in queries_:
-            #         rnd = 0.0
-            #         if randomise:
-            #             rnd = np.random.ranf()
-            #         if rnd < 1. / (no_iter + 1):
-            #             vst_rs = VST_RS(self.graph)
-            #             plan, _, _, _, _, _, _, load = vst_rs.steiner_forest(U, pois, z, S, merge_users)
-            #             plans_[ord_] = (plan, load)
-            #         else:
-            #             plans_[ord_] = previous[ord_]
-            #     plans_ = comm.gather(plans_, root=0)
-            #     if rank == 0:
-            #         for i in range(size):
-            #             for ord_, (plan, load) in plans_[i].iteritems():
-            #                 plans[ord_] = (plan, load)
+                        plans[ord_] = (plan, sts, load)
+                        # # MPI ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                        # elif p_method == "mpi":
+                        #     # Create as many lists of queries as processors exist.
+                        #     if rank == 0:
+                        #         queries_proc = dict()
+                        #         for ord_, q in enumerate(queries):
+                        #             try:
+                        #                 queries_proc[ord_ % size].append((ord_, q))
+                        #             except KeyError:
+                        #                 queries_proc[ord_ % size] = [(ord_, q)]
+                        #     else:
+                        #         queries_proc = None
+                        #     queries_ = comm.scatter(queries_proc.values(), root=0)
+                        #     plans_ = dict()
+                        #     for ord_, (U, pois) in queries_:
+                        #         rnd = 0.0
+                        #         if randomise:
+                        #             rnd = np.random.ranf()
+                        #         if rnd < 1. / (no_iter + 1):
+                        #             vst_rs = VST_RS(self.graph)
+                        #             plan, _, _, _, _, _, _, load = vst_rs.steiner_forest(U, pois, z, S, merge_users)
+                        #             plans_[ord_] = (plan, load)
+                        #         else:
+                        #             plans_[ord_] = previous[ord_]
+                        #     plans_ = comm.gather(plans_, root=0)
+                        #     if rank == 0:
+                        #         for i in range(size):
+                        #             for ord_, (plan, load) in plans_[i].iteritems():
+                        #                 plans[ord_] = (plan, load)
         else:  # No parallel processing ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             for ord_, (U, pois) in enumerate(queries):
                 vst_rs = VST_RS(self.graph)
-                plan, _, _, _, _, _, _, load = vst_rs.steiner_forest(U, pois, z, S, merge_users)
+                plan, _, _, _, _, _, sts, load = vst_rs.steiner_forest(U, pois, z, S, merge_users)
                 # Update plan only if its new cost is better.
                 if previous is not None:
                     weights_0 = f(self.edges, previous[ord_][1], self.cap, alpha=alpha, beta=beta)
@@ -358,11 +358,11 @@ class VST_RS:
                     cost_1 = sum([l * weights_1[e] for e, l in load.iteritems()])
                     #
                     if cost_1 < cost_0:
-                        plans[ord_] = (plan, load)
+                        plans[ord_] = (plan, sts, load)
                     else:
                         plans[ord_] = previous[ord_]
                 else:
-                    plans[ord_] = (plan, load)
+                    plans[ord_] = (plan, sts, load)
         return plans
 
     def congestion_aware(self, queries, z, S, f, merge_users=True, alpha=0.15, beta=4.0, max_iter=100, randomize=True,
@@ -383,7 +383,7 @@ class VST_RS:
                                               parallelise=parallelise, p_method=p_method, job_server=job_server)
             # Aggregate the loads.
             self.load = {e: 0 for e in self.edges}
-            for _, (plan, load) in plans.iteritems():
+            for _, (plan, _, load) in plans.iteritems():
                 for e, l in load.iteritems():
                     self.load[e] += l
             # Store the previous plan as it is needed with a mixed strategy.
@@ -413,7 +413,9 @@ class VST_RS:
             if verbose:
                 job_server.print_stats()
             job_server.destroy()
-        return [(ord_, plan) for ord_, (plan, _) in plans.iteritems()], cost, warl, mwrl, mrl1, mrl2, entropy, no_iter
+        # TODO: sts correspond to the collection of Steiner Trees (individual vehicles). This is not needed here yet. It is used in VST-CA (mobile app)
+        return [(ord_, plan) for ord_, (plan, sts, _) in
+                plans.iteritems()], cost, warl, mwrl, mrl1, mrl2, entropy, no_iter
 
     def non_congestion_aware(self, queries, z, S, f, merge_users=True, alpha=0.15, beta=4.0, parallelise=True,
                              p_method="pp", verbose=True):
@@ -427,7 +429,7 @@ class VST_RS:
         plans = self.compute_multiq_plans(queries, z, S, merge_users=merge_users, parallelise=parallelise,
                                           p_method=p_method, job_server=job_server)
         # Aggregate the loads.
-        for _, (_, load) in plans.iteritems():
+        for _, (_, _, load) in plans.iteritems():
             for e, l in load.iteritems():
                 self.load[e] += l
         # Compute congestion statistics.
@@ -437,7 +439,7 @@ class VST_RS:
             if verbose:
                 job_server.print_stats()
             job_server.destroy()
-        return [(ord_, plan) for ord_, (plan, _) in plans.iteritems()], cost, warl, mwrl, mrl1, mrl2, entropy
+        return [(ord_, plan, sts) for ord_, (plan, sts, _) in plans.iteritems()], cost, warl, mwrl, mrl1, mrl2, entropy
 
     def append_to_history(self, f, log_history=False, alpha=0.15, beta=4.0):
         edges = sorted(self.edges)
@@ -532,7 +534,7 @@ class VST_RS:
             steiner_tree, cost = self.build_steiner_tree(p, cmb, J, bestDiv, detours)
             steiner_forest.append_from_graph(steiner_tree)
             num_trees += 1
-            steiner_trees.append(steiner_tree)
+            steiner_trees.append((cmb, steiner_tree))
             # self.__update_load(steiner_tree)
             occupancy_rates.append(float(len(t_cmb)) / self.z)
         else:

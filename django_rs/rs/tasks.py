@@ -90,21 +90,50 @@ def compute_plan(session):
     queries_ = [(users, pois) for users, pois, _ in queries]
     vstrs = vst_rs.VST_RS(graph)
     plans, c, _, _, _, _, _ = vstrs.non_congestion_aware(queries_, 4, 8, identity, merge_users=False, verbose=True)
+    # Retrieve users within this session. They are used when creating lists of users per vehicle.
+    # TODO: This is based on the assumption that no more than one user at each origin.
+    session_users = models.SessionUser.objects.filter(session=session)
+    session_users_by_origin = dict()
+    for session_user in session_users:
+        session_users_by_origin[session_user.origin] = session_user
     # Save plan and its details within a database transaction.
     try:
         with transaction.atomic():
             session.travel_cost = c
             session.save()
-            for ord_, plan in plans:
-                # Save session plan (plan for one activity)
+            for ord_, plan, routes in plans:
+                # Save session plan (plan for one activity).
                 # TODO: Include travel cost per plan (per activity)
                 session_plan = models.SessionPlan(session=session, activity=queries[ord_][2])
                 session_plan.save()
-                # Save edges of this plan.
-                edges = plan.get_edges()
-                for edge in edges:
-                    session_plan_edge = models.SessionPlanDetail(plan=session_plan, node_i=edge[0], node_j=edge[1])
-                    session_plan_edge.save()
+
+                # # Save edges of this plan.
+                # edges = plan.get_edges()
+                # for edge in edges:
+                #     session_plan_edge = models.SessionPlanDetail(plan=session_plan, node_i=edge[0], node_j=edge[1])
+                #     session_plan_edge.save()
+
+                # Save vehicles within the plan.
+                for users, vehicle_route in routes:
+                    session_plan_vehicle = models.SessionPlanVehicle(plan=session_plan)
+                    session_plan_vehicle.save()
+                    # Save users per vehicle
+                    for user in users:
+                    # for node_route in vehicle_route.keys():
+                    #     # The node in the route is a user origin if it has degree 1.
+                    #     # IMPORTANT: The route is a Digraph
+                    #     if node_route in session_users_by_origin and len(vehicle_route[node_route]) == 1:
+                        session_user_vehicle = models.SessionUserVehicle(vehicle=session_plan_vehicle,
+                                                                         user=session_users_by_origin[user])
+                        session_user_vehicle.save()
+                    # Save vehicle route.
+                    edges_route = vehicle_route.get_edges()
+                    for edge_v in edges_route:
+                        vehicle_route_edge = \
+                            models.SessionPlanVehicleRoute(vehicle=session_plan_vehicle,
+                                                           node_i=edge_v[0],
+                                                           node_j=edge_v[1])
+                        vehicle_route_edge.save()
     except DatabaseError:
         raise SessionPlansTransactionException
     return True
