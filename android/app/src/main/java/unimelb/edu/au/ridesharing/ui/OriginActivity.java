@@ -72,7 +72,7 @@ public class OriginActivity extends FragmentActivity implements
 
         SessionUserController sessionUserController = new SessionUserController();
         sessionUserController.setSessionUserListener(this);
-        sessionUserController.getUser(mSessionUser.getSessionId(), mSessionUser.getUserId());
+        sessionUserController.getUser(mSessionUser.getUser().getUsername(), mSessionUser.getSessionId(), mSessionUser.getUserId());
     }
 
     @Override
@@ -87,7 +87,7 @@ public class OriginActivity extends FragmentActivity implements
 
             SessionNodeController sessionNodeController = new SessionNodeController();
             sessionNodeController.setPoisListener(this);
-            sessionNodeController.getPois(mSessionUser.getSessionId(), mActivity);
+            sessionNodeController.getPois(mSessionUser.getUser().getUsername(), mSessionUser.getSessionId(), mActivity);
         } else{
             mProgressBar.setVisibility(View.GONE);
             showMsgFragment("Error", responseStatus.getDetail());
@@ -124,7 +124,7 @@ public class OriginActivity extends FragmentActivity implements
     public void computePlan(View v) {
         SessionController sessionController = new SessionController();
         sessionController.setComputePlanSessionListener(this);
-        sessionController.computePlan(mSessionUser.getSessionId(), mSessionUser.getUserId(), mActivity);
+        sessionController.computePlan(mSessionUser.getUser().getUsername(), mSessionUser.getSessionId(), mSessionUser.getUserId(), mActivity);
     }
 
     @Override

@@ -71,8 +71,8 @@ public class SessionController {
         this.mComputePlanSessionListener = computePlanSessionListener;
     }
 
-    public void getSessions() {
-        Call<List<Session>> call = RsRestService.getInstance().getService().getSessions();
+    public void getSessions(String userName) {
+        Call<List<Session>> call = RsRestService.getInstance().getService().getSessions(userName);
         call.enqueue(new Callback<List<Session>>() {
             @Override
             public void onResponse(@NonNull Call<List<Session>> call, @NonNull Response<List<Session>> response) {
@@ -97,8 +97,8 @@ public class SessionController {
         });
     }
 
-    public void canCreate() {
-        Call<ResponseStatus> call = RsRestService.getInstance().getService().canCreateSession();
+    public void canCreate(String userName) {
+        Call<ResponseStatus> call = RsRestService.getInstance().getService().canCreateSession(userName);
         call.enqueue(new Callback<ResponseStatus>() {
             @Override
             public void onResponse(@NonNull Call<ResponseStatus> call, @NonNull Response<ResponseStatus> response) {
@@ -124,8 +124,8 @@ public class SessionController {
         });
     }
 
-    public void postSession(Session session) {
-        Call<Session> call = RsRestService.getInstance().getService().postSession(session);
+    public void postSession(String userName, Session session) {
+        Call<Session> call = RsRestService.getInstance().getService().postSession(userName, session);
         call.enqueue(new Callback<Session>() {
             @Override
             public void onResponse(@NonNull Call<Session> call, @NonNull Response<Session> response) {
@@ -151,8 +151,8 @@ public class SessionController {
         });
     }
 
-    public void joinSession(int userId) {
-        Call<Session> call = RsRestService.getInstance().getService().joinSession(userId);
+    public void joinSession(String userName, int userId) {
+        Call<Session> call = RsRestService.getInstance().getService().joinSession(userName, userId);
         call.enqueue(new Callback<Session>() {
             @Override
             public void onResponse(@NonNull Call<Session> call, @NonNull Response<Session> response) {
@@ -177,8 +177,8 @@ public class SessionController {
         });
     }
 
-    public void endSession(int userId) {
-        Call<ResponseStatus> call = RsRestService.getInstance().getService().endSession(userId);
+    public void endSession(String userName, int userId) {
+        Call<ResponseStatus> call = RsRestService.getInstance().getService().endSession(userName, userId);
         call.enqueue(new Callback<ResponseStatus>() {
             @Override
             public void onResponse(@NonNull Call<ResponseStatus> call, @NonNull Response<ResponseStatus> response) {
@@ -204,8 +204,8 @@ public class SessionController {
         });
     }
 
-    public void computePlan(int sessionId, int userId, String activity) {
-        Call<ResponseStatus> call = RsRestService.getInstance().getService().computePlan(sessionId, userId, activity);
+    public void computePlan(String userName, int sessionId, int userId, String activity) {
+        Call<ResponseStatus> call = RsRestService.getInstance().getService().computePlan(sessionId, userId, activity, userName);
         call.enqueue(new Callback<ResponseStatus>() {
             @Override
             public void onResponse(@NonNull Call<ResponseStatus> call, @NonNull Response<ResponseStatus> response) {

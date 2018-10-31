@@ -24,8 +24,8 @@ public class SessionUserController {
         this.mSessionUserListener = sessionUserListener;
     }
 
-    public void getUser(int sessionId, int userId) {
-        Call<SessionUser> call = RsRestService.getInstance().getService().getSessionUser(sessionId, userId);
+    public void getUser(String userName, int sessionId, int userId) {
+        Call<SessionUser> call = RsRestService.getInstance().getService().getSessionUser(sessionId, userId, userName);
         call.enqueue(new Callback<SessionUser>() {
             @Override
             public void onResponse(@NonNull Call<SessionUser> call, @NonNull Response<SessionUser> response) {

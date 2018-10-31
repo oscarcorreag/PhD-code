@@ -27,8 +27,8 @@ public class UserController {
         this.mListener = listener;
     }
 
-    public void getUsers() {
-        Call<List<User>> call = RsRestService.getInstance().getService().getUsers();
+    public void getUsers(String userName) {
+        Call<List<User>> call = RsRestService.getInstance().getService().getUsers(userName);
         call.enqueue(new Callback<List<User>>() {
             @Override
             public void onResponse(@NonNull Call<List<User>> call, @NonNull Response<List<User>> response) {

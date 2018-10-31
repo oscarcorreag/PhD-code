@@ -113,8 +113,7 @@ class VST_RS:
                 for comb1 in combs1:
                     comb2 = sorted(list(set(cmb) - set(comb1)))
                     temp = OptCost[tuple(comb1)] + OptCost[tuple(comb2)]
-                    # TODO: >= instead of > (30-OCT-2018)
-                    if OptCost[t_cmb] >= temp:
+                    if OptCost[t_cmb] > temp:
                         OptCost[t_cmb] = temp
                         bestSubgrouping[t_cmb] = [comb1, comb2]
                     XX = list(set(X[tuple(comb1)]).intersection(X[tuple(comb2)]))
@@ -126,8 +125,7 @@ class VST_RS:
                             cost[t_cmb][m] = temp
                             bestDiv[t_cmb][m] = [comb1, comb2]
                 X[t_cmb], cost[t_cmb], J[t_cmb], p, temp = self.find_nimp(M[t_cmb], cost[t_cmb])
-                # TODO: >= instead of > (30-OCT-2018)
-                if OptCost[t_cmb] >= temp:
+                if OptCost[t_cmb] > temp:
                     # It is better to ride-share than going independently.
                     OptCost[t_cmb] = temp
                     OptPOI[t_cmb] = p
@@ -154,8 +152,7 @@ class VST_RS:
                 for comb1 in combs1:
                     comb2 = sorted(list(set(cmb) - set(comb1)))
                     temp = OptCost[tuple(comb1)] + OptCost[tuple(comb2)]
-                    # TODO: >= instead of > (30-OCT-2018)
-                    if OptCost[t_cmb] >= temp:
+                    if OptCost[t_cmb] > temp:
                         OptCost[t_cmb] = temp
                         bestSubgrouping[t_cmb] = [comb1, comb2]
         return OptCost, bestSubgrouping
@@ -507,16 +504,19 @@ class VST_RS:
         subgroups = []
         t_cmb = tuple(sorted(cmb))
         comb1, comb2 = bestSubgrouping[t_cmb]
-        if len(comb1) <= self.z:
-            subgroups.append(comb1)
-        else:
-            sg = self.get_subgroups(comb1, bestSubgrouping)
-            subgroups.extend(sg)
-        if len(comb2) <= self.z:
-            subgroups.append(comb2)
-        else:
-            sg = self.get_subgroups(comb2, bestSubgrouping)
-            subgroups.extend(sg)
+        # TODO: At least comb1 SHOULD have value
+        if comb1 is not None:
+            if len(comb1) <= self.z:
+                subgroups.append(comb1)
+            else:
+                sg = self.get_subgroups(comb1, bestSubgrouping)
+                subgroups.extend(sg)
+        if comb2 is not None:
+            if len(comb2) <= self.z:
+                subgroups.append(comb2)
+            else:
+                sg = self.get_subgroups(comb2, bestSubgrouping)
+                subgroups.extend(sg)
         return subgroups
 
     def build_steiner_forest(self, cmb, OptCost, OptPOI, J, bestDiv, bestSubgrouping):
@@ -539,20 +539,23 @@ class VST_RS:
             if t_cmb in bestSubgrouping:
                 comb1, comb2 = bestSubgrouping[t_cmb]
                 c_1 = c_2 = nt_1 = nt_2 = 0
-                if len(comb1) > 0:
-                    forest_1, c_1, detours_1, nt_1, ocr_1, sts_1 = \
-                        self.build_steiner_forest(comb1, OptCost, OptPOI, J, bestDiv, bestSubgrouping)
-                    steiner_forest.append_from_graph(forest_1)
-                    steiner_trees.extend(sts_1)
-                    detours.update(detours_1)
-                    occupancy_rates.extend(ocr_1)
-                if len(comb2) > 0:
-                    forest_2, c_2, detours_2, nt_2, ocr_2, sts_2 = \
-                        self.build_steiner_forest(comb2, OptCost, OptPOI, J, bestDiv, bestSubgrouping)
-                    steiner_forest.append_from_graph(forest_2)
-                    steiner_trees.extend(sts_2)
-                    detours.update(detours_2)
-                    occupancy_rates.extend(ocr_2)
+                # TODO: At least comb1 SHOULD have value
+                if comb1 is not None:
+                    if len(comb1) > 0:
+                        forest_1, c_1, detours_1, nt_1, ocr_1, sts_1 = \
+                            self.build_steiner_forest(comb1, OptCost, OptPOI, J, bestDiv, bestSubgrouping)
+                        steiner_forest.append_from_graph(forest_1)
+                        steiner_trees.extend(sts_1)
+                        detours.update(detours_1)
+                        occupancy_rates.extend(ocr_1)
+                if comb2 is not None:
+                    if len(comb2) > 0:
+                        forest_2, c_2, detours_2, nt_2, ocr_2, sts_2 = \
+                            self.build_steiner_forest(comb2, OptCost, OptPOI, J, bestDiv, bestSubgrouping)
+                        steiner_forest.append_from_graph(forest_2)
+                        steiner_trees.extend(sts_2)
+                        detours.update(detours_2)
+                        occupancy_rates.extend(ocr_2)
                 cost += c_1 + c_2
                 num_trees += nt_1 + nt_2
         return steiner_forest, cost, detours, num_trees, occupancy_rates, steiner_trees

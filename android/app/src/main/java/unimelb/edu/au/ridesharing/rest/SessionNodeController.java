@@ -26,8 +26,8 @@ public class SessionNodeController {
         this.mPoisListener = poisListener;
     }
 
-    public void getPois(int sessionId, String activity) {
-        Call<List<SessionNode>> call = RsRestService.getInstance().getService().getPois(sessionId, activity);
+    public void getPois(String userName, int sessionId, String activity) {
+        Call<List<SessionNode>> call = RsRestService.getInstance().getService().getPois(sessionId, activity, userName);
         call.enqueue(new Callback<List<SessionNode>>() {
             @Override
             public void onResponse(@NonNull Call<List<SessionNode>> call, @NonNull Response<List<SessionNode>> response) {

@@ -26,8 +26,8 @@ public class SessionActivityController {
         this.mActivityListListener = activityListListener;
     }
 
-    public void getActivities(int sessionId) {
-        Call<List<SessionActivity>> call = RsRestService.getInstance().getService().getActivities(sessionId);
+    public void getActivities(String userName, int sessionId) {
+        Call<List<SessionActivity>> call = RsRestService.getInstance().getService().getActivities(sessionId, userName);
         call.enqueue(new Callback<List<SessionActivity>>() {
             @Override
             public void onResponse(@NonNull Call<List<SessionActivity>> call, @NonNull Response<List<SessionActivity>> response) {

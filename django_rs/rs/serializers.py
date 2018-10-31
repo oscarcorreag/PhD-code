@@ -9,10 +9,10 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         fields = ("id", "url", "username", "email")
 
 
-# class GroupSerializer(serializers.HyperlinkedModelSerializer):
-#     class Meta:
-#         model = Group
-#         fields = ("url", "name")
+class GroupSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Group
+        fields = ("url", "name")
 
 
 class KnnNodeSerializer(serializers.Serializer):
@@ -29,6 +29,7 @@ class KnnNodeSerializer(serializers.Serializer):
 
 
 class SessionSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Session
         fields = ("id",
@@ -42,7 +43,8 @@ class SessionSerializer(serializers.ModelSerializer):
                   "min_lon",
                   "min_lat",
                   "max_lon",
-                  "max_lat", )
+                  "max_lat",
+                  "travel_cost", )
 
 
 class SessionActivitySerializer(serializers.ModelSerializer):

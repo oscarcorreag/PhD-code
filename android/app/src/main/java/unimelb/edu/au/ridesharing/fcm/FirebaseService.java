@@ -45,7 +45,7 @@ public class FirebaseService extends FirebaseMessagingService {
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        fcmController.sendRegistrationToServer(token, telephonyManager.getDeviceId(), 0);
+        fcmController.sendRegistrationToServer("admin", token, telephonyManager.getDeviceId());
     }
 
     @Override

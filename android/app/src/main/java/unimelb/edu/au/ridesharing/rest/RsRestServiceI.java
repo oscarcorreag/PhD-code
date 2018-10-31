@@ -25,35 +25,35 @@ public interface RsRestServiceI {
     Call<List<KnnNode>> knnNodes(@Query("longitude") double longitude, @Query("latitude") double latitude, @Query("k") int k);
 
     @GET("/rs/users")
-    Call<List<User>> getUsers();
+    Call<List<User>> getUsers(@Query("username") String userName);
 
     @GET("/rs/sessions")
-    Call<List<Session>> getSessions();
+    Call<List<Session>> getSessions(@Query("username") String userName);
 
     @GET("/rs/sessions/can_create")
-    Call<ResponseStatus> canCreateSession();
+    Call<ResponseStatus> canCreateSession(@Query("username") String userName);
 
     @POST("/rs/sessions/")
-    Call<Session> postSession(@Body Session session);
+    Call<Session> postSession(@Query("username") String userName, @Body Session session);
 
     @GET("/rs/sessions/{session}/activities")
-    Call<List<SessionActivity>> getActivities(@Path("session") int sessionId);
+    Call<List<SessionActivity>> getActivities(@Path("session") int sessionId, @Query("username") String userName);
 
     @POST("/rs/sessions/join/")
-    Call<Session> joinSession(@Query("user") int userId);
+    Call<Session> joinSession(@Query("username") String userName, @Query("user") int userId);
 
     @POST("/rs/sessions/end/")
-    Call<ResponseStatus> endSession(@Query("user") int userId);
+    Call<ResponseStatus> endSession(@Query("username") String userName, @Query("user") int userId);
 
     @GET("/rs/sessions/{session}/users/{user}")
-    Call<SessionUser> getSessionUser(@Path("session") int sessionId, @Path("user") int userId);
+    Call<SessionUser> getSessionUser(@Path("session") int sessionId, @Path("user") int userId, @Query("username") String userName);
 
     @GET("/rs/sessions/{session}/nodes/?type=P")
-    Call<List<SessionNode>> getPois(@Path("session") int sessionId, @Query("activity") String activity);
+    Call<List<SessionNode>> getPois(@Path("session") int sessionId, @Query("activity") String activity, @Query("username") String userName);
 
     @POST("rs/sessions/{session}/plan/")
-    Call<ResponseStatus> computePlan(@Path("session") int sessionId, @Query("user") int userId, @Query("activity") String activity);
+    Call<ResponseStatus> computePlan(@Path("session") int sessionId, @Query("user") int userId, @Query("activity") String activity, @Query("username") String userName);
 
     @POST("/rs/device/gcm/")
-    Call<ResponseStatus> sendRegistrationToServer(@Query("registration_id") String token, @Query("device-id") String deviceId, @Query("user") int userId);
+    Call<ResponseStatus> sendRegistrationToServer(@Query("username") String userName, @Query("registration_id") String token, @Query("device_id") String deviceId);
 }

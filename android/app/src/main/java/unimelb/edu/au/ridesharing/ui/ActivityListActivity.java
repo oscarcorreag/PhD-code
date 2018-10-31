@@ -40,7 +40,8 @@ public class ActivityListActivity extends AppCompatActivity implements
 
         SessionActivityController sessionActivityController = new SessionActivityController();
         sessionActivityController.setActivityListListener(this);
-        sessionActivityController.getActivities(mSessionUser.getSessionId());
+        assert mSessionUser.getUser() != null;
+        sessionActivityController.getActivities(mSessionUser.getUser().getUsername(), mSessionUser.getSessionId());
 
         mActivitiesProgressBar = findViewById(R.id.activities_progressBar);
         mActivitiesProgressBar.setVisibility(View.VISIBLE);

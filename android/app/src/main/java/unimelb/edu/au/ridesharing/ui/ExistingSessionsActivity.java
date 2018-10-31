@@ -28,7 +28,8 @@ public class ExistingSessionsActivity extends AppCompatActivity implements
 
         SessionController sessionController = new SessionController();
         sessionController.setSessionListListener(this);
-        sessionController.getSessions();
+        // TODO: Fix userName.
+        sessionController.getSessions("admin");
     }
 
     @Override

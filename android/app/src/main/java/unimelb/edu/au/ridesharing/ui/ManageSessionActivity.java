@@ -42,17 +42,17 @@ public class ManageSessionActivity extends AppCompatActivity implements
 
     public void createSession(View view) {
         mProgressBar.setVisibility(View.VISIBLE);
-        mSessionController.canCreate();
+        mSessionController.canCreate(mSelectedUser.getUsername());
     }
 
     public void joinSession(View view) {
         mProgressBar.setVisibility(View.VISIBLE);
-        mSessionController.joinSession(mSelectedUser.getId());
+        mSessionController.joinSession(mSelectedUser.getUsername(), mSelectedUser.getId());
     }
 
     public void endSession(View view) {
         mProgressBar.setVisibility(View.VISIBLE);
-        mSessionController.endSession(mSelectedUser.getId());
+        mSessionController.endSession(mSelectedUser.getUsername(), mSelectedUser.getId());
     }
 
     @Override

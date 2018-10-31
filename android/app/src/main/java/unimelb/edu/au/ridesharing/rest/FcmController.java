@@ -23,8 +23,8 @@ public class FcmController {
         this.mRegistrationFcmListener = registrationFcmListener;
     }
 
-    public void sendRegistrationToServer(String token, String deviceId, int userId) {
-        Call<ResponseStatus> call = RsRestService.getInstance().getService().sendRegistrationToServer(token, deviceId, userId);
+    public void sendRegistrationToServer(String userName, String token, String deviceId) {
+        Call<ResponseStatus> call = RsRestService.getInstance().getService().sendRegistrationToServer(userName, token, deviceId);
         call.enqueue(new Callback<ResponseStatus>() {
             @Override
             public void onResponse(@NonNull Call<ResponseStatus> call, @NonNull Response<ResponseStatus> response) {

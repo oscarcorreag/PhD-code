@@ -10,8 +10,8 @@ public class RsRestService {
 
 //    private static final String API_URL = "http://4000L-122353-W:8000/rs/";
 //    private static final String API_URL = "http://10.13.196.38:8000";
-    private static final String API_URL = "http://192.168.1.5:8000";
-//    private static final String API_URL = "http://10.13.197.205:8000";
+//    private static final String API_URL = "http://192.168.1.5:8000";
+    private static final String API_URL = "http://10.13.197.205:8000";
 
     private static RsRestServiceI service;
 
@@ -23,13 +23,17 @@ public class RsRestService {
 
     private RsRestService() {
 
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
         OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
 
+        // Add a logging interceptor.
+        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
         if (BuildConfig.DEBUG) {
             httpClient.addInterceptor(logging);
         }
+
+        // Add an interceptor for putting authorization headers.
+        httpClient.addInterceptor(new BasicAuthInterceptor("naya0105"));
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(API_URL)

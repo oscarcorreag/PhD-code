@@ -63,7 +63,7 @@ public class NewSessionActivity extends AppCompatActivity implements SessionCont
 
         SessionController sessionController = new SessionController();
         sessionController.setNewSessionListener(this);
-        sessionController.postSession(session);
+        sessionController.postSession(mSelectedUser.getUsername(), session);
     }
 
     @Override

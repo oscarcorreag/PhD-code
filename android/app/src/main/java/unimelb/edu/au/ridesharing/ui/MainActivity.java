@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements
 
         UserController userController = new UserController();
         userController.setListener(this);
-        userController.getUsers();
+        userController.getUsers("admin");
 
         mUsersProgressBar = findViewById(R.id.users_progressBar);
         mUsersProgressBar.setVisibility(View.VISIBLE);
