@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User, Group
-from models import Session, SessionActivity, SessionUser, SessionGraphNode
+
+import models
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -31,7 +32,7 @@ class KnnNodeSerializer(serializers.Serializer):
 class SessionSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Session
+        model = models.Session
         fields = ("id",
                   "start_time",
                   "end_time",
@@ -49,13 +50,13 @@ class SessionSerializer(serializers.ModelSerializer):
 
 class SessionActivitySerializer(serializers.ModelSerializer):
     class Meta:
-        model = SessionActivity
+        model = models.SessionActivity
         fields = ("session", "activity",)
 
 
 class SessionUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SessionUser
+        model = models.SessionUser
         fields = ("id",
                   "session",
                   "user",
@@ -70,5 +71,18 @@ class SessionUserSerializer(serializers.ModelSerializer):
 
 class SessionGraphNodeSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SessionGraphNode
+        model = models.SessionGraphNode
         fields = ("id", "session", "node", "node_type", "activity", "longitude", "latitude")
+
+
+class SessionPlanVehicleRouteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.SessionPlanVehicleRoute
+        fields = ("id",
+                  "node_i",
+                  "node_i_longitude",
+                  "node_i_latitude",
+                  "node_j",
+                  "node_j_longitude",
+                  "node_j_latitude",
+                  "vehicle_id")

@@ -7,7 +7,7 @@ from django.contrib.auth.models import User, Group
 from django.db import transaction
 from django.db.utils import DatabaseError
 from django.utils import timezone
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, renderers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -303,7 +303,7 @@ class SessionViewSet(viewsets.ModelViewSet):
             coords = osm.get_coordinates(chosen_session_user.origin)
             # Origin of this new session user is close (>= MIN_DIST) to the chosen one but it is different from other
             # real users' origins.
-            knn = osm.get_knn(coords["longitude"], coords["latitude"], len(real_session_users), MIN_DIST)
+            knn = osm.get_knn(active_session.id, coords["longitude"], coords["latitude"], len(real_session_users), MIN_DIST)
             origins = {u.origin for u in real_session_users}
             knn_ = {nn["node"] for nn in knn}
             temp = list(knn_.difference(origins))
@@ -330,8 +330,8 @@ class SessionViewSet(viewsets.ModelViewSet):
         if not SessionViewSet.session_has_computed_plan(session.id):
             compute_plan.delay(session)
         else:
-            # TODO: Retrieve plan and send it back to user's device.
-            pass
+            return Response({"status_code": 201, "detail": "Plan was already computed."},
+                            status=status.HTTP_201_CREATED)
         return Response({"status_code": 200, "detail": "You will be sent a notification with your plan details"},
                         status=status.HTTP_200_OK)
 
@@ -364,7 +364,7 @@ class SessionUserViewSet(viewsets.ModelViewSet):
         if not record:
             raise exceptions.NoSessionUserException
         session_user = session_user_from_record(record)
-        session_user.session = models.Session(id=session_id)
+        # session_user.session = models.Session(id=session_id)
         return session_user
 
     def get_queryset(self):
@@ -373,9 +373,22 @@ class SessionUserViewSet(viewsets.ModelViewSet):
         session_users = []
         for record in res:
             session_user = session_user_from_record(record)
-            session_user.session = models.Session(id=session_id)
+            # session_user.session = models.Session(id=session_id)
             session_users.append(session_user)
         return session_users
+
+    # @action(detail=False, renderer_classes=[renderers.JSONRenderer])
+    @action(detail=False)
+    def routemates(self, request, session):
+        session_user_id = int(request.query_params["user"])
+        res = osmmanager.OsmManager().get_session_users_vehicle(session_user_id)
+        session_users = []
+        for record in res:
+            session_user = session_user_from_record(record)
+            session_users.append(session_user)
+        serializer = self.get_serializer(instance=session_users, many=True)
+        return Response(serializer.data)
+        # return session_users
 
 
 def session_node_from_record(record):
@@ -393,7 +406,7 @@ class SessionGraphNodeViewSet(viewsets.ModelViewSet):
         session_id = self.kwargs["session"]
         type_ = self.request.query_params["type"]
         activity = None
-        if self.request.query_params.has_key("activity"):
+        if "activity" in self.request.query_params:
             activity = self.request.query_params["activity"]
         res = osmmanager.OsmManager().get_session_nodes(session_id, type_, activity)
         session_nodes = []
@@ -402,3 +415,21 @@ class SessionGraphNodeViewSet(viewsets.ModelViewSet):
             session_node.session = models.Session(id=session_id)
             session_nodes.append(session_node)
         return session_nodes
+
+
+class SessionPlanVehicleRouteViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = serializers.SessionPlanVehicleRouteSerializer
+
+    def get_queryset(self):
+        session_user_id = self.request.query_params["user"]
+        res = osmmanager.OsmManager().get_session_plan_vehicle_route(session_user_id)
+        edges_route = []
+        for record in res:
+            edge_route = models.SessionPlanVehicleRoute(**record)
+            edge_route.node_i_longitude = record["node_i_longitude"]
+            edge_route.node_i_latitude = record["node_i_latitude"]
+            edge_route.node_j_longitude = record["node_j_longitude"]
+            edge_route.node_j_latitude = record["node_j_latitude"]
+            edges_route.append(edge_route)
+        return edges_route
+

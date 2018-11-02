@@ -103,6 +103,42 @@ class SessionPlanVehicleRoute(models.Model):
     node_i = models.BigIntegerField()
     node_j = models.BigIntegerField()
 
+    def __init__(self, *args, **kwargs):
+        super(SessionPlanVehicleRoute, self).__init__(*args, **kwargs)
+        self._node_i_longitude = 0.0
+        self._node_i_latitude = 0.0
+        self._node_j_longitude = 0.0
+        self._node_j_latitude = 0.0
+
+    def get_node_i_longitude(self):
+        return self._node_i_longitude
+
+    def set_node_i_longitude(self, value):
+        self._node_i_longitude = value
+
+    def get_node_i_latitude(self):
+        return self._node_i_latitude
+
+    def set_node_i_latitude(self, value):
+        self._node_i_latitude = value
+
+    def get_node_j_longitude(self):
+        return self._node_j_longitude
+
+    def set_node_j_longitude(self, value):
+        self._node_j_longitude = value
+
+    def get_node_j_latitude(self):
+        return self._node_j_latitude
+
+    def set_node_j_latitude(self, value):
+        self._node_j_latitude = value
+
+    node_i_longitude = property(get_node_i_longitude, set_node_i_longitude)
+    node_i_latitude = property(get_node_i_latitude, set_node_i_latitude)
+    node_j_longitude = property(get_node_j_longitude, set_node_j_longitude)
+    node_j_latitude = property(get_node_j_latitude, set_node_j_latitude)
+
 
 class SessionGraphEdge(models.Model):
     session = models.ForeignKey(Session, on_delete=models.CASCADE)

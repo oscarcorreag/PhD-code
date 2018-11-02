@@ -252,8 +252,8 @@ class OsmManager:
                     samples.append(sample)
         self.__osmdbmngr.save_samples(samples, sample_table)
 
-    def get_knn(self, lon, lat, k, min_dist=None):
-        return self.__osmdbmngr.get_knn(lon, lat, k, min_dist)
+    def get_knn(self, session_id, lon, lat, k, min_dist=None):
+        return self.__osmdbmngr.get_knn(session_id, lon, lat, k, min_dist)
 
     def get_coordinates(self, node):
         return self.__osmdbmngr.get_coordinates(node)
@@ -269,3 +269,11 @@ class OsmManager:
 
     def get_session_nodes(self, session_id, type_, activity=None):
         return self.__osmdbmngr.get_session_nodes(session_id, type_, activity)
+
+    def get_session_plan_vehicle_route(self, session_user_id):
+        return self.__osmdbmngr.get_session_plan_vehicle_route(session_user_id)
+
+    def get_session_users_vehicle(self, session_user_id):
+        return self.__osmdbmngr.get_session_users_vehicle(session_user_id)
+
+

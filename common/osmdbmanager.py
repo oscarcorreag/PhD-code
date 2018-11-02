@@ -17,8 +17,9 @@ def get_travel_method_code(travel_method):
     return 2
 
 
-FIELDS_SESSION_USER = ["id",
-                       "user_id",
+FIELDS_SESSION_USER = ["rs_sessionuser.id",
+                       "rs_sessionuser.user_id",
+                       "session_id",
                        "join_time",
                        "origin",
                        "destination",
@@ -29,7 +30,10 @@ FIELDS_SESSION_USER = ["id",
 
 
 def map_record_session_user(record):
-    return {field: record[i] for i, field in enumerate(FIELDS_SESSION_USER)}
+    map_ = {field: record[i] for i, field in enumerate(FIELDS_SESSION_USER) if not field.startswith("rs_sessionuser.")}
+    map_["id"] = record[0]
+    map_["user_id"] = record[1]
+    return map_
 
 
 class OsmDBManager:
@@ -368,9 +372,10 @@ class OsmDBManager:
                 self.__cursor.execute(stmt_2, (id_, alg, h, 'hotspot'))
         self.__conn.commit()
 
-    def get_knn(self, lon, lat, k, min_dist=None):
+    def get_knn(self, session_id, lon, lat, k, min_dist=None):
 
         where_stmt = ""
+
         if min_dist:
             where_stmt = "WHERE ST_Distance(geom, 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry) >= " \
                          + str(min_dist / 111111.)
@@ -379,11 +384,15 @@ class OsmDBManager:
                "        latitude, " \
                "        longitude, " \
                "        ST_Distance(geom, 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry) distance " \
-               "FROM    graph_nodes_2 " + where_stmt + " " \
+               "FROM    graph_nodes_2 " \
+               "INNER JOIN " \
+               "        rs_sessiongraphnode " \
+               "ON      graph_nodes_2.node_id = rs_sessiongraphnode.node " \
+               "AND     rs_sessiongraphnode.session_id = %s " + where_stmt + " " \
                "ORDER BY " \
                "        geom <-> 'SRID=4326;POINT(" + str(lon) + " " + str(lat) + ")'::geometry limit " + str(k)
 
-        self.__cursor.execute(stmt)
+        self.__cursor.execute(stmt, (session_id,))
         queryset = self.__cursor.fetchall()
 
         return [{"node": node[0], "latitude": node[1], "longitude": node[2], "distance": node[3]} for node in queryset]
@@ -472,3 +481,59 @@ class OsmDBManager:
                  "activity": node[3],
                  "longitude": node[4],
                  "latitude": node[5]} for node in queryset]
+
+    def get_session_plan_vehicle_route(self, session_user_id):
+
+        stmt = "SELECT	id, " \
+               "        node_i, " \
+               "        N1.longitude, " \
+               "        N1.latitude, " \
+               "        node_j, " \
+               "        N2.longitude, " \
+               "        N2.latitude, " \
+               "        vehicle_id " \
+               "FROM	rs_sessionplanvehicleroute " \
+               "INNER JOIN " \
+               "        nodes N1 " \
+               "ON      node_i = N1.node_id " \
+               "INNER JOIN " \
+               "        nodes N2 " \
+               "ON      node_j = N2.node_id " \
+               "WHERE	vehicle_id = " \
+               "        ( " \
+               "        SELECT	vehicle_id " \
+               "        FROM	rs_sessionuservehicle " \
+               "        WHERE	user_id = %s" \
+               "        )"
+        self.__cursor.execute(stmt, (session_user_id,))
+        queryset = self.__cursor.fetchall()
+
+        return [{"id": node[0],
+                 "node_i": node[1],
+                 "node_i_longitude": node[2],
+                 "node_i_latitude": node[3],
+                 "node_j": node[4],
+                 "node_j_longitude": node[5],
+                 "node_j_latitude": node[6],
+                 "vehicle_id": node[7]} for node in queryset]
+
+    def get_session_users_vehicle(self, session_user_id):
+
+        stmt = "SELECT	" + ', '.join(FIELDS_SESSION_USER) + " " \
+               "FROM	rs_sessionuservehicle " \
+               "INNER JOIN " \
+               "        rs_sessionuser " \
+               "ON      rs_sessionuservehicle.user_id = rs_sessionuser.id " \
+               "INNER JOIN" \
+               "        nodes " \
+               "ON      origin = node_id " \
+               "WHERE	vehicle_id = " \
+               "        ( " \
+               "        SELECT	vehicle_id" \
+               "        FROM	rs_sessionuservehicle" \
+               "        WHERE	user_id = %s" \
+               "        )"
+        self.__cursor.execute(stmt, (session_user_id,))
+        queryset = self.__cursor.fetchall()
+
+        return [map_record_session_user(user) for user in queryset]

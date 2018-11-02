@@ -1,7 +1,5 @@
 package unimelb.edu.au.ridesharing.rest;
 
-import org.json.JSONObject;
-
 import java.util.List;
 
 import retrofit2.Call;
@@ -17,6 +15,7 @@ import unimelb.edu.au.ridesharing.model.KnnNode;
 import unimelb.edu.au.ridesharing.model.Session;
 import unimelb.edu.au.ridesharing.model.SessionActivity;
 import unimelb.edu.au.ridesharing.model.SessionNode;
+import unimelb.edu.au.ridesharing.model.SessionRouteEdge;
 import unimelb.edu.au.ridesharing.model.SessionUser;
 import unimelb.edu.au.ridesharing.model.User;
 
@@ -63,4 +62,10 @@ public interface RsRestServiceI {
             @Field("cloud_message_type") String messageType,
             @Field("active") boolean isActive,
             @Query("username") String userName);
+
+    @GET("rs/route")
+    Call<List<SessionRouteEdge>> getSessionRoute(@Query("username") String userName, @Query("user") int sessionUserId);
+
+    @GET("/rs/sessions/{session}/users/routemates")
+    Call<List<SessionUser>> getRouteMates(@Path("session") int sessionId, @Query("user") int userId, @Query("username") String userName);
 }

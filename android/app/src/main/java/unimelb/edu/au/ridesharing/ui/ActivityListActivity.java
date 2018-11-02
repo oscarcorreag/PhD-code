@@ -17,6 +17,7 @@ import android.widget.ProgressBar;
 import android.widget.RadioButton;
 
 import java.util.List;
+import java.util.Objects;
 
 public class ActivityListActivity extends AppCompatActivity implements
         SessionActivityController.ActivityListControllerListener,

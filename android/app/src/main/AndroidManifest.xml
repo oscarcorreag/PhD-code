@@ -35,36 +35,36 @@
             android:name=".ui.ManageSessionActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="Manage Session"
+            android:parentActivityName=".ui.MainActivity"
             android:screenOrientation="portrait" />
         <activity
             android:name=".ui.NewSessionActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="New Session"
+            android:parentActivityName=".ui.ManageSessionActivity"
             android:screenOrientation="portrait" />
         <activity
             android:name=".ui.ActivityListActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="What do you want to do?"
+            android:parentActivityName=".ui.ManageSessionActivity"
             android:screenOrientation="portrait" />
         <activity
             android:name=".ui.OriginActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="@string/title_activity_origin"
-            android:screenOrientation="portrait">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="unimelb.edu.au.ridesharing.ui.ActivityListActivity" />
-        </activity>
+            android:parentActivityName=".ui.ActivityListActivity"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".ui.PlanActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="@string/title_activity_plan"
+            android:parentActivityName=".ui.OriginActivity"
             android:screenOrientation="portrait" />
 
-        <service
-            android:name=".fcm.FirebaseService">
+        <service android:name=".fcm.FirebaseService">
             <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
         <!--
@@ -79,24 +79,30 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
-
-
         <!-- TODO: Why is this needed for the emulator in MacOS? -->
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
 
-        <!-- Set custom default icon. This is used when no icon is set for incoming notification messages.
-        See README(https://goo.gl/l4GJaQ) for more. -->
+        <!--
+        Set custom default icon. This is used when no icon is set for incoming notification messages.
+        See README(https://goo.gl/l4GJaQ) for more.
+        -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_stat_ic_notification" />
-        <!-- Set color used with incoming notification messages. This is used when no color is set for the incoming
-             notification message. See README(https://goo.gl/6BKBk7) for more. -->
+        <!--
+             Set color used with incoming notification messages. This is used when no color is set for the incoming
+             notification message. See README(https://goo.gl/6BKBk7) for more.
+        -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/colorAccent" />
 
+        <activity
+            android:name=".ui.Main2Activity"
+            android:label="@string/title_activity_main2"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>

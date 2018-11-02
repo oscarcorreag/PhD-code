@@ -261,12 +261,13 @@ class VST_RS:
         # Compute some statistics.
         tot_ic = 0
         tot_dr = 0
-        for u in self.U:
-            m = self.medoids[u]
-            ic = self.graph.dist[tuple(sorted([u, m]))]
-            tot_ic += ic
-            if ic != 0:
-                tot_dr += detours[u] / ic
+        # TODO: KeyError exception is thrown when used from mobile app.
+        # for u in self.U:
+        #     m = self.medoids[u]
+        #     ic = self.graph.dist[tuple(sorted([u, m]))]
+        #     tot_ic += ic
+        #     if ic != 0:
+        #         tot_dr += detours[u] / ic
         gain_ratio = 0
         avg_detour_ratio = 0
         avg_occupancy_rate = 0

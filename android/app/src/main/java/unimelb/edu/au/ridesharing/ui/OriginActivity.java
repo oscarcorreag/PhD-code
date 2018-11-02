@@ -1,9 +1,11 @@
 package unimelb.edu.au.ridesharing.ui;
 
+import android.content.Intent;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -17,11 +19,14 @@ import java.util.List;
 
 import unimelb.edu.au.ridesharing.R;
 import unimelb.edu.au.ridesharing.ResponseStatus;
+import unimelb.edu.au.ridesharing.model.Activity;
 import unimelb.edu.au.ridesharing.model.SessionNode;
 import unimelb.edu.au.ridesharing.model.SessionUser;
 import unimelb.edu.au.ridesharing.rest.SessionController;
 import unimelb.edu.au.ridesharing.rest.SessionNodeController;
 import unimelb.edu.au.ridesharing.rest.SessionUserController;
+import unimelb.edu.au.ridesharing.rest.StatusCode;
+
 
 public class OriginActivity extends FragmentActivity implements
         OnMapReadyCallback,
@@ -33,7 +38,7 @@ public class OriginActivity extends FragmentActivity implements
 
     SessionUser mSessionUser;
     String mActivity;
-    private GoogleMap mMap;
+    GoogleMap mMap;
     ProgressBar mProgressBar;
 
     @Override
@@ -44,15 +49,13 @@ public class OriginActivity extends FragmentActivity implements
         mSessionUser = getIntent().getParcelableExtra("sessionUser");
         mActivity = getIntent().getStringExtra("activity");
 
-        mProgressBar = findViewById(R.id.origin_progressBar);
-
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         assert mapFragment != null;
 
+        mProgressBar = findViewById(R.id.origin_progressBar);
         mProgressBar.setVisibility(View.VISIBLE);
-
         mapFragment.getMapAsync(this);
     }
 
@@ -83,7 +86,7 @@ public class OriginActivity extends FragmentActivity implements
             // Add a marker in origin and move the camera.
             mMap.addMarker(new MarkerOptions().position(mSessionUser.getLatLngOrigin()).title(mSessionUser.getUser().getUsername()));
 //            mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(mSessionUser.getSession().getBounds(), 0));
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mSessionUser.getLatLngOrigin(), 15));
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mSessionUser.getLatLngOrigin(), 14));
 
             SessionNodeController sessionNodeController = new SessionNodeController();
             sessionNodeController.setPoisListener(this);
@@ -100,11 +103,12 @@ public class OriginActivity extends FragmentActivity implements
         mProgressBar.setVisibility(View.GONE);
 
         if (responseStatus.isSuccessful()) {
-            BitmapDescriptor bitmapDescriptor = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE);
+            int resId = Activity.fromValue(mActivity).getResourceId();
+            BitmapDescriptor bdPois = BitmapDescriptorFactory.fromResource(resId);
             for (SessionNode poi : pois) {
                 mMap.addMarker(new MarkerOptions()
                         .position(poi.getLatLng())
-                        .icon(bitmapDescriptor));
+                        .icon(bdPois));
             }
         } else {
             showMsgFragment("Error", responseStatus.getDetail());
@@ -130,7 +134,17 @@ public class OriginActivity extends FragmentActivity implements
     @Override
     public void processResponseComputePlan(ResponseStatus responseStatus) {
         if (responseStatus.isSuccessful()) {
-            showMsgFragment("Info", responseStatus.getDetail());
+            if (responseStatus.getCode() == StatusCode.OK) {
+                showMsgFragment("Info", responseStatus.getDetail());
+            } else if (responseStatus.getCode() == StatusCode.CREATED) {
+                Toast.makeText(this, responseStatus.getDetail(), Toast.LENGTH_LONG).show();
+
+                Intent intent = new Intent(this, PlanActivity.class);
+                intent.putExtra("sessionUser", mSessionUser);
+                startActivity(intent);
+            } else {
+                showMsgFragment("Info", "There were no errors, but the code returned by server was not expected. Please contact the administrator.");
+            }
         } else {
             showMsgFragment("Error", responseStatus.getDetail());
         }

@@ -61,24 +61,24 @@ class CallbackTask(Task):
         session = args[0]
         print "Session ID: {0}".format(session.id)
         # Notify real users the plan is ready.
-        self.notify(session, "Your plan has been computed!", {"session_id": session.id})
+        self.notify(session, "Your plan has been computed!")
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         session = args[0]
         print "Failure CELERY task, session ID: {0}".format(session.id)
         # Notify real users there was a failure.
-        self.notify(session, "A problem occurred when computing the plan.", {"session_id": session.id})
+        self.notify(session, "A problem occurred when computing the plan.")
 
     @staticmethod
-    def notify(session, message, payload):
+    def notify(session, message):
         session_users = models.SessionUser.objects.filter(session=session, user__isnull=False)
         for session_user in session_users:
             try:
-                device = GCMDevice.objects.get(user=session_user.user)
-                device.send_message(message, extra=payload)
+                device = GCMDevice.objects.filter(user=session_user.user).latest("date_created")
+                device.send_message(message, extra={"session_user_id": session_user.id})
             except GCMDevice.DoesNotExist:
-                # This is because I am using the same device for different users. The first user is the one registered.
                 pass
+                # This is because I am using the same device for different users. The first user is the one registered.
 
 
 @shared_task(base=CallbackTask)
