@@ -122,7 +122,7 @@ public class PlanActivity extends FragmentActivity implements
                 if (mate.isReadyToTravel()) {  // This corresponds to real users
                     mMap.addMarker(new MarkerOptions()
                             .position(mate.getLatLngOrigin())
-                            .title(mSessionUser.getUser().getUsername()));
+                            .title(mate.getUser().getUsername()));
                 } else {
                     mMap.addMarker(new MarkerOptions()
                             .position(mate.getLatLngOrigin())

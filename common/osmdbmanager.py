@@ -123,6 +123,7 @@ class OsmDBManager:
     '''
     Get nodes that belong to different types of [highway].
     '''
+
     def get_highway_nodes(self):
 
         statement = "SELECT node_id " \
@@ -230,25 +231,142 @@ class OsmDBManager:
         return [r[0] for r in results]
 
     def get_graph_nodes_for_file(self, file_, act, get_hotspots, get_pois):
+        return self.__get_graph_nodes({"sa3": file_, "activity": act}, get_hotspots, get_pois)
+        # sa3_codes = self.get_sa3_codes(file_)
+        # sa3_codes_s = "("
+        # for sa3_code in sa3_codes:
+        #     sa3_codes_s += "'" + sa3_code + "',"
+        # sa3_codes_s = sa3_codes_s[:-1] + ")"
+        # # print sa3_codes_s
+        # hotspots_stmt = ""
+        # pois_stmt = ""
+        # if get_hotspots:
+        #     hotspots_stmt = "UNION SELECT node_id, 'hotspot' p, '' t FROM hotspots"
+        # if get_pois:
+        #     poi_types = self.get_mapped_osm_act(act)
+        #     poi_types_s = "("
+        #     for pt in poi_types:
+        #         poi_types_s += "'" + pt + "',"
+        #     poi_types_s = poi_types_s[:-1] + ")"
+        #     pois_stmt = "UNION SELECT node_id, 'poi' p, poi_type t FROM pois WHERE poi_type IN " + poi_types_s
+        #     # print poi_types_s
+        # statement = "SELECT way_nodes.way_id, " \
+        #             "       way_nodes.node_id, " \
+        #             "       way_nodes.ord, " \
+        #             "       filtered_nodes.p, " \
+        #             "       filtered_nodes.t, " \
+        #             "       nodes.latitude, " \
+        #             "       nodes.longitude, " \
+        #             "       sa1_2011_aust.sa1_7dig11, " \
+        #             "       sa1_2011_aust.sa2_5dig11, " \
+        #             "       ( " \
+        #             "           SELECT  way_tags.value " \
+        #             "           FROM    way_tags " \
+        #             "           WHERE   way_tags.way_id = way_nodes.way_id " \
+        #             "           AND     key = 'highway' " \
+        #             "       ) hw_type " \
+        #             "FROM   way_nodes " \
+        #             "INNER JOIN " \
+        #             "       ( " \
+        #             "           SELECT  node_id, '' p, '' t " \
+        #             "           FROM    highway_nodes " + hotspots_stmt + " " + pois_stmt + " " \
+        #             "       ) filtered_nodes " \
+        #             "ON     way_nodes.node_id = filtered_nodes.node_id " \
+        #             "INNER JOIN " \
+        #             "       nodes " \
+        #             "ON		filtered_nodes.node_id = nodes.node_id " \
+        #             "INNER JOIN " \
+        #             "       sa1_2011_aust " \
+        #             "ON     ST_Intersects(nodes.geom, sa1_2011_aust.geom) " \
+        #             "WHERE	sa1_2011_aust.sa3_code11 IN " + sa3_codes_s + " " \
+        #             "ORDER BY " \
+        #             "       way_nodes.way_id, " \
+        #             "       way_nodes.ord"
+        #
+        # self.__cursor.execute(statement)
+        # return self.__cursor.fetchall()
 
-        sa3_codes = self.get_sa3_codes(file_)
-        sa3_codes_s = "("
-        for sa3_code in sa3_codes:
-            sa3_codes_s += "'" + sa3_code + "',"
-        sa3_codes_s = sa3_codes_s[:-1] + ")"
-        # print sa3_codes_s
+    def get_graph_nodes_for_bbox(self, min_lon, min_lat, max_lon, max_lat, get_hotspots, get_pois, poi_names=None):
+        kargs = {"bbox": (min_lon, min_lat, max_lon, max_lat)}
+        if poi_names is not None:
+            kargs["poi_names"] = poi_names
+        return self.__get_graph_nodes(kargs, get_hotspots, get_pois)
+        # hotspots_stmt = ""
+        # pois_stmt = ""
+        # if get_hotspots:
+        #     hotspots_stmt = "UNION SELECT node_id, 'hotspot' p, '' t FROM hotspots"
+        # if get_pois:
+        #     pois_stmt = "UNION SELECT node_id, 'poi' p, poi_type t FROM pois"
+        # statement = "SELECT way_nodes.way_id, " \
+        #             "       way_nodes.node_id, " \
+        #             "       way_nodes.ord, " \
+        #             "       filtered_nodes.p, " \
+        #             "       filtered_nodes.t, " \
+        #             "       nodes.latitude, " \
+        #             "       nodes.longitude, " \
+        #             "       sa1_2011_aust.sa1_7dig11, " \
+        #             "       sa1_2011_aust.sa2_5dig11, " \
+        #             "       ( " \
+        #             "           SELECT  way_tags.value " \
+        #             "           FROM    way_tags " \
+        #             "           WHERE   way_tags.way_id = way_nodes.way_id " \
+        #             "           AND     key = 'highway' " \
+        #             "       ) hw_type " \
+        #             "FROM   way_nodes " \
+        #             "INNER JOIN " \
+        #             "       ( " \
+        #             "           SELECT  node_id, '' p, '' t " \
+        #             "           FROM    highway_nodes " + hotspots_stmt + " " + pois_stmt + " " \
+        #             "       ) filtered_nodes " \
+        #             "ON     way_nodes.node_id = filtered_nodes.node_id " \
+        #             "INNER JOIN " \
+        #             "       nodes " \
+        #             "ON		filtered_nodes.node_id = nodes.node_id " \
+        #             "LEFT JOIN " \
+        #             "       sa1_2011_aust " \
+        #             "ON     ST_Intersects(nodes.geom, sa1_2011_aust.geom) " \
+        #             "WHERE	nodes.geom && ST_MakeEnvelope(%s, %s, %s, %s, 4326) " \
+        #             "ORDER BY " \
+        #             "       way_nodes.way_id, " \
+        #             "       way_nodes.ord"
+        #
+        # # pdb.set_trace()
+        # self.__cursor.execute(statement, (min_lon, min_lat, max_lon, max_lat))
+        # return self.__cursor.fetchall()
+
+    def __get_graph_nodes(self, kargs, get_hotspots=True, get_pois=True):
+        # Are hot-spots to be included?
         hotspots_stmt = ""
-        pois_stmt = ""
         if get_hotspots:
             hotspots_stmt = "UNION SELECT node_id, 'hotspot' p, '' t FROM hotspots"
+        # Are POIs to be included?
+        pois_stmt = ""
         if get_pois:
-            poi_types = self.get_mapped_osm_act(act)
-            poi_types_s = "("
-            for pt in poi_types:
-                poi_types_s += "'" + pt + "',"
-            poi_types_s = poi_types_s[:-1] + ")"
-            pois_stmt = "UNION SELECT node_id, 'poi' p, poi_type t FROM pois WHERE   poi_type IN " + poi_types_s
-            # print poi_types_s
+            pois_stmt = "UNION SELECT node_id, 'poi' p, poi_type t FROM pois "
+            # Are filtered by activity?
+            if "activity" in kargs:
+                act = kargs["activity"]
+                # Retrieve OSM activities mapped to activity sent as parameter.
+                poi_types = self.get_mapped_osm_act(act)
+                poi_types_s = "("
+                for pt in poi_types:
+                    poi_types_s += "'" + pt + "',"
+                poi_types_s = poi_types_s[:-1] + ")"
+                # Augment filter statement.
+                pois_stmt += " WHERE poi_type IN " + poi_types_s
+            # Are filtered by name?
+            if "poi_names" in kargs:
+                poi_names = kargs["poi_names"]
+                poi_names_s = "("
+                poi_names_s += ", ".join(["'" + poi_name + "'" for poi_name in poi_names])
+                poi_names_s += ")"
+                # Augment filter statement.
+                pois_stmt += " WHERE poi_name IN " + poi_names_s
+        # --------------------------------------------------------------------------------------------------------------
+        # SQL statement to retrieve info needed to build graph.
+        # --------------------------------------------------------------------------------------------------------------
+        # SELECT
+        # ------
         statement = "SELECT way_nodes.way_id, " \
                     "       way_nodes.node_id, " \
                     "       way_nodes.ord, " \
@@ -273,60 +391,47 @@ class OsmDBManager:
                     "ON     way_nodes.node_id = filtered_nodes.node_id " \
                     "INNER JOIN " \
                     "       nodes " \
-                    "ON		filtered_nodes.node_id = nodes.node_id " \
-                    "INNER JOIN " \
-                    "       sa1_2011_aust " \
-                    "ON     ST_Intersects(nodes.geom, sa1_2011_aust.geom) " \
-                    "WHERE	sa1_2011_aust.sa3_code11 IN " + sa3_codes_s + " " \
-                    "ORDER BY " \
-                    "       way_nodes.way_id, " \
-                    "       way_nodes.ord"
-
+                    "ON		filtered_nodes.node_id = nodes.node_id"
+        # -----
+        # WHERE
+        # -----
+        where = "WHERE"
+        # Filter by Australian political division (SA3 codes)?
+        if "sa3" in kargs:
+            sa3 = kargs["sa3"]
+            sa3_codes = self.get_sa3_codes(sa3)
+            sa3_codes_s = "("
+            for sa3_code in sa3_codes:
+                sa3_codes_s += "'" + sa3_code + "',"
+            sa3_codes_s = sa3_codes_s[:-1] + ")"
+            statement += " INNER JOIN sa1_2011_aust " \
+                         " ON       ST_Intersects(nodes.geom, sa1_2011_aust.geom) " \
+                         " WHERE    sa1_2011_aust.sa3_code11 IN " + sa3_codes_s
+            where = "AND"
+        else:
+            statement += " LEFT JOIN sa1_2011_aust" \
+                         " ON       ST_Intersects(nodes.geom, sa1_2011_aust.geom)"
+        # Filter nodes by bounding box
+        if "bbox" in kargs:
+            bbox = kargs["bbox"]
+            min_lon = bbox[0]
+            min_lat = bbox[1]
+            max_lon = bbox[2]
+            max_lat = bbox[3]
+            statement += where + "  nodes.geom && ST_MakeEnvelope(" + \
+                         str(min_lon) + ", " + \
+                         str(min_lat) + ", " + \
+                         str(max_lon) + ", " + \
+                         str(max_lat) + ", 4326)"
+            # where = "AND"
+        # --------
+        # ORDER BY
+        # --------
+        statement += " ORDER BY " \
+                     "      way_nodes.way_id, " \
+                     "      way_nodes.ord"
+        # Execute query.
         self.__cursor.execute(statement)
-        return self.__cursor.fetchall()
-
-    def get_graph_nodes_for_bbox(self, min_lon, min_lat, max_lon, max_lat, get_hotspots, get_pois):
-        hotspots_stmt = ""
-        pois_stmt = ""
-        if get_hotspots:
-            hotspots_stmt = "UNION SELECT node_id, 'hotspot' p, '' t FROM hotspots"
-        if get_pois:
-            pois_stmt = "UNION SELECT node_id, 'poi' p, poi_type t FROM pois"
-        statement = "SELECT way_nodes.way_id, " \
-                    "       way_nodes.node_id, " \
-                    "       way_nodes.ord, " \
-                    "       filtered_nodes.p, " \
-                    "       filtered_nodes.t, " \
-                    "       nodes.latitude, " \
-                    "       nodes.longitude, " \
-                    "       sa1_2011_aust.sa1_7dig11, " \
-                    "       sa1_2011_aust.sa2_5dig11, " \
-                    "       ( " \
-                    "           SELECT  way_tags.value " \
-                    "           FROM    way_tags " \
-                    "           WHERE   way_tags.way_id = way_nodes.way_id " \
-                    "           AND     key = 'highway' " \
-                    "       ) hw_type " \
-                    "FROM   way_nodes " \
-                    "INNER JOIN " \
-                    "       ( " \
-                    "           SELECT  node_id, '' p, '' t " \
-                    "           FROM    highway_nodes " + hotspots_stmt + " " + pois_stmt + " " \
-                    "       ) filtered_nodes " \
-                    "ON     way_nodes.node_id = filtered_nodes.node_id " \
-                    "INNER JOIN " \
-                    "       nodes " \
-                    "ON		filtered_nodes.node_id = nodes.node_id " \
-                    "LEFT JOIN " \
-                    "       sa1_2011_aust " \
-                    "ON     ST_Intersects(nodes.geom, sa1_2011_aust.geom) " \
-                    "WHERE	nodes.geom && ST_MakeEnvelope(%s, %s, %s, %s, 4326) " \
-                    "ORDER BY " \
-                    "       way_nodes.way_id, " \
-                    "       way_nodes.ord"
-
-        # pdb.set_trace()
-        self.__cursor.execute(statement, (min_lon, min_lat, max_lon, max_lat))
         return self.__cursor.fetchall()
 
     def get_statistics(self, sa3_code11):

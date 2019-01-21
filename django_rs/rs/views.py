@@ -303,7 +303,8 @@ class SessionViewSet(viewsets.ModelViewSet):
             coords = osm.get_coordinates(chosen_session_user.origin)
             # Origin of this new session user is close (>= MIN_DIST) to the chosen one but it is different from other
             # real users' origins.
-            knn = osm.get_knn(active_session.id, coords["longitude"], coords["latitude"], len(real_session_users), MIN_DIST)
+            knn = osm.get_knn(active_session.id, coords["longitude"], coords["latitude"], len(real_session_users),
+                              MIN_DIST)
             origins = {u.origin for u in real_session_users}
             knn_ = {nn["node"] for nn in knn}
             temp = list(knn_.difference(origins))

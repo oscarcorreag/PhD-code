@@ -332,18 +332,20 @@ class Digraph(dict):
     def get_edges(self):
         if len(self.__edges) != 0:
             return self.__edges
-        if self.node_weighted:
-            for n in self:
-                for w, edge_weight in self[n][1].iteritems():
-                    edge = tuple(sorted([n, w]))
-                    if edge not in self.__edges:
-                        self.__edges[edge] = edge_weight
-        else:
-            for n in self:
-                for w, edge_weight in self[n].iteritems():
-                    edge = tuple(sorted([n, w]))
-                    if edge not in self.__edges:
-                        self.__edges[edge] = edge_weight
+        # Generate edges from scratch only in the case of an undirected graph.
+        if self.undirected:
+            if self.node_weighted:
+                for n in self:
+                    for w, edge_weight in self[n][1].iteritems():
+                        edge = tuple(sorted([n, w]))
+                        if edge not in self.__edges:
+                            self.__edges[edge] = edge_weight
+            else:
+                for n in self:
+                    for w, edge_weight in self[n].iteritems():
+                        edge = tuple(sorted([n, w]))
+                        if edge not in self.__edges:
+                            self.__edges[edge] = edge_weight
         return self.__edges
 
     def get_capacities(self):

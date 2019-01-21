@@ -167,7 +167,7 @@ class OsmManager:
 
     def generate_graph_for_bbox(self, min_lon, min_lat, max_lon, max_lat, generator, hotspots=True, pois=True,
                                 cost_type="distance"):
-        results = self.__osmdbmngr.get_graph_nodes_for_bbox(min_lon, min_lat, max_lon, max_lat, hotspots, pois)
+        results = self.__osmdbmngr.get_graph_nodes_for_bbox(min_lon, min_lat, max_lon, max_lat, hotspots, pois, ["COLES", "WOOLWORTHS"])
         return generate_graph(results, generator, cost_type=cost_type)
 
     def choose_terminals_according_to_vista(self, file_, dh, act, nodes_by_sa1_code, excluded_nodes=None):
