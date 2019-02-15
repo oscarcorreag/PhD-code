@@ -17,11 +17,11 @@ def generate_graph(results, generator, cost_type="distance", capacitated=False):
         node_id = r[1]
         type_ = r[3]
         stype = r[4]
-        lat = float(r[5])
-        lon = float(r[6])
-        sa1_code = r[7]
-        sa2_code = r[8]
-        hw_type = r[9]
+        lat = float(r[6])
+        lon = float(r[7])
+        sa1_code = r[8]
+        sa2_code = r[9]
+        hw_type = r[10]
         if node_id not in graph:
             if type_ == "hotspot":
                 graph[node_id] = (generator.weights["VERY_SUITABLE"][0], {}, {'lat': lat, 'lon': lon, 'sa1': sa1_code,
@@ -147,27 +147,33 @@ class OsmManager:
     def __init__(self):
         self.__osmdbmngr = OsmDBManager("postgres", "naya0105", "osm", "localhost")
 
-    def get_nodes_for_bbox(self, min_lon, min_lat, max_lon, max_lat, hotspots=True, pois=True):
+    def get_nodes_for_bbox(self, min_lon, min_lat, max_lon, max_lat, hotspots=True, pois=True, poi_names=None):
+        kargs = {"bbox": (min_lon, min_lat, max_lon, max_lat)}
+        if poi_names is not None:
+            kargs["poi_names"] = poi_names
+        results = self.__osmdbmngr.get_graph_nodes(kargs, hotspots, pois)
         nodes = dict()
-        results = self.__osmdbmngr.get_graph_nodes_for_bbox(min_lon, min_lat, max_lon, max_lat, hotspots, pois)
         for r in results:
             node_id = r[1]
             type_ = r[3]
             stype = r[4]
-            lat = float(r[5])
-            lon = float(r[6])
-            sa1_code = r[7]
-            sa2_code = r[8]
+            lat = float(r[6])
+            lon = float(r[7])
+            sa1_code = r[8]
+            sa2_code = r[9]
             nodes[node_id] = {'type': type_, 'lat': lat, 'lon': lon, 'sa1': sa1_code, 'sa2': sa2_code, 'subtype': stype}
         return nodes
 
     def generate_graph_for_file(self, file_, act, generator, hotspots=True, pois=True, cost_type="distance"):
-        results = self.__osmdbmngr.get_graph_nodes_for_file(file_, act, hotspots, pois)
+        results = self.__osmdbmngr.get_graph_nodes({"sa3": file_, "activity": act}, hotspots, pois)
         return generate_graph(results, generator, cost_type=cost_type)
 
     def generate_graph_for_bbox(self, min_lon, min_lat, max_lon, max_lat, generator, hotspots=True, pois=True,
-                                cost_type="distance"):
-        results = self.__osmdbmngr.get_graph_nodes_for_bbox(min_lon, min_lat, max_lon, max_lat, hotspots, pois, ["COLES", "WOOLWORTHS"])
+                                poi_names=None, cost_type="distance"):
+        kargs = {"bbox": (min_lon, min_lat, max_lon, max_lat)}
+        if poi_names is not None:
+            kargs["poi_names"] = poi_names
+        results = self.__osmdbmngr.get_graph_nodes(kargs, hotspots, pois)
         return generate_graph(results, generator, cost_type=cost_type)
 
     def choose_terminals_according_to_vista(self, file_, dh, act, nodes_by_sa1_code, excluded_nodes=None):

@@ -10,7 +10,7 @@ from osmmanager import OsmManager
 from suitability import SuitableNodeWeightGenerator
 from suitability import SuitabilityDigraph
 from vst_rs import VST_RS
-from link_performance import bpr, bpr_log
+from link_performance import bpr
 
 
 def get_suitability_graph_from_session(request):

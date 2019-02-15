@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Crowdsourced Delivery Problem with Alternative Pickup Locations</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.0/themes/smoothness/jquery-ui.css">
+    <style>
+        html, body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+        }
+        #map {
+			height: 100%;
+        }
+		label {
+			display: block;
+		}
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBoyQ_QWJJ7d0istb96NeSpOIOFXA9i0yw&libraries=drawing"></script>
+	<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+	<script src="https://code.jquery.com/ui/1.12.0/jquery-ui.js"></script>
+    <script src="/static/csdp/jquery.layout-latest.js"></script>
+    <script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
+    <script>
+        var map;
+        var bbox;
+        var bboxes = [];
+
+        var zones = {
+            "quito": [-0.233333, -78.516667],
+            "melbourne": [-37.813611, 144.963056],
+            "manhattan": [40.728333, -73.994167]
+        };
+
+        function initialize() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 10,
+                center: new google.maps.LatLng(-0.233333, -78.516667),
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            });
+            drawingManager = new google.maps.drawing.DrawingManager();
+            drawingManager.setOptions({
+                drawingMode: google.maps.drawing.OverlayType.RECTANGLE,
+                drawingControl: true,
+                drawingControlOptions: {
+                    position: google.maps.ControlPosition.TOP_CENTER,
+                    drawingModes: [ google.maps.drawing.OverlayType.RECTANGLE ]
+                },
+                rectangleOptions: {
+                    strokeColor: '#6c6c6c',
+                    strokeWeight: 3.5,
+                    fillColor : '#926239',
+                    fillOpacity : 0.1,
+                    editable: true,
+                    draggable: true
+                }
+            });
+            drawingManager.setMap(map);
+            google.maps.event.addListener(drawingManager, 'rectangleComplete', onRectangleCompleted);
+        }
+
+        function onRectangleCompleted(rectangle) {
+            bbox = rectangle;
+            var ne = bbox.getBounds().getNorthEast();
+            var sw = bbox.getBounds().getSouthWest();
+            setBboxCoord(ne.lat(), sw.lng(), sw.lat(), ne.lng());
+            bbox.addListener('bounds_changed', onBoundsChanged);
+            bboxes.push(bbox);
+        }
+
+        function changeMap(city) {
+            var coords = zones[city];
+            map.setCenter(new google.maps.LatLng(coords[0], coords[1]));
+        }
+
+        var viewModel = {
+            // These are the initial options
+            availableMarkets: ko.observableArray(['France', 'Germany', 'Spain'])
+        };
+
+        // ... then later ...
+        viewModel.availableMarkets.push('China'); // Adds another option
+
+        $(document).ready(function() {
+            $('#accordion').accordion();
+            $('body').layout({ applyDefaultStyles: true });
+        });
+    </script>
+</head>
+<body onload="initialize();">
+<div class="ui-layout-west">
+    <div id="accordion">
+        <h3>Network Sample</h3>
+		<div id="sample">
+			<label for="zone">Zone:</label>
+			<select id="zone" onchange="changeMap(this.value)">
+				<option value="quito">Quito</option>
+				<option value="melbourne">Melbourne</option>
+				<option value="manhattan">Manhattan</option>
+			</select>
+			<label for="id_top">Top:</label>
+			<input type="text" id="id_top">
+			<label for="id_left">Left:</label>
+			<input type="text" id="id_left">
+			<label for="id_bottom">Bottom:</label>
+			<input type="text" id="id_bottom">
+			<label for="id_right">Right:</label>
+			<input type="text" id="id_right">
+			<br>
+			<button id="retrieve_markets" class="ui-button ui-corner-all">Retrieve markets</button>
+		</div>
+        <h3>Requests</h3>
+		<div id="requests">
+            <table class="table table-striped">
+                <tr>
+                    <td>
+                        <select data-bind="options: availableMarkets"></select>
+                    </td>
+                    <td><input type="text" data-bind="text: people"></td>
+                    <td>
+                        <button class="btn">Delete</button>
+                    </td>
+                </tr>
+            </table>
+            <button class="btn">Add request</button>
+            <br>
+			<button id="create_requests" class="ui-button ui-corner-all">Create requests</button>
+		</div>
+    </div>
+</div>
+<div id="map" class="ui-layout-center"></div>
+</body>
+</html>

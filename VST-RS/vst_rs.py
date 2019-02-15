@@ -414,8 +414,7 @@ class VST_RS:
             if verbose:
                 job_server.print_stats()
             job_server.destroy()
-        # TODO: sts correspond to the collection of Steiner Trees (individual vehicles). This is not needed here yet. It is used in VST-CA (mobile app)
-        return [(ord_, plan) for ord_, (plan, sts, _) in
+        return [(ord_, plan, sts) for ord_, (plan, sts, _) in
                 plans.iteritems()], cost, warl, mwrl, mrl1, mrl2, entropy, no_iter
 
     def non_congestion_aware(self, queries, z, S, f, merge_users=True, alpha=0.15, beta=4.0, parallelise=True,

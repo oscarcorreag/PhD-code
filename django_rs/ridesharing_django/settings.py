@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'hotspots',
     'congestion',
     'rs',
+    'csdp',
     'rest_framework',
     # 'django_celery_results',
     'djcelery',

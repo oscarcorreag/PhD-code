@@ -83,12 +83,6 @@ class SessionPlan(models.Model):
     travel_cost = models.FloatField(null=True)
 
 
-# class SessionPlanDetail(models.Model):
-#     plan = models.ForeignKey(SessionPlan, on_delete=models.CASCADE)
-#     node_i = models.BigIntegerField()
-#     node_j = models.BigIntegerField()
-
-
 class SessionPlanVehicle(models.Model):
     plan = models.ForeignKey(SessionPlan, on_delete=models.CASCADE)
 

@@ -20,6 +20,7 @@ urlpatterns = [
     url(r'^hotspots/', include('hotspots.urls')),
     url(r'^congestion/', include('congestion.urls')),
     url(r'^rs/', include('rs.urls')),
+    url(r'^csdp/', include('csdp.urls')),
     url(r'^admin/', admin.site.urls),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]
