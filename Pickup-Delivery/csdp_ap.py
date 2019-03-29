@@ -35,7 +35,7 @@ class CsdpAp:
         # --------------------------------------------------------------------------------------------------------------
         # MILP
         # --------------------------------------------------------------------------------------------------------------
-        self.solver = pywraplp.Solver("SolveIntegerProblem", pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
+        self._solver = pywraplp.Solver("SolveIntegerProblem", pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
         self.x = dict()
         self.B = dict()
         self.z = dict()
@@ -126,7 +126,7 @@ class CsdpAp:
         for i, j in self.A1:
             for k, ((start_v, _, _), _) in enumerate(self._vehicles):
                 if i == start_v:
-                    self.x[(i, j, k)] = self.solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
+                    self.x[(i, j, k)] = self._solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
         # These variables are defined over A2 U A3 U A4 U A5.
         A_ = list()
         A_.extend(self.A2)
@@ -135,18 +135,18 @@ class CsdpAp:
         A_.extend(self.A5)
         for i, j in A_:
             for k, _ in enumerate(self._vehicles):
-                self.x[(i, j, k)] = self.solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
+                self.x[(i, j, k)] = self._solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
         # These variables are defined over a subset of A6. Defining a x(i, j, k) for which j != k^- does not make sense.
         for i, j in self.A6:
             for k, (_, (end_v, _, _)) in enumerate(self._vehicles):
                 if j == end_v:
-                    self.x[(i, j, k)] = self.solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
+                    self.x[(i, j, k)] = self._solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
         # These variables are defined over a subset of A7. Defining a x(i, j, k) for which i != k^+ or j != k^- does not
         # make sense. However, validating i and j is not needed as arcs {(i, j) : i = k^+ and j != k^-} are not created.
         for i, j in self.A7:
             for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
                 if i == start_v and j == end_v:
-                    self.x[(i, j, k)] = self.solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
+                    self.x[(i, j, k)] = self._solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
         # --------------------------------------------------------------------------------------------------------------
         # Time variables at which vehicles start servicing at nodes.
         # Time window constraints are defined implicitly.
@@ -154,23 +154,23 @@ class CsdpAp:
         for i in self.N:
             for k, _ in enumerate(self._vehicles):
                 # self.B[(i, k)] = self.solver.NumVar(0.0, self.solver.infinity(), 'B(%d, %d)' % (i, k))
-                self.B[(i, k)] = self.solver.NumVar(self._V_tws[i][0], self._V_tws[i][1], 'B(%d, %d)' % (i, k))
+                self.B[(i, k)] = self._solver.NumVar(self._V_tws[i][0], self._V_tws[i][1], 'B(%d, %d)' % (i, k))
         for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
             # self.B[(start_v, k)] = self.solver.NumVar(0.0, self.solver.infinity(), 'B(%d, %d)' % (start_v, k))
-            self.B[(start_v, k)] = self.solver.NumVar(self._V_tws[start_v][0], self._V_tws[start_v][1], 'B(%d, %d)' % (start_v, k))
+            self.B[(start_v, k)] = self._solver.NumVar(self._V_tws[start_v][0], self._V_tws[start_v][1], 'B(%d, %d)' % (start_v, k))
             # self.B[(end_v, k)] = self.solver.NumVar(0.0, self.solver.infinity(), 'B(%d, %d)' % (end_v, k))
-            self.B[(end_v, k)] = self.solver.NumVar(self._V_tws[end_v][0], self._V_tws[end_v][1], 'B(%d, %d)' % (end_v, k))
+            self.B[(end_v, k)] = self._solver.NumVar(self._V_tws[end_v][0], self._V_tws[end_v][1], 'B(%d, %d)' % (end_v, k))
         # --------------------------------------------------------------------------------------------------------------
         # Auxiliary variables z := x(i, j, k) * B(i, k).
         # --------------------------------------------------------------------------------------------------------------
         for i, j, k in self.x:
-            self.z[(i, j, k)] = self.solver.NumVar(0.0, self.solver.infinity(), 'z(%d, %d, %d)' % (i, j, k))
+            self.z[(i, j, k)] = self._solver.NumVar(0.0, self._solver.infinity(), 'z(%d, %d, %d)' % (i, j, k))
 
     def _define_one_vehicle_one_pickup_constraints(self):
         constraints = [0] * len(self._requests)
         for req, _ in enumerate(self._requests):
             shops = self.N_r_pl[req]
-            constraints[req] = self.solver.Constraint(1.0, 1.0, str(self.solver.NumConstraints()))
+            constraints[req] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
             for k, _ in enumerate(self._vehicles):
                 for i in shops:
                     for j, _ in self._working_graph[i].iteritems():
@@ -183,7 +183,7 @@ class CsdpAp:
             shops = self.N_r_pl[req]
             customer = self.N_r_cl[req]
             for k, _ in enumerate(self._vehicles):
-                constraints[req * K + k] = self.solver.Constraint(0.0, 0.0, str(self.solver.NumConstraints()))
+                constraints[req * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
                 for i in shops:
                     for j, _ in self._working_graph[i].iteritems():
                         constraints[req * K + k].SetCoefficient(self.x[(i, j, k)], 1.0)
@@ -196,7 +196,7 @@ class CsdpAp:
         constraints = [0] * len(self.N) * K
         for ord_, i in enumerate(self.N):
             for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
-                constraints[ord_ * K + k] = self.solver.Constraint(0.0, 0.0, str(self.solver.NumConstraints()))
+                constraints[ord_ * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
                 for j in self.N:
                     try:
                         constraints[ord_ * K + k].SetCoefficient(self.x[(j, i, k)], 1.0)
@@ -219,11 +219,11 @@ class CsdpAp:
         K = len(self._vehicles)
         constraints = [0] * 2 * K
         for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
-            constraints[k] = self.solver.Constraint(1.0, 1.0, str(self.solver.NumConstraints()))
+            constraints[k] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
             for j in self.N_pl:
                 constraints[k].SetCoefficient(self.x[(start_v, j, k)], 1.0)
             constraints[k].SetCoefficient(self.x[(start_v, end_v, k)], 1.0)
-            constraints[K + k] = self.solver.Constraint(1.0, 1.0, str(self.solver.NumConstraints()))
+            constraints[K + k] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
             for j in self.N_cl:
                 constraints[K + k].SetCoefficient(self.x[(j, end_v, k)], 1.0)
             constraints[K + k].SetCoefficient(self.x[(start_v, end_v, k)], 1.0)
@@ -237,23 +237,23 @@ class CsdpAp:
         constraints = [0] * X * 4
         for ord_, (i, j, k) in enumerate(self.x):
             #
-            constraints[ord_] = self.solver.Constraint(0.0, self.solver.infinity(), str(self.solver.NumConstraints()))
+            constraints[ord_] = self._solver.Constraint(0.0, self._solver.infinity(), str(self._solver.NumConstraints()))
             constraints[ord_].SetCoefficient(self.x[(i, j, k)], M)
             constraints[ord_].SetCoefficient(self.z[(i, j, k)], -1.0)
             #
-            constraints[X + ord_] = self.solver.Constraint(0.0, self.solver.infinity(),
-                                                           str(self.solver.NumConstraints()))
+            constraints[X + ord_] = self._solver.Constraint(0.0, self._solver.infinity(),
+                                                            str(self._solver.NumConstraints()))
             constraints[X + ord_].SetCoefficient(self.B[(i, k)], 1.0)
             constraints[X + ord_].SetCoefficient(self.z[(i, j, k)], -1.0)
             #
-            constraints[2 * X + ord_] = self.solver.Constraint(-M, self.solver.infinity(),
-                                                               str(self.solver.NumConstraints()))
+            constraints[2 * X + ord_] = self._solver.Constraint(-M, self._solver.infinity(),
+                                                                str(self._solver.NumConstraints()))
             constraints[2 * X + ord_].SetCoefficient(self.B[(i, k)], -1.0)
             constraints[2 * X + ord_].SetCoefficient(self.x[(i, j, k)], -M)
             constraints[2 * X + ord_].SetCoefficient(self.z[(i, j, k)], 1.0)
             #
-            constraints[3 * X + ord_] = self.solver.Constraint(0.0, self.solver.infinity(),
-                                                               str(self.solver.NumConstraints()))
+            constraints[3 * X + ord_] = self._solver.Constraint(0.0, self._solver.infinity(),
+                                                                str(self._solver.NumConstraints()))
             constraints[3 * X + ord_].SetCoefficient(self.B[(j, k)], 1.0)
             constraints[3 * X + ord_].SetCoefficient(self.x[(i, j, k)], -self._working_graph[i][j])
             constraints[3 * X + ord_].SetCoefficient(self.z[(i, j, k)], -1.0)
@@ -267,14 +267,14 @@ class CsdpAp:
             customer = self.N_r_cl[req]
             for k, _ in enumerate(self._vehicles):
                 for i in shops:
-                    constraints[cnt] = self.solver.Constraint(self._working_graph[i][customer], self.solver.infinity(),
-                                                              str(self.solver.NumConstraints()))
+                    constraints[cnt] = self._solver.Constraint(self._working_graph[i][customer], self._solver.infinity(),
+                                                               str(self._solver.NumConstraints()))
                     constraints[cnt].SetCoefficient(self.B[(customer, k)], 1.0)
                     constraints[cnt].SetCoefficient(self.B[(i, k)], -1.0)
                     cnt += 1
         for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
-            constraints[cnt] = self.solver.Constraint(self._working_graph[start_v][end_v], self.solver.infinity(),
-                                                      str(self.solver.NumConstraints()))
+            constraints[cnt] = self._solver.Constraint(self._working_graph[start_v][end_v], self._solver.infinity(),
+                                                       str(self._solver.NumConstraints()))
             constraints[cnt].SetCoefficient(self.B[(end_v, k)], 1.0)
             constraints[cnt].SetCoefficient(self.B[(start_v, k)], -1.0)
             cnt += 1
@@ -284,16 +284,16 @@ class CsdpAp:
         for ord_, (i, e, l) in enumerate(self._V_tws):
             for k, _ in enumerate(self._vehicles):
                 if (i, k) in self.B:
-                    constraints[ord_] = self.solver.Constraint(e, l, str(self.solver.NumConstraints()))
+                    constraints[ord_] = self._solver.Constraint(e, l, str(self._solver.NumConstraints()))
                     constraints[ord_].SetCoefficient(self.B[(i, k)], 1.0)
 
-    def _define_objective(self):
-        objective = self.solver.Objective()
+    def __define_objective(self):
+        objective = self._solver.Objective()
         for (i, j, _), x in self.x.iteritems():
             objective.SetCoefficient(x, self._working_graph[i][j])
         objective.SetMinimization()
 
-    def routes(self, requests, vehicles, method="MILP", verbose=False):
+    def solve(self, requests, vehicles, method="MILP", verbose=False):
 
         self._requests = requests
         self._vehicles = vehicles
@@ -317,18 +317,18 @@ class CsdpAp:
     def _solve_milp(self, verbose=False):
 
         self._define_milp()
-        result_status = self.solver.Solve()
+        result_status = self._solver.Solve()
         # The problem has an optimal solution.
         # assert result_status == pywraplp.Solver.OPTIMAL
         # The solution looks legit (when using solvers other than
         # GLOP_LINEAR_PROGRAMMING, verifying the solution is highly recommended!).
-        assert self.solver.VerifySolution(1e-7, True)
+        assert self._solver.VerifySolution(1e-7, True)
         if result_status == pywraplp.Solver.OPTIMAL:
             # If verbose...
             if verbose:
-                print('Number of variables =', self.solver.NumVariables())
-                print('Number of constraints =', self.solver.NumConstraints())
-                print('Optimal objective value = %d' % self.solver.Objective().Value())
+                print('Number of variables =', self._solver.NumVariables())
+                print('Number of constraints =', self._solver.NumConstraints())
+                print('Optimal objective value = %d' % self._solver.Objective().Value())
                 # Variables
                 for _, variable in self.x.iteritems():
                     print('%s = %d' % (variable.name(), variable.solution_value()))
@@ -353,10 +353,10 @@ class CsdpAp:
         vars_.extend(self.x.values())
         vars_.extend(self.B.values())
         vars_.extend(self.z.values())
-        for nc in range(self.solver.NumConstraints()):
-            c = self.solver.LookupConstraint(str(nc))
+        for nc in range(self._solver.NumConstraints()):
+            c = self._solver.LookupConstraint(str(nc))
             cs = ""
-            if c.lb() != c.ub() and c.lb() > -self.solver.infinity():
+            if c.lb() != c.ub() and c.lb() > -self._solver.infinity():
                 cs = str(c.lb()) + " <= "
             for variable in vars_:
                 try:
@@ -367,7 +367,7 @@ class CsdpAp:
                         cs += "- " + str(abs(coeff)) + " " + variable.name() + " "
                 except KeyError:
                     pass
-            if c.lb() != c.ub() and c.ub() < self.solver.infinity():
+            if c.lb() != c.ub() and c.ub() < self._solver.infinity():
                 cs += "<= " + str(c.ub())
             elif c.lb() == c.ub():
                 cs += "= " + str(c.ub())
