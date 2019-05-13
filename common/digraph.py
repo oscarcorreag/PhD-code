@@ -369,6 +369,22 @@ class Digraph(dict):
             self.compute_dist_paths(origins=origins, destinations=destinations, method=method)
         return self.dist, self.paths
 
+    def set_dist_path(self, origin, destination, dist, path=None):
+        if self.undirected:
+            v_w = tuple(sorted([origin, destination]))
+        else:
+            v_w = (origin, destination)
+        try:
+            self.dist[v_w] = dist
+            if path:
+                self.paths[v_w] = path
+            self.pairs_dist_paths.add(v_w)
+        except KeyError:
+            self.dist[v_w] = sys.maxint
+            if path:
+                self.paths[v_w] = []
+            self.issues_dist_paths.add(v_w)
+
     def compute_missing_pairs_dist_paths(self, pairs):
         if self.undirected:
             pairs_dict = {tuple(sorted([o, d])): (o, d) for (o, d) in pairs}
@@ -416,23 +432,28 @@ class Digraph(dict):
                 dist, p = self.__dijkstra(v, ds, end_mode=end_mode, compute_paths=compute_paths,
                                           track_edges=track_edges)
                 for w in ds:
-                    if self.undirected:
-                        v_w = tuple(sorted([v, w]))
+                    if compute_paths:
+                        self.set_dist_path(v, w, dist[w], list(p[w]))
                     else:
-                        v_w = (v, w)
-                    try:
-                        self.dist[v_w] = dist[w]
-                        if compute_paths:
-                            self.paths[v_w] = list(p[w])
-                        self.pairs_dist_paths.add(v_w)
-                    except KeyError:
-                        self.dist[v_w] = sys.maxint
-                        if compute_paths:
-                            self.paths[v_w] = []
-                        self.issues_dist_paths.add(v_w)
+                        self.set_dist_path(v, w, dist[w])
+        elif method == 'meet-in-the-middle':
+            # Only one origin and one destination are expected for this method.
+            if len(pairs_) != 1:
+                raise (RuntimeError, "Only one origin and one destination are expected when 'Meet-in-the-middle' "
+                                     "method is used.")
+            (pair,) = pairs_
+            v = pair[0]
+            w = pair[1]
+            dist, path = self.__meet_in_the_middle(v, w, compute_path=compute_paths, track_edges=track_edges)
+            if compute_paths:
+                self.set_dist_path(v, w, dist, path)
+            else:
+                self.set_dist_path(v, w, dist)
         else:
             raise (RuntimeError, "Digraph: No other method but Dijkstra has been implemented!")
         return len(pairs_)  # number of computed pairs.
+
+
 
     def steiner_n_stats(self, n, v, mst_alg):
         ecc = inc = 0
@@ -499,6 +520,21 @@ class Digraph(dict):
             return sorted_dist
         return sorted_dist[:k]
 
+    def __track_edges(self, path):
+        origin = path[0]
+        destination = path[-1]
+        for i in range(len(path) - 1):
+            x = path[i]
+            y = path[i + 1]
+            if self.undirected:
+                x_y = tuple(sorted([x, y]))
+            else:
+                x_y = (x, y)
+            try:
+                self.__edges_in_sp[x_y].append((origin, destination))
+            except KeyError:
+                self.__edges_in_sp[x_y] = [(origin, destination)]
+
     def __dijkstra(self, origin, destinations=None, consider_node_weights=False, end_mode='all', compute_paths=True,
                    track_edges=False):
 
@@ -514,6 +550,8 @@ class Digraph(dict):
 
         for v in priority_queue:
 
+            # When a node is retrieved from the priority queue, means that there is no shortest way to get to it.
+            # Therefore, this distance is the final.
             distances[v] = priority_queue[v]
 
             if compute_paths or track_edges:
@@ -528,42 +566,38 @@ class Digraph(dict):
                     path.reverse()
                     paths[v] = path
                     if track_edges:
-                        for i in range(len(path) - 1):
-                            x = path[i]
-                            y = path[i + 1]
-                            if self.undirected:
-                                x_y = tuple(sorted([x, y]))
-                            else:
-                                x_y = (x, y)
-                            try:
-                                self.__edges_in_sp[x_y].append((origin, v))
-                            except KeyError:
-                                self.__edges_in_sp[x_y] = [(origin, v)]
+                        self.__track_edges(path)
 
             # if v == end:
             #     break
             if v in destinations:
                 reached_nodes.append(v)
                 if end_mode == 'all':
+                    # When all the destinations have been reached...
                     if len(set(destinations) - set(reached_nodes)) == 0:
-                        # Trim distances.
+                        # Trim distances to nodes which are not in the list of destinations.
                         distances = {u: dist for u, dist in distances.iteritems() if u in destinations}
                         break
                 elif end_mode == 'first':
-                    # Trim distances.
+                    # Trim distances to nodes which are not the first-reached destination.
                     distances = {u: dist for u, dist in distances.iteritems() if u == v}
                     break
                 else:
                     raise (RuntimeError, "dijkstra: End mode has not been implemented!")
 
+            # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
             if not self.node_weighted:
                 adj_nodes = self[v]
             else:
                 adj_nodes = self[v][1]
 
+            # Traverse the adjacency list.
             for w, dist in adj_nodes.iteritems():
                 vw_length = distances[v] + dist
                 if self.node_weighted:
+                    # In case node v is 'contracted', i.e., if v were telescoped, it would be a set of nodes instead,
+                    # retrieves the shortest distance from one end to the other in the set of nodes represented by v.
+                    # Both ends are the neighbour nodes of v and w that are within v.
                     internal_dist = 0
                     try:
                         if self[v][2]['contracted'] and v != origin:
@@ -577,13 +611,17 @@ class Digraph(dict):
                                 print "Something is wrong"
                     except KeyError:
                         pass
+                    # When the graph is weighted, the weights of the nodes may be taken into account as part of the
+                    # shortest distance computation.
                     if consider_node_weights:
                         vw_length += self[w][0]
-                    #
                     vw_length += internal_dist
+                # In case v-w shortest distance has already been computed.
                 if w in distances:
                     if vw_length < distances[w]:
                         raise(ValueError, "Dijkstra: found better path to already-final vertex")
+                # In case w has not been visited before or the current computed distance is better than the one computed
+                # before.
                 elif w not in priority_queue or vw_length < priority_queue[w]:
                     priority_queue[w] = vw_length
                     predecessors[w] = v
@@ -594,3 +632,102 @@ class Digraph(dict):
                     distances[v] -= self[v][0]
 
         return distances, paths
+
+    def __meet_in_the_middle(self, origin, destination, consider_node_weights=False, compute_path=True,
+                             track_edges=False):
+
+        distances = {0: {}, 1: {}}  # dictionary of final distances
+        predecessors = {0: {}, 1: {}}  # dictionary of predecessors
+
+        priority_queue = PriorityDictionary()  # est.dist. of non-final vert.
+
+        # One priority queue where each entry's key informs which node the estimated distance is computed from.
+        priority_queue[(0, origin)] = 0  # 0: from origin
+        priority_queue[(1, destination)] = 0  # 1: from destination
+
+        distance = sys.maxint
+        path = []
+        middle = None
+
+        for end, v in priority_queue:
+
+            # If the next node's distance is bigger than 1/2 the candidate shortest distance then such candidate is the
+            # final shortest distance.
+            if priority_queue[(end, v)] >= distance / 2.:
+                if compute_path or track_edges:
+                    # Build the path from the origin to the middle node.
+                    w = middle
+                    while 1:
+                        path.append(w)
+                        if w == origin:
+                            break
+                        w = predecessors[0][w]
+                    path.reverse()
+                    # Append the second half of the path, i.e., from the middle to the destination.
+                    w = predecessors[1][middle]
+                    while 1:
+                        path.append(w)
+                        if w == destination:
+                            break
+                        w = predecessors[1][w]
+                    if track_edges:
+                        self.__track_edges(path)
+                break
+            distances[end][v] = priority_queue[(end, v)]
+
+            # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
+            if not self.node_weighted:
+                adj_nodes = self[v]
+            else:
+                adj_nodes = self[v][1]
+
+            # Traverse the adjacency list.
+            for w, dist in adj_nodes.iteritems():
+                vw_length = distances[end][v] + dist
+                # When a node from the other end has been reached, store the whole distance, i.e., distance from one end
+                # plus distance from the other end, as candidate shortest distance.
+                if w in distances[1 - end]:
+                    temp = vw_length + distances[1 - end][w]
+                    if temp < distance:
+                        distance = temp
+                        middle = w
+                # In case v-w shortest distance has already been computed.
+                if w in distances[end]:
+                    if vw_length < distances[end][w]:
+                        raise(ValueError, "Meet-in-the-middle: found better path to already-final vertex")
+                # In case w has not been visited before or the current computed distance is better than the one computed
+                # before.
+                elif (end, w) not in priority_queue or vw_length < priority_queue[(end, w)]:
+                    priority_queue[(end, w)] = vw_length
+                    predecessors[end][w] = v
+        return distance, path
+
+    def explore_upto(self, starting, upper_bound):
+
+        distances = {}  # dictionary of final distances
+        priority_queue = PriorityDictionary()  # est.dist. of non-final vert.
+        priority_queue[starting] = 0
+
+        for v in priority_queue:
+            if priority_queue[v] > upper_bound:
+                break
+            distances[v] = priority_queue[v]
+
+            # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
+            if not self.node_weighted:
+                adj_nodes = self[v]
+            else:
+                adj_nodes = self[v][1]
+
+            # Traverse the adjacency list.
+            for w, dist in adj_nodes.iteritems():
+                vw_length = distances[v] + dist
+                # In case v-w shortest distance has already been computed.
+                if w in distances:
+                    if vw_length < distances[w]:
+                        raise (ValueError, "Explore upto: found better path to already-final vertex")
+                # In case w has not been visited before or the current computed distance is better than the one computed
+                # before.
+                elif w not in priority_queue or vw_length < priority_queue[w]:
+                    priority_queue[w] = vw_length
+        return distances

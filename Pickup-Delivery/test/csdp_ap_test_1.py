@@ -20,4 +20,4 @@ if __name__ == '__main__':
                        # title_2="Cost: " + str(cost) + ", Gain ratio: " + str(gr) + ", elapsed time: " + str(elapsed_time),
                        print_node_labels=True,
                        print_edge_labels=False)
-    li = CsdpAp
+    csdp_ap.solve(requests, vehicles, method="SP-Based")
