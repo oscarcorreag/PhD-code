@@ -453,8 +453,6 @@ class Digraph(dict):
             raise (RuntimeError, "Digraph: No other method but Dijkstra has been implemented!")
         return len(pairs_)  # number of computed pairs.
 
-
-
     def steiner_n_stats(self, n, v, mst_alg):
         ecc = inc = 0
         powerset_n_terminals = comb_v(self.keys(), n, v)

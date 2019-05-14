@@ -2,6 +2,7 @@ from digraph import Digraph
 from ortools.linear_solver import pywraplp
 from utils import id_generator
 from itertools import product
+from priodict import PriorityDictionary
 
 
 class CsdpAp:
@@ -25,13 +26,17 @@ class CsdpAp:
         # --------------------------------------------------------------------------------------------------------------
         # Vertex subsets
         # --------------------------------------------------------------------------------------------------------------
-        self.N_pl = list()
-        self.N_cl = list()
-        self.N_r_pl = dict()
-        self.N_r_cl = dict()
+        self._shops = set()
+        self._customers = set()
+        self._shops_by_req = dict()
+        self._customers_by_req = dict()
 
-        # Dictionary indexed by customer in order to retrieve shops that can provide the goods.
-        self.N_cl_pl = dict()
+        self._shops_dict = dict()
+        self._customers_dict = dict()
+        self._shops_by_group_id = dict()
+        # self._customers_by_group_id = dict()
+
+        # self.N_cl_pl = dict()
 
         self.N = list()
         self.M_s = list()
@@ -54,14 +59,14 @@ class CsdpAp:
             for shop, e_s, l_s in shops_tws:
                 shops.append(shop)
                 self._V_tws[shop] = (e_s, l_s)
-            self.N_r_pl[req] = shops
-            self.N_r_cl[req] = customer
-            self.N_cl_pl[customer] = shops  # Shops by customer
-            self.N_pl.extend(shops)
-            self.N_cl.append(customer)
+            self._shops_by_req[req] = shops
+            self._customers_by_req[req] = customer
+            # self.N_cl_pl[customer] = shops  # Shops by customer
+            self._shops.update(shops)
+            self._customers.add(customer)
             self._V_tws[customer] = (e_c, l_c)
-        self.N.extend(self.N_pl)
-        self.N.extend(self.N_cl)
+        self.N.extend(self._shops)
+        self.N.extend(self._customers)
         # M+, M-, M := M+ U M-
         # Retrieve time windows of vehicles.
         for (start_v, e_sv, l_sv), (end_v, e_ev, l_ev) in self._vehicles:
@@ -75,32 +80,32 @@ class CsdpAp:
     def _define_arc_subsets(self):
         # Arc subset A1: From each vehicle start location to each pick-up location.
         for i in self.M_s:
-            for j in self.N_pl:
+            for j in self._shops:
                 self.A1.append((i, j))
         # Arc subset A2: Between pick-up locations from different requests.
-        for req_i, shops_i in self.N_r_pl.iteritems():
-            for req_j, shops_j in self.N_r_pl.iteritems():
+        for req_i, shops_i in self._shops_by_req.iteritems():
+            for req_j, shops_j in self._shops_by_req.iteritems():
                 if req_i != req_j:
                     for i in shops_i:
                         for j in shops_j:
                             self.A2.append((i, j))
         # Arc subset A3: From each pick-up location to each on-line customer location.
-        for i in self.N_pl:
-            for j in self.N_cl:
+        for i in self._shops:
+            for j in self._customers:
                 self.A3.append((i, j))
         # Arc subset A4: From each on-line customer location to pick-up locations of a different request.
-        for req_i, i in self.N_r_cl.iteritems():
-            for req_j, shops_j in self.N_r_pl.iteritems():
+        for req_i, i in self._customers_by_req.iteritems():
+            for req_j, shops_j in self._shops_by_req.iteritems():
                 if req_i != req_j:
                     for j in shops_j:
                         self.A4.append((i, j))
         # Arc subset A5: Between on-line customer locations.
-        for i in self.N_cl:
-            for j in self.N_cl:
+        for i in self._customers:
+            for j in self._customers:
                 if i != j:
                     self.A5.append((i, j))
         # Arc subset A6: From each on-line customer location to each vehicle end location.
-        for i in self.N_cl:
+        for i in self._customers:
             for j in self.M_e:
                 self.A6.append((i, j))
         # Arc subset A7: From a vehicle start location to the same-vehicle end location.
@@ -176,7 +181,7 @@ class CsdpAp:
     def _define_one_vehicle_one_pickup_constraints(self):
         constraints = [0] * len(self._requests)
         for req, _ in enumerate(self._requests):
-            shops = self.N_r_pl[req]
+            shops = self._shops_by_req[req]
             constraints[req] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
             for k, _ in enumerate(self._vehicles):
                 for i in shops:
@@ -187,8 +192,8 @@ class CsdpAp:
         K = len(self._vehicles)
         constraints = [0] * len(self._requests) * K
         for req, _ in enumerate(self._requests):
-            shops = self.N_r_pl[req]
-            customer = self.N_r_cl[req]
+            shops = self._shops_by_req[req]
+            customer = self._customers_by_req[req]
             for k, _ in enumerate(self._vehicles):
                 constraints[req * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
                 for i in shops:
@@ -227,11 +232,11 @@ class CsdpAp:
         constraints = [0] * 2 * K
         for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
             constraints[k] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
-            for j in self.N_pl:
+            for j in self._shops:
                 constraints[k].SetCoefficient(self.x[(start_v, j, k)], 1.0)
             constraints[k].SetCoefficient(self.x[(start_v, end_v, k)], 1.0)
             constraints[K + k] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
-            for j in self.N_cl:
+            for j in self._customers:
                 constraints[K + k].SetCoefficient(self.x[(j, end_v, k)], 1.0)
             constraints[K + k].SetCoefficient(self.x[(start_v, end_v, k)], 1.0)
 
@@ -267,11 +272,11 @@ class CsdpAp:
 
     def _define_precedence_constraints(self):
         K = len(self._vehicles)
-        constraints = [0] * ((len(self.N_pl) + 1) * K)
+        constraints = [0] * ((len(self._shops) + 1) * K)
         cnt = 0
         for req, _ in enumerate(self._requests):
-            shops = self.N_r_pl[req]
-            customer = self.N_r_cl[req]
+            shops = self._shops_by_req[req]
+            customer = self._customers_by_req[req]
             for k, _ in enumerate(self._vehicles):
                 for i in shops:
                     constraints[cnt] = self._solver.Constraint(self._working_graph[i][customer], self._solver.infinity(),
@@ -305,12 +310,12 @@ class CsdpAp:
         self._requests = requests
         self._vehicles = vehicles
 
-        self._build_working_graph()
-
         if method == "MILP":
+            self._build_working_graph()
             return self._solve_milp(verbose)
 
-        if method == "SP-Based":
+        if method == "SP-based":
+            self._pre_process_requests()
             return self._sp_based()
 
     def _define_milp(self):
@@ -350,37 +355,92 @@ class CsdpAp:
             return self._build_routes_milp()
         return None
 
+    def _pre_process_requests(self):
+        customers_by_shops = dict()
+        #
+        for shops_tws, (customer, _, _) in self._requests:
+            shops = tuple(sorted([shop for shop, _, _ in shops_tws]))
+            try:
+                customers_by_shops[shops].add(customer)
+            except KeyError:
+                customers_by_shops[shops] = {customer}
+        #
+        for shops, customers in customers_by_shops.iteritems():
+            group_id = id_generator()
+            self._shops_by_group_id[group_id] = shops
+            self._shops_dict.update({shop: group_id for shop in shops})
+            self._customers_dict.update({customer: group_id for customer in customers})
+            self._shops.update(shops)
+            self._customers.update(customers)
+
     def _sp_based(self):
+        routes = Digraph()
         partitions = self._compute_partitions()
         # Solve each partition
-        # for partition in partitions:
+        for partition in partitions.iteritems():
+            path = self._solve_partition(partition)
+            routes.append_from_path(path, self._graph)
+        return routes
 
     def _compute_partitions(self, method='SP-based'):
         partitions = {}
         if method == 'SP-based':
-            # TODO: In case there are overlapping between drivers' shortest paths regions, define strategy. For now, each partition corresponds to each driver's exploration regions.
+            # TODO: In case there are overlapping between drivers' shortest paths regions, define strategy. For now,
+            #  each partition corresponds to each driver's exploration regions.
             for (start_v, _, _), (end_v, _, _) in self._vehicles:
                 vehicle = (start_v, end_v)
-                partitions[(start_v, end_v)] = self._compute_regions(vehicle)
+                regions = self._compute_regions(vehicle)
+                shops = set()
+                customers = set()
+                for shops_customers in regions.values():
+                    shops.update(shops_customers['shops'])
+                    customers.update(shops_customers['customers'])
+                partitions[(start_v, end_v)] = {'customers': customers, 'shops': shops}
         return partitions
 
-    # def _solve_partition(self, partition, method='BB'):
-    #     if method == 'BB':
-
-
+    def _solve_partition(self, partition, method='BB'):
+        route = list()
+        # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
+        # one driver only.
+        if method == 'BB':
+            partial_path = None
+            vehicle, shops_customers = partition
+            start_v, end_v = vehicle
+            shops_dict = \
+                {k: self._shops_dict[k]
+                 for k in set(self._shops_dict).intersection(shops_customers['shops'])}
+            customers_dict = \
+                {k: self._customers_dict[k]
+                 for k in set(self._customers_dict).intersection(shops_customers['customers'])}
+            PartialPath.init(self._graph, shops_dict, customers_dict, start_v, end_v)
+            initial_paths = PartialPath.init_paths()
+            priority_queue = PriorityDictionary()
+            for initial_path in initial_paths:
+                priority_queue[initial_path] = initial_path.lb
+            for p in priority_queue:
+                if p.path[-1] == end_v:
+                    partial_path = p
+                    break
+                offspring = p.spawn()
+                for child in offspring:
+                    priority_queue[child] = child.lb
+            if partial_path:
+                route = partial_path.transform_to_actual_path()
+        else:
+            raise NotImplementedError
+        return route
     # def _branch_bound(self, partition):
-        # Compute distances for lower bounds.
+        #
         #
 
     def _compute_regions(self, vehicle):
         start_v, end_v = vehicle
-        customers = set(self.N_cl)
-        shops = set(self.N_pl)
         # Compute shortest path and distance.
         # Then, explore from each intermediate vertex in the path up to [shortest_distance] / 2.
         # Find shops and customers within those explored regions.
         regions = {}  # Customers and shops by intermediate vertex.
-        self._graph.compute_dist_paths([start_v], [end_v], method='meet-in-the-middle', recompute=True)
+        # self._graph.compute_dist_paths([start_v], [end_v], method='meet-in-the-middle', recompute=True)
+        self._graph.compute_dist_paths([start_v], [end_v], recompute=True)
         dist = self._graph.dist[(start_v, end_v)]
         path = self._graph.paths[(start_v, end_v)]
         shops_region_revised = dict()
@@ -388,32 +448,34 @@ class CsdpAp:
             # Explore graph from each intermediate vertex in driver's shortest path until 1/2 shortest distance.
             region = self._graph.explore_upto(vertex, dist / 2.)
             # Which customers are in this region?
-            customers_region = customers.intersection(region.keys())
+            customers_region = self._customers.intersection(region.keys())
             # Which shops are in this region?
-            shops_region = shops.intersection(region.keys())
+            shops_region = self._shops.intersection(region.keys())
             # Which of those customers can be attended?
             customers_region_revised = set()
             shops_region_revised[vertex] = set()
             # They are going to be the ones who have at least one of their preferred shops within the same region or
             # within a previous region.
             for customer_region in customers_region:
-                shops_customer = self.N_cl_pl[customer_region]  # Shops for this customer.
+                shops_customer = self._shops_by_group_id[self._customers_dict[customer_region]]
+                # shops_customer = self.N_cl_pl[customer_region]  # Shops for this customer.
                 # Check within this region.
                 temp = shops_region.intersection(shops_customer)
                 if temp:
                     customers_region_revised.add(customer_region)
                     shops_region_revised[vertex].update(temp)
-                else:  # Otherwise, check in previous regions.
-                    for j in range(i - 1, -1, -1):
-                        previous_vertex = path[j]
-                        shops_past_region = regions[previous_vertex]['shops']
-                        temp = shops_past_region.intersection(shops_customer)
-                        if temp:
-                            customers_region_revised.add(customer_region)
-                            shops_region_revised[previous_vertex].update(temp)
-                            # A break would've been efficient but it incorrectly could prevent shops in previous
-                            # regions to be included in the search space. Of course, the inclusion of the customer
-                            # into the set is not needed but luckily nothing happens as it is a set.
+                # else:  # Otherwise, check in previous regions.
+                # Check in previous regions, too.
+                for j in range(i - 1, -1, -1):
+                    previous_vertex = path[j]
+                    shops_past_region = regions[previous_vertex]['shops']
+                    temp = shops_past_region.intersection(shops_customer)
+                    if temp:
+                        customers_region_revised.add(customer_region)
+                        shops_region_revised[previous_vertex].update(temp)
+                        # A break would've been efficient but it incorrectly could prevent shops in previous
+                        # regions to be included in the search space. Of course, the inclusion of the customer
+                        # into the set is not needed but luckily nothing happens as it is a set.
             # Gather customers and shops and classify them by intermediate vertex.
             regions[vertex] = {'customers': customers_region_revised, 'shops': shops_region}
         # Update regions with shops that may serve customers, i.e., there might be shops within regions that are not
@@ -464,51 +526,76 @@ class PartialPath:
     # Graph distances may be updated by an instance which in turn may benefit others.
     # IMPORTANT: Assume the graph is DIRECTED.
     # TODO: Generalize to any kind, i.e, DIRECTED/UNDIRECTED.
-    _graph = Digraph(undirected=False)
+    # _graph = Digraph(undirected=False)
+    _graph = Digraph()
     _shops_dict = dict()             # Each shop is associated with the ID of the group to which it belongs.
     _customers_dict = dict()         # Each customer is associated with the ID of the group of shops that may serve him.
     _shops_set = set()
     _customers_set = set()
     _groups_set = set()
-    _from_set = set()
     _shops_by_group_id = dict()      # Group ID with corresponding shops.
     _customers_by_group_id = dict()  # Group ID with corresponding customers.
     _origin = None
     _destination = None
 
     @staticmethod
-    def init(graph, customers_by_shops, origin, destination):
+    def init(graph, shops_dict, customers_dict, origin, destination):
         """
         Parameters
         ----------
         :param graph: Digraph
             Used to retrieve shortest distances. It may be updated by an instance which in turn may benefit others.
-        :param customers_by_shops: dict
-            Key is a tuple containing the shops to where a group of customers can go.
-            Value is an iterable containing the customers who can be served by the shops in the key.
+        :param shops_dict: dict
+            Shop as key and group ID as value.
+        :param customers_dict: dict
+            Customer as key and group ID as value.
         :param origin:
             Where the Hamiltonian path starts from.
         :param destination:
             Where the Hamiltonian path finishes.
         :return:
         """
-        PartialPath._graph.append_from_graph(graph)
+        # PartialPath._graph = Digraph(undirected=False)
+        # PartialPath._graph.append_from_graph(graph)
+        PartialPath._graph = graph
+
+        PartialPath._shops_dict = shops_dict
+        PartialPath._customers_dict = customers_dict
+
         PartialPath._origin = origin
         PartialPath._destination = destination
 
-        # Build complementary data structures to speed up lower bound computation.
-        PartialPath._from_set.add(origin)
-        for shops, customers in customers_by_shops.iteritems():
-            group_id = id_generator()
-            PartialPath._shops_by_group_id[group_id] = set(shops)
-            PartialPath._customers_by_group_id[group_id] = set(customers)
+        PartialPath._shops_by_group_id = dict()  # Group ID with corresponding shops.
+        PartialPath._customers_by_group_id = dict()  # Group ID with corresponding customers.
+        for shop, group_id in shops_dict.iteritems():
+            try:
+                PartialPath._shops_by_group_id[group_id].add(shop)
+            except KeyError:
+                PartialPath._shops_by_group_id[group_id] = {shop}
+        for customer, group_id in customers_dict.iteritems():
+            try:
+                PartialPath._customers_by_group_id[group_id].add(customer)
+            except KeyError:
+                PartialPath._customers_by_group_id[group_id] = {customer}
+
+        PartialPath._shops_set = set()
+        PartialPath._customers_set = set()
+        for _, shops in PartialPath._shops_by_group_id.iteritems():
             PartialPath._shops_set.update(shops)
+        for _, customers in PartialPath._customers_by_group_id.iteritems():
             PartialPath._customers_set.update(customers)
-            PartialPath._groups_set.add(group_id)
-            PartialPath._from_set.update(shops)
-            PartialPath._from_set.update(customers)
-            PartialPath._shops_dict.update({shop: group_id for shop in shops})
-            PartialPath._customers_dict.update({customer: group_id for customer in customers})
+
+        PartialPath._groups_set = set(PartialPath._shops_by_group_id.keys())
+
+        # for shops, customers in customers_by_shops.iteritems():
+        #     group_id = id_generator()
+        #     PartialPath._shops_by_group_id[group_id] = set(shops)
+        #     PartialPath._customers_by_group_id[group_id] = set(customers)
+        #     PartialPath._shops_set.update(shops)
+        #     PartialPath._customers_set.update(customers)
+        #     PartialPath._groups_set.add(group_id)
+        #     PartialPath._shops_dict.update({shop: group_id for shop in shops})
+        #     PartialPath._customers_dict.update({customer: group_id for customer in customers})
 
     def __init__(self, path=None, dist=0, lb=0, shops_lb=None):
         """
@@ -529,11 +616,11 @@ class PartialPath:
         else:
             self._shops_lb = set()
         if path:
-            self._path = list(path)
+            self.path = list(path)
             self._dist = dist
-            self._lb = lb
+            self.lb = lb
         else:  # When a path is not given, it is initialized with the origin.
-            self._path = list()
+            self.path = list()
             self._append_vertex(PartialPath._origin)  # Compute lower bound, so no need of self._lb assignment.
             self._dist = 0
 
@@ -573,9 +660,9 @@ class PartialPath:
             Offspring.
         """
         offspring = []
-        to_ = self._where_to(self._path[-1])
+        to_ = self._where_to(self.path[-1])
         for vertex in to_:
-            child = PartialPath(self._path, self._dist, shops_lb=self._shops_lb)
+            child = PartialPath(self.path, self._dist, shops_lb=self._shops_lb)
             child._append_vertex(vertex)
             offspring.append(child)
         return offspring
@@ -590,13 +677,13 @@ class PartialPath:
             Vertex to be appended.
         :return:
         """
-        if not self._path:
-            self._path = [vertex]
+        if not self.path:
+            self.path = [vertex]
             self._dist = 0  # No distance when there is one vertex in the path.
         else:
-            path_end = self._path[-1]
+            path_end = self.path[-1]
             PartialPath._graph.compute_dist_paths([path_end], [vertex], compute_paths=False)
-            self._path.append(vertex)
+            self.path.append(vertex)
             self._dist = self._dist + PartialPath._graph.dist[(path_end, vertex)]
         # In case the new vertex is a shop, remove it from the shops to be used when computing the lower bound.
         # IMPORTANT: This list has to be up-to-date and not to include any shop already visited.
@@ -628,16 +715,19 @@ class PartialPath:
                     dist_col_wise[to_][vertex] = dist
                 except KeyError:
                     dist_col_wise[to_] = {vertex: dist}
-            mins_row_wise[vertex] = min(dist_row_wise)
+            mins_row_wise[vertex] = 0
+            if dist_row_wise:
+                mins_row_wise[vertex] = min(dist_row_wise)
         # The distances by destination are updated with the value after subtracting the minimum by row.
         # Then, the mimimum by column are also saved.
         mins_col_wise = list()
         for to_, vertices in dist_col_wise.iteritems():
             for vertex in vertices:
                 dist_col_wise[to_][vertex] -= mins_row_wise[vertex]
-            mins_col_wise.append(min(dist_col_wise[to_].values()))
+            if dist_col_wise[to_].values():
+                mins_col_wise.append(min(dist_col_wise[to_].values()))
         # The lower bound is the sum of the row- and column-wise minimum values and path distance so far.
-        self._lb = sum(mins_row_wise.values()) + sum(mins_col_wise) + self._dist
+        self.lb = sum(mins_row_wise.values()) + sum(mins_col_wise) + self._dist
 
     def _where_to(self, from_):
         """
@@ -649,7 +739,7 @@ class PartialPath:
             Vertices to visit.
         """
         to_ = set()
-        visited_shops = PartialPath._shops_set.intersection(self._path)
+        visited_shops = PartialPath._shops_set.intersection(self.path)
         visited_groups = {PartialPath._shops_dict[visited_shop] for visited_shop in visited_shops}
         non_visited_groups = PartialPath._groups_set.difference(visited_groups)
         # Shops in non-visited groups.
@@ -657,7 +747,7 @@ class PartialPath:
             to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(self._shops_lb))
         # Non-visited customers in visited groups.
         for visited_group in visited_groups:
-            to_.update(PartialPath._customers_by_group_id[visited_group].difference(self._path))
+            to_.update(PartialPath._customers_by_group_id[visited_group].difference(self.path))
         # Is it from a customer?
         if from_ in PartialPath._customers_set:
             # Then, it is possible to go to the destination.
@@ -676,7 +766,7 @@ class PartialPath:
             Vertices to visit.
         """
         # Non-visited customers.
-        to_ = PartialPath._customers_set.difference(self._path)
+        to_ = PartialPath._customers_set.difference(self.path)
         # Set of shops sent in instantiation time.
         # IMPORTANT: This list has to be up-to-date and not to include any shop already visited.
         to_.update(self._shops_lb)
@@ -695,11 +785,26 @@ class PartialPath:
             Vertices to start from.
         """
         # The last vertex in the path.
-        from_ = {self._path[-1]}
+        from_ = {self.path[-1]}
         # Non-visited customers.
-        from_.update(PartialPath._customers_set.difference(self._path))
+        from_.update(PartialPath._customers_set.difference(self.path))
         # Set of shops sent in instantiation time.
         # IMPORTANT: This list has to be up-to-date and not to include any shop already visited.
         from_.update(self._shops_lb)
         return from_
+
+    def transform_to_actual_path(self):
+        pairs = list()
+        for i in range(len(self.path) - 1):
+            v = self.path[i]
+            w = self.path[i + 1]
+            pairs.append((v, w))
+        PartialPath._graph.compute_dist_paths(pairs=pairs, recompute=True)
+        actual_path = [PartialPath._origin]
+        for i in range(len(self.path) - 1):
+            v = self.path[i]
+            w = self.path[i + 1]
+            actual_path.extend(PartialPath._graph.paths[(v, w)][1:])
+        return actual_path
+
 

@@ -1,9 +1,8 @@
 from digraph import Digraph
-from csdp_ap import PartialPath
+from csdp_ap import CsdpAp
 
 
 if __name__ == '__main__':
-
     graph = Digraph(undirected=False)
 
     graph.append_edge_2(('A', 'B'), weight=5)
@@ -39,18 +38,21 @@ if __name__ == '__main__':
     graph.append_edge_2(('P3', 'C'), weight=6.5)
     graph.append_edge_2(('P3', 'P1'), weight=3.5)
 
+    graph.append_edge_2(('o', 'A'), weight=2.5)
     graph.append_edge_2(('o', 'P1'), weight=3)
     graph.append_edge_2(('o', 'P2'), weight=8)
     graph.append_edge_2(('o', 'P3'), weight=2)
+    graph.append_edge_2(('o', 'd'), weight=8)
 
-    customers_by_shops = {('P1',): ['A', 'B'], ('P2', 'P3'): ['C']}
+    graph.append_edge_2(('d', 'B'), weight=3.6)
+    graph.append_edge_2(('d', 'C'), weight=3)
+    graph.append_edge_2(('d', 'P2'), weight=2.5)
 
-    PartialPath.init(graph, customers_by_shops, 'o', 'd')
-    initial_paths = PartialPath.init_paths()
-    for initial_path in initial_paths:
-        print initial_path.path
-        print initial_path.lb
-        offspring = initial_path.spawn()
-        for child in offspring:
-            print child.path
-            print child.lb
+    requests = [
+        ([('P1', 1, 300)], ('A', 1, 300)),
+        ([('P1', 1, 300)], ('B', 1, 300)),
+        ([('P2', 1, 300), ('P3', 1, 300)], ('C', 1, 300))
+    ]
+    vehicles = [(('o', 1, 300), ('d', 1, 300))]
+    csdp_ap = CsdpAp(graph)
+    routes = csdp_ap.solve(requests, vehicles, method='SP-based')
