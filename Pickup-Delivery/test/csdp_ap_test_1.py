@@ -5,7 +5,7 @@ from csdp_ap import CsdpAp
 if __name__ == '__main__':
     m = n = 10
     gh = GridDigraphGenerator()
-    graph = gh.generate(m, n, edge_weighted=True)
+    graph = gh.generate(m, n, edge_weighted=False)
     ngh = NetworkXGraphHelper(graph)
     # graph.perturb_edge_weights()
     requests = [([(3, 1, 300), (27, 1, 300)], (38, 1, 300)), ([(12, 1, 300), (68, 1, 300), (63, 1, 300)], (45, 1, 300))]

@@ -3,6 +3,66 @@ from ortools.linear_solver import pywraplp
 from utils import id_generator
 from itertools import product
 from priodict import PriorityDictionary
+from random import Random
+
+
+def sample(nc, ng, min_s, max_s, nv, vertices, seed=None):
+    rs, ss, cs = sample_requests(nc, ng, min_s, max_s, vertices, seed=seed)
+    vertices_ = set(vertices).difference(set(ss.keys()).union(cs.keys()))
+    vs = sample_vehicles(nv, vertices_)
+    return rs, ss, cs, vs
+
+
+def sample_requests(nc, ng, min_s, max_s, vertices, seed=None):
+    #
+    rnd = Random()
+    if seed:
+        rnd = Random(seed)
+    #
+    groups = list()
+    vertices_ = set(vertices)
+    shops = dict()
+    for g in range(ng):
+        k = rnd.randint(min_s, max_s)
+        ss = rnd.sample(vertices_, k)
+        shops.update({s: g for s in ss})
+        shops_tws = list()
+        for shop in ss:
+            earliest = rnd.randint(0, 23)
+            latest = rnd.randint(earliest, 23)
+            shops_tws.append((shop, earliest, latest))
+        groups.append(shops_tws)
+        vertices_ = vertices_.difference(ss)
+    requests = list()
+    customers = dict()
+    for c in range(nc):
+        customer = rnd.choice(list(vertices_))
+        earliest = rnd.randint(0, 23)
+        latest = rnd.randint(earliest, 23)
+        group_idx = rnd.randint(0, ng - 1)
+        requests.append((groups[group_idx], (customer, earliest, latest)))
+        customers[customer] = group_idx
+        vertices_.remove(customer)
+    return requests, shops, customers
+
+
+def sample_vehicles(nv, vertices, seed=None):
+    vertices_ = set(vertices)
+    rnd = Random()
+    if seed:
+        rnd = Random(seed)
+    vehicles = list()
+    for v in range(nv):
+        vehicle_s = rnd.choice(list(vertices_))
+        vertices_.remove(vehicle_s)
+        earliest_s = rnd.randint(0, 22)
+        latest_s = rnd.randint(earliest_s, 22)
+        vehicle_e = rnd.choice(list(vertices_))
+        vertices_.remove(vehicle_e)
+        earliest_e = rnd.randint(earliest_s + 1, 23)
+        latest_e = rnd.randint(earliest_e, 23)
+        vehicles.append(((vehicle_s, earliest_s, latest_s), (vehicle_e, earliest_e, latest_e)))
+    return vehicles
 
 
 class CsdpAp:
@@ -386,10 +446,10 @@ class CsdpAp:
         partitions = {}
         if method == 'SP-based':
             # TODO: In case there are overlapping between drivers' shortest paths regions, define strategy. For now,
-            #  each partition corresponds to each driver's exploration regions.
+            # each partition corresponds to each driver's exploration regions.
             for (start_v, _, _), (end_v, _, _) in self._vehicles:
                 vehicle = (start_v, end_v)
-                regions = self._compute_regions(vehicle)
+                regions = self._compute_regions(vehicle, excluded_shops=)
                 shops = set()
                 customers = set()
                 for shops_customers in regions.values():
@@ -433,8 +493,14 @@ class CsdpAp:
         #
         #
 
-    def _compute_regions(self, vehicle):
+    def _compute_regions(self, vehicle, excluded_shops=None, excluded_customers=None):
         start_v, end_v = vehicle
+        shops = set(self._shops)
+        if excluded_shops:
+            shops = shops.difference(excluded_shops)
+        customers = set(self._customers)
+        if excluded_customers:
+            customers = customers.difference(excluded_customers)
         # Compute shortest path and distance.
         # Then, explore from each intermediate vertex in the path up to [shortest_distance] / 2.
         # Find shops and customers within those explored regions.
@@ -448,16 +514,18 @@ class CsdpAp:
             # Explore graph from each intermediate vertex in driver's shortest path until 1/2 shortest distance.
             region = self._graph.explore_upto(vertex, dist / 2.)
             # Which customers are in this region?
-            customers_region = self._customers.intersection(region.keys())
+            # customers_region = self._customers.intersection(region.keys())
+            customers_region = customers.intersection(region.keys())
             # Which shops are in this region?
-            shops_region = self._shops.intersection(region.keys())
+            # shops_region = self._shops.intersection(region.keys())
+            shops_region = shops.intersection(region.keys())
             # Which of those customers can be attended?
-            customers_region_revised = set()
-            shops_region_revised[vertex] = set()
             # They are going to be the ones who have at least one of their preferred shops within the same region or
             # within a previous region.
+            customers_region_revised = set()
+            shops_region_revised[vertex] = set()
             for customer_region in customers_region:
-                shops_customer = self._shops_by_group_id[self._customers_dict[customer_region]]
+                shops_customer = shops.intersection(self._shops_by_group_id[self._customers_dict[customer_region]])
                 # shops_customer = self.N_cl_pl[customer_region]  # Shops for this customer.
                 # Check within this region.
                 temp = shops_region.intersection(shops_customer)
