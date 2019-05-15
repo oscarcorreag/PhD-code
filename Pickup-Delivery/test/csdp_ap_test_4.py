@@ -1,6 +1,7 @@
 from grid_digraph_generator import GridDigraphGenerator
 from networkx_graph_helper import NetworkXGraphHelper
 from csdp_ap import sample, CsdpAp
+from digraph import Digraph
 
 element_colors = ['#000000',
                   '#0000FF',
@@ -30,7 +31,7 @@ if __name__ == '__main__':
     n = 35
     graph = generator.generate(m, n, edge_weighted=False)
     helper = NetworkXGraphHelper(graph)
-    rs, ss, cs, vs = sample(3, 2, 5, 10, 2, graph.keys())  # 3 customers, 2 groups of shops (at most), 2 vehicles.
+    rs, ss, cs, vs = sample(30, 2, 5, 10, 10, graph.keys())  # 3 customers, 2 groups of shops (at most), 2 vehicles.
 
     ss_by_g = dict()
     for s, g in ss.iteritems():
@@ -52,17 +53,40 @@ if __name__ == '__main__':
         color = element_colors[ord_ % len(element_colors)]
         special_nodes.append((shops, color, 75))
         special_nodes.append((customers, color, 25))
+    starts = list()
+    ends = list()
     for (start_v, _, _), (end_v, _, _) in vs:
-        special_nodes.append(([start_v, end_v], '#00FF00', 35))
+        starts.append(start_v)
+        ends.append(end_v)
+    special_nodes.extend([(starts, '#00FF00', 75), (ends, '#00FF00', 25)])
 
     helper.draw_graph(special_nodes=special_nodes)
 
+    # Show a solution with the SP-based approach.
     csdp_ap = CsdpAp(graph)
     routes = csdp_ap.solve(rs, vs, method="SP-based")
 
-    helper.draw_graph(special_nodes=special_nodes, special_subgraphs=[(routes, None)])
+    special_subgraphs = list()
+    for ord_, path in enumerate(routes):
+        route = Digraph()
+        route.append_from_path(path, graph)
+        color = element_colors[ord_ % len(element_colors)]
+        special_subgraphs.append((route, color))
+    helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
 
     # Show the shortest paths of the drivers.
+    pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in vs]
+    graph.compute_dist_paths(pairs=pairs)
+
+    special_subgraphs = list()
+    for ord_, vehicle in enumerate(vs):
+        (start_v, _, _), (end_v, _, _) = vehicle
+        route = Digraph()
+        path = graph.paths[tuple(sorted([start_v, end_v]))]
+        route.append_from_path(path, graph)
+        color = element_colors[ord_ % len(element_colors)]
+        special_subgraphs.append((route, color))
+    helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
 
     # Show the expansion for one driver (zoom-in).
     # Show the guarantees given to the driver.

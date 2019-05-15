@@ -35,7 +35,7 @@ def sample_requests(nc, ng, min_s, max_s, vertices, seed=None):
         vertices_ = vertices_.difference(ss)
     requests = list()
     customers = dict()
-    for c in range(nc):
+    for _ in range(nc):
         customer = rnd.choice(list(vertices_))
         earliest = rnd.randint(0, 23)
         latest = rnd.randint(earliest, 23)
@@ -52,7 +52,7 @@ def sample_vehicles(nv, vertices, seed=None):
     if seed:
         rnd = Random(seed)
     vehicles = list()
-    for v in range(nv):
+    for _ in range(nv):
         vehicle_s = rnd.choice(list(vertices_))
         vertices_.remove(vehicle_s)
         earliest_s = rnd.randint(0, 22)
@@ -434,12 +434,12 @@ class CsdpAp:
             self._customers.update(customers)
 
     def _sp_based(self):
-        routes = Digraph()
+        routes = list()
         partitions = self._compute_partitions()
         # Solve each partition
         for partition in partitions.iteritems():
             path = self._solve_partition(partition)
-            routes.append_from_path(path, self._graph)
+            routes.append(path)
         return routes
 
     def _compute_partitions(self, method='SP-based'):
@@ -447,15 +447,17 @@ class CsdpAp:
         if method == 'SP-based':
             # TODO: In case there are overlapping between drivers' shortest paths regions, define strategy. For now,
             # each partition corresponds to each driver's exploration regions.
+            customers_taken = list()
             for (start_v, _, _), (end_v, _, _) in self._vehicles:
                 vehicle = (start_v, end_v)
-                regions = self._compute_regions(vehicle, excluded_shops=)
+                regions = self._compute_regions(vehicle, excluded_customers=customers_taken)
                 shops = set()
                 customers = set()
                 for shops_customers in regions.values():
                     shops.update(shops_customers['shops'])
                     customers.update(shops_customers['customers'])
                 partitions[(start_v, end_v)] = {'customers': customers, 'shops': shops}
+                customers_taken.extend(customers)
         return partitions
 
     def _solve_partition(self, partition, method='BB'):
@@ -472,32 +474,30 @@ class CsdpAp:
             customers_dict = \
                 {k: self._customers_dict[k]
                  for k in set(self._customers_dict).intersection(shops_customers['customers'])}
-            PartialPath.init(self._graph, shops_dict, customers_dict, start_v, end_v)
-            initial_paths = PartialPath.init_paths()
-            priority_queue = PriorityDictionary()
-            for initial_path in initial_paths:
-                priority_queue[initial_path] = initial_path.lb
-            for p in priority_queue:
-                if p.path[-1] == end_v:
-                    partial_path = p
-                    break
-                offspring = p.spawn()
-                for child in offspring:
-                    priority_queue[child] = child.lb
-            if partial_path:
-                route = partial_path.transform_to_actual_path()
+            if not customers_dict:
+                self._graph.compute_dist_paths([start_v], [end_v])
+                route = self._graph.paths[(start_v, end_v)]
+            else:
+                PartialPath.init(self._graph, shops_dict, customers_dict, start_v, end_v)
+                initial_paths = PartialPath.init_paths()
+                priority_queue = PriorityDictionary()
+                for initial_path in initial_paths:
+                    priority_queue[initial_path] = initial_path.lb
+                for p in priority_queue:
+                    if p.path[-1] == end_v:
+                        partial_path = p
+                        break
+                    offspring = p.spawn()
+                    for child in offspring:
+                        priority_queue[child] = child.lb
+                if partial_path:
+                    route = partial_path.transform_to_actual_path()
         else:
             raise NotImplementedError
         return route
-    # def _branch_bound(self, partition):
-        #
-        #
 
-    def _compute_regions(self, vehicle, excluded_shops=None, excluded_customers=None):
+    def _compute_regions(self, vehicle, excluded_customers=None):
         start_v, end_v = vehicle
-        shops = set(self._shops)
-        if excluded_shops:
-            shops = shops.difference(excluded_shops)
         customers = set(self._customers)
         if excluded_customers:
             customers = customers.difference(excluded_customers)
@@ -505,7 +505,6 @@ class CsdpAp:
         # Then, explore from each intermediate vertex in the path up to [shortest_distance] / 2.
         # Find shops and customers within those explored regions.
         regions = {}  # Customers and shops by intermediate vertex.
-        # self._graph.compute_dist_paths([start_v], [end_v], method='meet-in-the-middle', recompute=True)
         self._graph.compute_dist_paths([start_v], [end_v], recompute=True)
         dist = self._graph.dist[(start_v, end_v)]
         path = self._graph.paths[(start_v, end_v)]
@@ -517,15 +516,14 @@ class CsdpAp:
             # customers_region = self._customers.intersection(region.keys())
             customers_region = customers.intersection(region.keys())
             # Which shops are in this region?
-            # shops_region = self._shops.intersection(region.keys())
-            shops_region = shops.intersection(region.keys())
+            shops_region = self._shops.intersection(region.keys())
             # Which of those customers can be attended?
             # They are going to be the ones who have at least one of their preferred shops within the same region or
             # within a previous region.
             customers_region_revised = set()
             shops_region_revised[vertex] = set()
             for customer_region in customers_region:
-                shops_customer = shops.intersection(self._shops_by_group_id[self._customers_dict[customer_region]])
+                shops_customer = self._shops_by_group_id[self._customers_dict[customer_region]]
                 # shops_customer = self.N_cl_pl[customer_region]  # Shops for this customer.
                 # Check within this region.
                 temp = shops_region.intersection(shops_customer)
@@ -553,11 +551,11 @@ class CsdpAp:
         return regions
 
     def _build_routes_milp(self):
-        routes = Digraph()
+        routes = list()
         for (i, j, _), variable in self.x.iteritems():
             if variable.solution_value():
                 self._graph.compute_dist_paths([i], [j], recompute=True)
-                routes.append_from_path(self._graph.paths[(i, j)], self._graph)
+                routes.append(self._graph.paths[(i, j)])
         return routes
 
     def print_milp_constraints(self):
@@ -654,16 +652,6 @@ class PartialPath:
             PartialPath._customers_set.update(customers)
 
         PartialPath._groups_set = set(PartialPath._shops_by_group_id.keys())
-
-        # for shops, customers in customers_by_shops.iteritems():
-        #     group_id = id_generator()
-        #     PartialPath._shops_by_group_id[group_id] = set(shops)
-        #     PartialPath._customers_by_group_id[group_id] = set(customers)
-        #     PartialPath._shops_set.update(shops)
-        #     PartialPath._customers_set.update(customers)
-        #     PartialPath._groups_set.add(group_id)
-        #     PartialPath._shops_dict.update({shop: group_id for shop in shops})
-        #     PartialPath._customers_dict.update({customer: group_id for customer in customers})
 
     def __init__(self, path=None, dist=0, lb=0, shops_lb=None):
         """
