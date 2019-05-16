@@ -27,11 +27,24 @@ element_colors = ['#000000',
 if __name__ == '__main__':
     # Show the initial set up.
     generator = GridDigraphGenerator()
-    m = 20
+    m = 30
     n = 35
+    fraction_sd = .5
     graph = generator.generate(m, n, edge_weighted=False)
     helper = NetworkXGraphHelper(graph)
-    rs, ss, cs, vs = sample(30, 2, 5, 10, 10, graph.keys())  # 3 customers, 2 groups of shops (at most), 2 vehicles.
+    # rs, ss, cs, vs = sample(nc=10, ng=1, min_s=10, max_s=10, nv=5, vertices=graph.keys(), seed=0)
+
+    rs = [
+        ([(691, 1, 300), (603, 1, 300)], (398, 1, 300)),
+        ([(719, 1, 300)], (445, 1, 300)),
+        ([(719, 1, 300)], (576, 1, 300)),
+    ]
+    ss = {691: 1, 603: 1, 719: 2}
+    cs = {398: 1, 445: 2, 576: 2}
+
+    vs = [
+        ((549, 1, 300), (535, 1, 300))
+    ]
 
     ss_by_g = dict()
     for s, g in ss.iteritems():
@@ -60,19 +73,7 @@ if __name__ == '__main__':
         ends.append(end_v)
     special_nodes.extend([(starts, '#00FF00', 75), (ends, '#00FF00', 25)])
 
-    helper.draw_graph(special_nodes=special_nodes)
-
-    # Show a solution with the SP-based approach.
-    csdp_ap = CsdpAp(graph)
-    routes = csdp_ap.solve(rs, vs, method="SP-based")
-
-    special_subgraphs = list()
-    for ord_, path in enumerate(routes):
-        route = Digraph()
-        route.append_from_path(path, graph)
-        color = element_colors[ord_ % len(element_colors)]
-        special_subgraphs.append((route, color))
-    helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
+    helper.draw_graph(special_nodes=special_nodes, print_node_labels=True)
 
     # Show the shortest paths of the drivers.
     pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in vs]
@@ -88,7 +89,33 @@ if __name__ == '__main__':
         special_subgraphs.append((route, color))
     helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
 
-    # Show the expansion for one driver (zoom-in).
+    # Show the expansion.
+    for ord_, vehicle in enumerate(vs):
+        (start_v, _, _), (end_v, _, _) = vehicle
+        dist = graph.dist[tuple(sorted([start_v, end_v]))]
+        path = graph.paths[tuple(sorted([start_v, end_v]))]
+        vertices_region = set()
+        for n in path:
+            dists = graph.explore_upto(n, dist * fraction_sd)
+            vertices_region.update(dists.keys())
+        color = element_colors[ord_ % len(element_colors)]
+        special_nodes.append((vertices_region, color, 15))
+    helper.draw_graph(special_nodes=special_nodes)
+
+    # Show a solution with the SP-based approach.
+    csdp_ap = CsdpAp(graph)
+    routes = csdp_ap.solve(rs, vs, method="SP-based", fraction_sd=fraction_sd)
+
+    special_subgraphs = list()
+    for ord_, path in enumerate(routes):
+        route = Digraph()
+        route.append_from_path(path, graph)
+        color = element_colors[ord_ % len(element_colors)]
+        special_subgraphs.append((route, color))
+    helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
+
+
+
     # Show the guarantees given to the driver.
     # Show the excluded customers as serving them may risk the guarantees given to the drivers.
     # Show the excluded shops as there are not customers in the driver's region.

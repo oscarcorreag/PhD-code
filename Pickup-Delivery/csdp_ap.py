@@ -9,14 +9,14 @@ from random import Random
 def sample(nc, ng, min_s, max_s, nv, vertices, seed=None):
     rs, ss, cs = sample_requests(nc, ng, min_s, max_s, vertices, seed=seed)
     vertices_ = set(vertices).difference(set(ss.keys()).union(cs.keys()))
-    vs = sample_vehicles(nv, vertices_)
+    vs = sample_vehicles(nv, vertices_, seed=seed)
     return rs, ss, cs, vs
 
 
 def sample_requests(nc, ng, min_s, max_s, vertices, seed=None):
     #
     rnd = Random()
-    if seed:
+    if seed is not None:
         rnd = Random(seed)
     #
     groups = list()
@@ -49,7 +49,7 @@ def sample_requests(nc, ng, min_s, max_s, vertices, seed=None):
 def sample_vehicles(nv, vertices, seed=None):
     vertices_ = set(vertices)
     rnd = Random()
-    if seed:
+    if seed is not None:
         rnd = Random(seed)
     vehicles = list()
     for _ in range(nv):
@@ -229,9 +229,11 @@ class CsdpAp:
                 self.B[(i, k)] = self._solver.NumVar(self._V_tws[i][0], self._V_tws[i][1], 'B(%d, %d)' % (i, k))
         for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
             # self.B[(start_v, k)] = self.solver.NumVar(0.0, self.solver.infinity(), 'B(%d, %d)' % (start_v, k))
-            self.B[(start_v, k)] = self._solver.NumVar(self._V_tws[start_v][0], self._V_tws[start_v][1], 'B(%d, %d)' % (start_v, k))
+            self.B[(start_v, k)] = self._solver.NumVar(self._V_tws[start_v][0], self._V_tws[start_v][1],
+                                                       'B(%d, %d)' % (start_v, k))
             # self.B[(end_v, k)] = self.solver.NumVar(0.0, self.solver.infinity(), 'B(%d, %d)' % (end_v, k))
-            self.B[(end_v, k)] = self._solver.NumVar(self._V_tws[end_v][0], self._V_tws[end_v][1], 'B(%d, %d)' % (end_v, k))
+            self.B[(end_v, k)] = self._solver.NumVar(self._V_tws[end_v][0], self._V_tws[end_v][1],
+                                                     'B(%d, %d)' % (end_v, k))
         # --------------------------------------------------------------------------------------------------------------
         # Auxiliary variables z := x(i, j, k) * B(i, k).
         # --------------------------------------------------------------------------------------------------------------
@@ -309,7 +311,8 @@ class CsdpAp:
         constraints = [0] * X * 4
         for ord_, (i, j, k) in enumerate(self.x):
             #
-            constraints[ord_] = self._solver.Constraint(0.0, self._solver.infinity(), str(self._solver.NumConstraints()))
+            constraints[ord_] = self._solver.Constraint(0.0, self._solver.infinity(),
+                                                        str(self._solver.NumConstraints()))
             constraints[ord_].SetCoefficient(self.x[(i, j, k)], M)
             constraints[ord_].SetCoefficient(self.z[(i, j, k)], -1.0)
             #
@@ -339,7 +342,8 @@ class CsdpAp:
             customer = self._customers_by_req[req]
             for k, _ in enumerate(self._vehicles):
                 for i in shops:
-                    constraints[cnt] = self._solver.Constraint(self._working_graph[i][customer], self._solver.infinity(),
+                    constraints[cnt] = self._solver.Constraint(self._working_graph[i][customer],
+                                                               self._solver.infinity(),
                                                                str(self._solver.NumConstraints()))
                     constraints[cnt].SetCoefficient(self.B[(customer, k)], 1.0)
                     constraints[cnt].SetCoefficient(self.B[(i, k)], -1.0)
@@ -365,7 +369,7 @@ class CsdpAp:
             objective.SetCoefficient(x, self._working_graph[i][j])
         objective.SetMinimization()
 
-    def solve(self, requests, vehicles, method="MILP", verbose=False):
+    def solve(self, requests, vehicles, method="MILP", verbose=False, fraction_sd=.5):
 
         self._requests = requests
         self._vehicles = vehicles
@@ -376,7 +380,7 @@ class CsdpAp:
 
         if method == "SP-based":
             self._pre_process_requests()
-            return self._sp_based()
+            return self._sp_based(fraction_sd=fraction_sd)
 
     def _define_milp(self):
         self._define_vars()
@@ -433,24 +437,33 @@ class CsdpAp:
             self._shops.update(shops)
             self._customers.update(customers)
 
-    def _sp_based(self):
+    def _sp_based(self, fraction_sd=.5):
         routes = list()
-        partitions = self._compute_partitions()
+        partitions = self._compute_partitions(fraction_sd=fraction_sd)
         # Solve each partition
         for partition in partitions.iteritems():
             path = self._solve_partition(partition)
             routes.append(path)
         return routes
 
-    def _compute_partitions(self, method='SP-based'):
+    def _compute_partitions(self, method='SP-based', fraction_sd=.5):
         partitions = {}
         if method == 'SP-based':
             # TODO: In case there are overlapping between drivers' shortest paths regions, define strategy. For now,
             # each partition corresponds to each driver's exploration regions.
             customers_taken = list()
-            for (start_v, _, _), (end_v, _, _) in self._vehicles:
-                vehicle = (start_v, end_v)
-                regions = self._compute_regions(vehicle, excluded_customers=customers_taken)
+            pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in self._vehicles]
+            self._graph.compute_dist_paths(pairs=pairs, compute_paths=False)
+            priority_queue = PriorityDictionary()
+            for vehicle in self._vehicles:
+                (start_v, _, _), (end_v, _, _) = vehicle
+                priority_queue[vehicle] = self._graph.dist[(start_v, end_v)]
+            # for (start_v, _, _), (end_v, _, _) in self._vehicles:
+            for vehicle in priority_queue:
+                # vehicle = (start_v, end_v)
+                (start_v, _, _), (end_v, _, _) = vehicle
+                regions = \
+                    self._compute_regions(start_v, end_v, fraction_sd=fraction_sd, excluded_customers=customers_taken)
                 shops = set()
                 customers = set()
                 for shops_customers in regions.values():
@@ -465,15 +478,14 @@ class CsdpAp:
         # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
         # one driver only.
         if method == 'BB':
-            partial_path = None
             vehicle, shops_customers = partition
             start_v, end_v = vehicle
             shops_dict = \
                 {k: self._shops_dict[k]
-                 for k in set(self._shops_dict).intersection(shops_customers['shops'])}
+                 for k in set(self._shops_dict.keys()).intersection(shops_customers['shops'])}
             customers_dict = \
                 {k: self._customers_dict[k]
-                 for k in set(self._customers_dict).intersection(shops_customers['customers'])}
+                 for k in set(self._customers_dict.keys()).intersection(shops_customers['customers'])}
             if not customers_dict:
                 self._graph.compute_dist_paths([start_v], [end_v])
                 route = self._graph.paths[(start_v, end_v)]
@@ -483,23 +495,25 @@ class CsdpAp:
                 priority_queue = PriorityDictionary()
                 for initial_path in initial_paths:
                     priority_queue[initial_path] = initial_path.lb
+                partial_path = None
                 for p in priority_queue:
-                    if p.path[-1] == end_v:
+                    # if p.path[-1] == end_v:
+                    visited_customers = set(p.path).intersection(customers_dict.keys())
+                    if len(visited_customers) == len(customers_dict.keys()) and p.path[-1] == end_v:
                         partial_path = p
                         break
                     offspring = p.spawn()
                     for child in offspring:
                         priority_queue[child] = child.lb
-                if partial_path:
+                if partial_path is not None:
                     route = partial_path.transform_to_actual_path()
         else:
             raise NotImplementedError
         return route
 
-    def _compute_regions(self, vehicle, excluded_customers=None):
-        start_v, end_v = vehicle
+    def _compute_regions(self, start_v, end_v, fraction_sd=.5, excluded_customers=None):
         customers = set(self._customers)
-        if excluded_customers:
+        if excluded_customers is not None:
             customers = customers.difference(excluded_customers)
         # Compute shortest path and distance.
         # Then, explore from each intermediate vertex in the path up to [shortest_distance] / 2.
@@ -511,7 +525,7 @@ class CsdpAp:
         shops_region_revised = dict()
         for i, vertex in enumerate(path):
             # Explore graph from each intermediate vertex in driver's shortest path until 1/2 shortest distance.
-            region = self._graph.explore_upto(vertex, dist / 2.)
+            region = self._graph.explore_upto(vertex, dist * fraction_sd)
             # Which customers are in this region?
             # customers_region = self._customers.intersection(region.keys())
             customers_region = customers.intersection(region.keys())
@@ -524,7 +538,6 @@ class CsdpAp:
             shops_region_revised[vertex] = set()
             for customer_region in customers_region:
                 shops_customer = self._shops_by_group_id[self._customers_dict[customer_region]]
-                # shops_customer = self.N_cl_pl[customer_region]  # Shops for this customer.
                 # Check within this region.
                 temp = shops_region.intersection(shops_customer)
                 if temp:
@@ -594,12 +607,12 @@ class PartialPath:
     # TODO: Generalize to any kind, i.e, DIRECTED/UNDIRECTED.
     # _graph = Digraph(undirected=False)
     _graph = Digraph()
-    _shops_dict = dict()             # Each shop is associated with the ID of the group to which it belongs.
-    _customers_dict = dict()         # Each customer is associated with the ID of the group of shops that may serve him.
+    _shops_dict = dict()  # Each shop is associated with the ID of the group to which it belongs.
+    _customers_dict = dict()  # Each customer is associated with the ID of the group of shops that may serve him.
     _shops_set = set()
     _customers_set = set()
     _groups_set = set()
-    _shops_by_group_id = dict()      # Group ID with corresponding shops.
+    _shops_by_group_id = dict()  # Group ID with corresponding shops.
     _customers_by_group_id = dict()  # Group ID with corresponding customers.
     _origin = None
     _destination = None
@@ -667,11 +680,11 @@ class PartialPath:
             Shops that were considered when the lower bound was computed. Each shop in this set serves a different group
             of customers. Remember that only one shop per group of customers can be part of the solution.
         """
-        if shops_lb:
+        if shops_lb is not None:
             self._shops_lb = set(shops_lb)
         else:
             self._shops_lb = set()
-        if path:
+        if path is not None:
             self.path = list(path)
             self._dist = dist
             self.lb = lb
@@ -862,5 +875,3 @@ class PartialPath:
             w = self.path[i + 1]
             actual_path.extend(PartialPath._graph.paths[(v, w)][1:])
         return actual_path
-
-
