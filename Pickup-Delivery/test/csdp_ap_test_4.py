@@ -32,10 +32,9 @@ if __name__ == '__main__':
     generator = GridDigraphGenerator()
     m = 30
     n = 35
-    fraction_sd = .5
+    fraction_sd = .33
     graph = generator.generate(m, n, edge_weighted=False)
     helper = NetworkXGraphHelper(graph)
-    # rs, ss, cs, vs = sample(nc=10, ng=1, min_s=10, max_s=10, nv=5, vertices=graph.keys(), seed=0)
 
     rs = [
         ([(691, 1, 300), (603, 1, 300)], (398, 1, 300)),
@@ -129,7 +128,7 @@ if __name__ == '__main__':
 
 
     # # Show the problem of 1/2 SD with long distances.
-    # rs, ss, cs, vs = sample(nc=5, ng=2, min_s=10, max_s=10, nv=1, vertices=graph.keys(), seed=0)
+    # rs, ss, cs, vs = sample(nc=5, ng=2, min_s=10, max_s=10, nv=1, vertices=graph.keys(), seed=13)
     #
     # ss_by_g = dict()
     # for s, g in ss.iteritems():
@@ -198,10 +197,16 @@ if __name__ == '__main__':
     #     color = ec[ord_ % len(ec)]
     #     special_nodes_and_expansion.insert(0, (vertices_region, color, 15))
     # helper.draw_graph(special_nodes=special_nodes_and_expansion)
-
-
-    # Show the guarantees given to the driver.
-    # Show the excluded customers as serving them may risk the guarantees given to the drivers.
-    # Show the excluded shops as there are not customers in the driver's region.
-    # Show the exact solution within the driver's region.
-    # Show the overlapping case.
+    #
+    # # Show a solution with the SP-based approach.
+    # csdp_ap = CsdpAp(graph)
+    # routes = csdp_ap.solve(rs, vs, method="SP-based", fraction_sd=fraction_sd)
+    #
+    # special_subgraphs = list()
+    # shuffle(ec)
+    # for ord_, path in enumerate(routes):
+    #     route = Digraph()
+    #     route.append_from_path(path, graph)
+    #     color = ec[ord_ % len(ec)]
+    #     special_subgraphs.append((route, color))
+    # helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
