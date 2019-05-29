@@ -87,17 +87,11 @@ if __name__ == '__main__':
     pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in vs]
     graph.compute_dist_paths(pairs=pairs)
 
-    # special_subgraphs = list()
-    # shuffle(ec)
     paths = list()
     for ord_, vehicle in enumerate(vs):
         (start_v, _, _), (end_v, _, _) = vehicle
-        # route = Digraph()
         path = graph.paths[tuple(sorted([start_v, end_v]))]
         paths.append(path)
-        # route.append_from_path(path, graph)
-        # color = ec[ord_ % len(ec)]
-        # special_subgraphs.append((route, color))
     special_subgraphs = helper.special_subgraphs_from_paths(paths)
     helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
 
@@ -121,13 +115,6 @@ if __name__ == '__main__':
     routes, cost = csdp_ap.solve(rs, vs, method="SP-based", fraction_sd=fraction_sd)
 
     special_subgraphs = helper.special_subgraphs_from_paths(routes)
-    # special_subgraphs = list()
-    # shuffle(ec)
-    # for ord_, path in enumerate(routes):
-    #     route = Digraph()
-    #     route.append_from_path(path, graph)
-    #     color = ec[ord_ % len(ec)]
-    #     special_subgraphs.append((route, color))
     helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
 
 
