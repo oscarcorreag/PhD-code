@@ -1,13 +1,17 @@
 import itertools
 import math
-import random
 import string
 
-import numpy as np
+from numpy.random import RandomState
 
 
-def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
+def id_generator(size=6, chars=string.ascii_uppercase + string.digits, seed=None):
+    #
+    rnd = RandomState()
+    if seed is not None:
+        rnd = RandomState(seed)
+    #
+    return ''.join(rnd.choice(list(chars)) for _ in range(size))
 
 
 def comb(l, n):
@@ -66,7 +70,6 @@ def divisors(k):
 
 
 def num_partitions(k):
-    divs = []
     while 1:
         divs = divisors(k)
         if divs:
@@ -115,23 +118,27 @@ def divide_grid_graph(dims, num_zones):
     return num_zones_, np1, np2, zones
 
 
-def merge_two_zones(zones, np1, np2, seed=0):
-    np.random.seed(seed)
-    i = np.random.choice(a=range(0, np2))
-    j = np.random.choice(a=range(0, np1))
+def merge_two_zones(zones, np1, np2, seed=None):
+    #
+    rnd = RandomState()
+    if seed is not None:
+        rnd = RandomState(seed)
+    #
+    i = rnd.choice(a=range(0, np2))
+    j = rnd.choice(a=range(0, np1))
     i_ = i
     j_ = j
-    dir = np.random.choice(a=[0, 1])
-    if dir == 0:
+    dir_ = rnd.choice(a=[0, 1])
+    if dir_ == 0:
         if 0 < i < np2 - 1:
-            i_ = np.random.choice(a=[i - 1, i + 1])
+            i_ = rnd.choice(a=[i - 1, i + 1])
         elif i == 0:
             i_ = 1
         else:
             i_ = i - 1
     else:
         if 0 < j < np1 - 1:
-            j_ = np.random.choice(a=[j - 1, j + 1])
+            j_ = rnd.choice(a=[j - 1, j + 1])
         elif j == 0:
             j_ = 1
         else:
@@ -143,20 +150,26 @@ def merge_two_zones(zones, np1, np2, seed=0):
     return zones_
 
 
-def assign_query_to_poi(nq, npq, seed=0):
-    np.random.seed(seed)
+def assign_query_to_poi(nq, npq, seed=None):
+    #
+    rnd = RandomState()
+    if seed is not None:
+        rnd = RandomState(seed)
     pois = []
     for i in range(nq):
         pois.extend([i] * npq)
-    np.random.shuffle(pois)
+    rnd.shuffle(pois)
     return pois
 
 
-def distribute_pois_in_queries(dims, nq, npq, seed=0):
-    np.random.seed(seed)
+def distribute_pois_in_queries(dims, nq, npq, seed=None):
+    #
+    rnd = RandomState()
+    if seed is not None:
+        rnd = RandomState(seed)
     # Compute number of POIs per zone.
     P = nq * npq
-    s = np.random.zipf(a=2., size=P)
+    s = rnd.zipf(a=2., size=P)
     ppz = sorted([len(list(v)) for _, v in itertools.groupby(sorted(s))])
     nz = len(ppz)
     # Divide graph into zones.
@@ -172,7 +185,7 @@ def distribute_pois_in_queries(dims, nq, npq, seed=0):
         zone_keys = [k for k in zones_ if k != "m"]
     else:
         zone_keys = list(zones_.keys())
-    np.random.shuffle(zone_keys)
+    rnd.shuffle(zone_keys)
     for i, k in enumerate(zone_keys):
         npz[k] = ppz[i]
     # Locate POIs within each zone.
@@ -180,7 +193,7 @@ def distribute_pois_in_queries(dims, nq, npq, seed=0):
     ppq = dict()
     w = 0
     for k, nodes in zones_.iteritems():
-        pois = np.random.choice(a=nodes, size=npz[k], replace=False)
+        pois = rnd.choice(a=nodes, size=npz[k], replace=False)
         # Assign which query each POI belongs to.
         ass = zip(qpp[w:w + npz[k]], pois)
         for q, p in ass:

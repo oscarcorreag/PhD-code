@@ -45,7 +45,10 @@ if __name__ == '__main__':
 
     customers_by_shops = {('P1',): ['A', 'B'], ('P2', 'P3'): ['C']}
 
-    PartialPath.init(graph, customers_by_shops, 'o', 'd')
+    shops = {'P1': 1, 'P2': 2, 'P3': 2}
+    customers = {'A': 1, 'B': 1, 'C': 2}
+
+    PartialPath.init(graph, shops, customers, 'o', 'd')
     initial_paths = PartialPath.init_paths()
     for initial_path in initial_paths:
         print initial_path.path

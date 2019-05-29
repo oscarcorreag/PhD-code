@@ -1,9 +1,15 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
+from digraph import Digraph
+from numpy.random import RandomState
+
 
 class NetworkXGraphHelper:
     def __init__(self, graph):
+
+        self.__graph = Digraph()
+        self.__graph.append_from_graph(graph)
 
         self.element_colors = ['#000000',
                                '#0000FF',
@@ -50,7 +56,7 @@ class NetworkXGraphHelper:
     '''
 
     def draw_graph(self, special_nodes=None, special_subgraphs=None, title_1=None, title_2=None, legend=None,
-                   edge_labels=None, print_edge_labels=False, print_node_labels=False):
+                   edge_labels=None, print_edge_labels=False, print_node_labels=False, random_colors=False, seed=None):
 
         # Create list of node colors and sizes.
         node_colors = [self.default_color] * self.__graph_x.number_of_nodes()
@@ -72,6 +78,12 @@ class NetworkXGraphHelper:
         edge_widths = [1.0 for _ in self.__graph_x.edges()]
 
         # Modify the list of edge colors if there are special subgraphs (subgraphs can be overlapped)
+        # if special_subgraphs:
+        #     if isinstance(special_subgraphs, list):
+        #         special_subgraphs = \
+        #             self.special_subgraphs_from_paths(special_subgraphs, random_colors=random_colors, seed=seed)
+        # else:
+        #     special_subgraphs = []
         special_subgraphs = [] if special_subgraphs is None else special_subgraphs
         for ord_, (subgraph, color) in enumerate(special_subgraphs):
             i = 0
@@ -115,3 +127,20 @@ class NetworkXGraphHelper:
 
     def get_node_induced_subgraph(self, nodes):
         return self.__graph_x.subgraph(nodes)
+
+    def special_subgraphs_from_paths(self, paths, random_colors=False, seed=None):
+        special_subgraphs = list()
+        #
+        rnd = RandomState()
+        if seed is not None:
+            rnd = RandomState(seed)
+        #
+        ec = list(self.element_colors)
+        if random_colors:
+            rnd.shuffle(ec)
+        for ord_, path in enumerate(paths):
+            route = Digraph()
+            route.append_from_path(path, self.__graph)
+            color = ec[ord_ % len(ec)]
+            special_subgraphs.append((route, color))
+        return special_subgraphs

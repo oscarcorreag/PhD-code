@@ -248,7 +248,8 @@ class CsdpAp:
             for k, _ in enumerate(self._vehicles):
                 for i in shops:
                     for j, _ in self._working_graph[i].iteritems():
-                        constraints[req].SetCoefficient(self.x[(i, j, k)], 1.0)
+                        coeff = constraints[req].GetCoefficient(self.x[(i, j, k)])
+                        constraints[req].SetCoefficient(self.x[(i, j, k)], coeff + 1.0)
 
     def _define_same_vehicle_constraints(self):
         K = len(self._vehicles)
@@ -260,10 +261,12 @@ class CsdpAp:
                 constraints[req * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
                 for i in shops:
                     for j, _ in self._working_graph[i].iteritems():
-                        constraints[req * K + k].SetCoefficient(self.x[(i, j, k)], 1.0)
+                        coeff = constraints[req * K + k].GetCoefficient(self.x[(i, j, k)])
+                        constraints[req * K + k].SetCoefficient(self.x[(i, j, k)], coeff + 1.0)
                 for j in self.N:  # [N = (only possible) origins] TO customers.
                     if j != customer:
-                        constraints[req * K + k].SetCoefficient(self.x[(j, customer, k)], -1.0)
+                        coeff = constraints[req * K + k].GetCoefficient(self.x[(j, customer, k)])
+                        constraints[req * K + k].SetCoefficient(self.x[(j, customer, k)], coeff - 1.0)
 
     def _define_flow_conservation_locations_constraints(self):
         K = len(self._vehicles)
@@ -273,19 +276,23 @@ class CsdpAp:
                 constraints[ord_ * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
                 for j in self.N:
                     try:
-                        constraints[ord_ * K + k].SetCoefficient(self.x[(j, i, k)], 1.0)
+                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(j, i, k)])
+                        constraints[ord_ * K + k].SetCoefficient(self.x[(j, i, k)], coeff + 1.0)
                     except KeyError:
                         pass
                     try:
-                        constraints[ord_ * K + k].SetCoefficient(self.x[(i, j, k)], -1.0)
+                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, j, k)])
+                        constraints[ord_ * K + k].SetCoefficient(self.x[(i, j, k)], coeff - 1.0)
                     except KeyError:
                         pass
                 try:
-                    constraints[ord_ * K + k].SetCoefficient(self.x[(start_v, i, k)], 1.0)
+                    coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(start_v, i, k)])
+                    constraints[ord_ * K + k].SetCoefficient(self.x[(start_v, i, k)], coeff + 1.0)
                 except KeyError:
                     pass
                 try:
-                    constraints[ord_ * K + k].SetCoefficient(self.x[(i, end_v, k)], -1.0)
+                    coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, end_v, k)])
+                    constraints[ord_ * K + k].SetCoefficient(self.x[(i, end_v, k)], coeff -1.0)
                 except KeyError:
                     pass
 
@@ -295,12 +302,16 @@ class CsdpAp:
         for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
             constraints[k] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
             for j in self._shops:
-                constraints[k].SetCoefficient(self.x[(start_v, j, k)], 1.0)
-            constraints[k].SetCoefficient(self.x[(start_v, end_v, k)], 1.0)
+                coeff = constraints[k].GetCoefficient(self.x[(start_v, j, k)])
+                constraints[k].SetCoefficient(self.x[(start_v, j, k)], coeff + 1.0)
+            coeff = constraints[k].GetCoefficient(self.x[(start_v, end_v, k)])
+            constraints[k].SetCoefficient(self.x[(start_v, end_v, k)], coeff + 1.0)
             constraints[K + k] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
             for j in self._customers:
-                constraints[K + k].SetCoefficient(self.x[(j, end_v, k)], 1.0)
-            constraints[K + k].SetCoefficient(self.x[(start_v, end_v, k)], 1.0)
+                coeff = constraints[K + k].GetCoefficient(self.x[(j, end_v, k)])
+                constraints[K + k].SetCoefficient(self.x[(j, end_v, k)], coeff + 1.0)
+            coeff = constraints[K + k].GetCoefficient(self.x[(start_v, end_v, k)])
+            constraints[K + k].SetCoefficient(self.x[(start_v, end_v, k)], coeff + 1.0)
 
     def _define_time_consistency_constraints(self):
         # M = float(sys.maxint)
@@ -313,25 +324,35 @@ class CsdpAp:
             #
             constraints[ord_] = self._solver.Constraint(0.0, self._solver.infinity(),
                                                         str(self._solver.NumConstraints()))
-            constraints[ord_].SetCoefficient(self.x[(i, j, k)], M)
-            constraints[ord_].SetCoefficient(self.z[(i, j, k)], -1.0)
+            coeff = constraints[ord_].GetCoefficient(self.x[(i, j, k)])
+            constraints[ord_].SetCoefficient(self.x[(i, j, k)], coeff + M)
+            coeff = constraints[ord_].GetCoefficient(self.z[(i, j, k)])
+            constraints[ord_].SetCoefficient(self.z[(i, j, k)], coeff - 1.0)
             #
             constraints[X + ord_] = self._solver.Constraint(0.0, self._solver.infinity(),
                                                             str(self._solver.NumConstraints()))
-            constraints[X + ord_].SetCoefficient(self.B[(i, k)], 1.0)
-            constraints[X + ord_].SetCoefficient(self.z[(i, j, k)], -1.0)
+            coeff = constraints[X + ord_].GetCoefficient(self.B[(i, k)])
+            constraints[X + ord_].SetCoefficient(self.B[(i, k)], coeff + 1.0)
+            coeff = constraints[X + ord_].GetCoefficient(self.z[(i, j, k)])
+            constraints[X + ord_].SetCoefficient(self.z[(i, j, k)], coeff - 1.0)
             #
             constraints[2 * X + ord_] = self._solver.Constraint(-M, self._solver.infinity(),
                                                                 str(self._solver.NumConstraints()))
-            constraints[2 * X + ord_].SetCoefficient(self.B[(i, k)], -1.0)
-            constraints[2 * X + ord_].SetCoefficient(self.x[(i, j, k)], -M)
-            constraints[2 * X + ord_].SetCoefficient(self.z[(i, j, k)], 1.0)
+            coeff = constraints[2 * X + ord_].GetCoefficient(self.B[(i, k)])
+            constraints[2 * X + ord_].SetCoefficient(self.B[(i, k)], coeff - 1.0)
+            coeff = constraints[2 * X + ord_].GetCoefficient(self.x[(i, j, k)])
+            constraints[2 * X + ord_].SetCoefficient(self.x[(i, j, k)], coeff - M)
+            coeff = constraints[2 * X + ord_].GetCoefficient(self.z[(i, j, k)])
+            constraints[2 * X + ord_].SetCoefficient(self.z[(i, j, k)], coeff + 1.0)
             #
             constraints[3 * X + ord_] = self._solver.Constraint(0.0, self._solver.infinity(),
                                                                 str(self._solver.NumConstraints()))
-            constraints[3 * X + ord_].SetCoefficient(self.B[(j, k)], 1.0)
-            constraints[3 * X + ord_].SetCoefficient(self.x[(i, j, k)], -self._working_graph[i][j])
-            constraints[3 * X + ord_].SetCoefficient(self.z[(i, j, k)], -1.0)
+            coeff = constraints[3 * X + ord_].GetCoefficient(self.B[(j, k)])
+            constraints[3 * X + ord_].SetCoefficient(self.B[(j, k)], coeff + 1.0)
+            coeff = constraints[3 * X + ord_].GetCoefficient(self.x[(i, j, k)])
+            constraints[3 * X + ord_].SetCoefficient(self.x[(i, j, k)], coeff - self._working_graph[i][j])
+            coeff = constraints[3 * X + ord_].GetCoefficient(self.z[(i, j, k)])
+            constraints[3 * X + ord_].SetCoefficient(self.z[(i, j, k)], coeff - 1.0)
 
     def _define_precedence_constraints(self):
         K = len(self._vehicles)
@@ -345,14 +366,18 @@ class CsdpAp:
                     constraints[cnt] = self._solver.Constraint(self._working_graph[i][customer],
                                                                self._solver.infinity(),
                                                                str(self._solver.NumConstraints()))
-                    constraints[cnt].SetCoefficient(self.B[(customer, k)], 1.0)
-                    constraints[cnt].SetCoefficient(self.B[(i, k)], -1.0)
+                    coeff = constraints[cnt].GetCoefficient(self.B[(customer, k)])
+                    constraints[cnt].SetCoefficient(self.B[(customer, k)], coeff + 1.0)
+                    coeff = constraints[cnt].GetCoefficient(self.B[(i, k)])
+                    constraints[cnt].SetCoefficient(self.B[(i, k)], coeff - 1.0)
                     cnt += 1
         for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
             constraints[cnt] = self._solver.Constraint(self._working_graph[start_v][end_v], self._solver.infinity(),
                                                        str(self._solver.NumConstraints()))
-            constraints[cnt].SetCoefficient(self.B[(end_v, k)], 1.0)
-            constraints[cnt].SetCoefficient(self.B[(start_v, k)], -1.0)
+            coeff = constraints[cnt].GetCoefficient(self.B[(end_v, k)])
+            constraints[cnt].SetCoefficient(self.B[(end_v, k)], coeff + 1.0)
+            coeff = constraints[cnt].GetCoefficient(self.B[(start_v, k)])
+            constraints[cnt].SetCoefficient(self.B[(start_v, k)], coeff - 1.0)
             cnt += 1
 
     def _define_time_window_constraints(self):
@@ -361,12 +386,14 @@ class CsdpAp:
             for k, _ in enumerate(self._vehicles):
                 if (i, k) in self.B:
                     constraints[ord_] = self._solver.Constraint(e, l, str(self._solver.NumConstraints()))
-                    constraints[ord_].SetCoefficient(self.B[(i, k)], 1.0)
+                    coeff = constraints[ord_].GetCoefficient(self.B[(i, k)])
+                    constraints[ord_].SetCoefficient(self.B[(i, k)], coeff + 1.0)
 
     def _define_objective(self):
         objective = self._solver.Objective()
         for (i, j, _), x in self.x.iteritems():
-            objective.SetCoefficient(x, self._working_graph[i][j])
+            coeff = objective.GetCoefficient(x)
+            objective.SetCoefficient(x, coeff + self._working_graph[i][j])
         objective.SetMinimization()
 
     def solve(self, requests, vehicles, method="MILP", verbose=False, fraction_sd=.5):
@@ -416,8 +443,8 @@ class CsdpAp:
                 for _, variable in self.z.iteritems():
                     print('%s = %d' % (variable.name(), variable.solution_value()))
             # Return routes
-            return self._build_routes_milp()
-        return None
+            return self._build_routes_milp(), self._solver.Objective().Value()
+        return None, 0
 
     def _pre_process_requests(self):
         customers_by_shops = dict()
@@ -439,12 +466,14 @@ class CsdpAp:
 
     def _sp_based(self, fraction_sd=.5):
         routes = list()
+        cost = 0
         partitions = self._compute_partitions(fraction_sd=fraction_sd)
         # Solve each partition
         for partition in partitions.iteritems():
-            path = self._solve_partition(partition)
+            path, c = self._solve_partition(partition)
             routes.append(path)
-        return routes
+            cost += c
+        return routes, cost
 
     def _compute_partitions(self, method='SP-based', fraction_sd=.5):
         partitions = {}
@@ -475,6 +504,7 @@ class CsdpAp:
 
     def _solve_partition(self, partition, method='BB'):
         route = list()
+        cost = 0
         # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
         # one driver only.
         if method == 'BB':
@@ -489,6 +519,7 @@ class CsdpAp:
             if not customers_dict:
                 self._graph.compute_dist_paths([start_v], [end_v])
                 route = self._graph.paths[(start_v, end_v)]
+                cost = self._graph.dist[(start_v, end_v)]
             else:
                 PartialPath.init(self._graph, shops_dict, customers_dict, start_v, end_v)
                 initial_paths = PartialPath.init_paths()
@@ -507,9 +538,10 @@ class CsdpAp:
                         priority_queue[child] = child.lb
                 if partial_path is not None:
                     route = partial_path.transform_to_actual_path()
+                    cost = partial_path.lb
         else:
             raise NotImplementedError
-        return route
+        return route, cost
 
     def _compute_regions(self, start_v, end_v, fraction_sd=.5, excluded_customers=None):
         customers = set(self._customers)

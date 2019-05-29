@@ -32,7 +32,7 @@ if __name__ == '__main__':
     generator = GridDigraphGenerator()
     m = 30
     n = 35
-    fraction_sd = .33
+    fraction_sd = .5
     graph = generator.generate(m, n, edge_weighted=False)
     helper = NetworkXGraphHelper(graph)
 
@@ -87,15 +87,18 @@ if __name__ == '__main__':
     pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in vs]
     graph.compute_dist_paths(pairs=pairs)
 
-    special_subgraphs = list()
-    shuffle(ec)
+    # special_subgraphs = list()
+    # shuffle(ec)
+    paths = list()
     for ord_, vehicle in enumerate(vs):
         (start_v, _, _), (end_v, _, _) = vehicle
-        route = Digraph()
+        # route = Digraph()
         path = graph.paths[tuple(sorted([start_v, end_v]))]
-        route.append_from_path(path, graph)
-        color = ec[ord_ % len(ec)]
-        special_subgraphs.append((route, color))
+        paths.append(path)
+        # route.append_from_path(path, graph)
+        # color = ec[ord_ % len(ec)]
+        # special_subgraphs.append((route, color))
+    special_subgraphs = helper.special_subgraphs_from_paths(paths)
     helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
 
     # Show the expansion.
@@ -115,15 +118,16 @@ if __name__ == '__main__':
 
     # Show a solution with the SP-based approach.
     csdp_ap = CsdpAp(graph)
-    routes = csdp_ap.solve(rs, vs, method="SP-based", fraction_sd=fraction_sd)
+    routes, cost = csdp_ap.solve(rs, vs, method="SP-based", fraction_sd=fraction_sd)
 
-    special_subgraphs = list()
-    shuffle(ec)
-    for ord_, path in enumerate(routes):
-        route = Digraph()
-        route.append_from_path(path, graph)
-        color = ec[ord_ % len(ec)]
-        special_subgraphs.append((route, color))
+    special_subgraphs = helper.special_subgraphs_from_paths(routes)
+    # special_subgraphs = list()
+    # shuffle(ec)
+    # for ord_, path in enumerate(routes):
+    #     route = Digraph()
+    #     route.append_from_path(path, graph)
+    #     color = ec[ord_ % len(ec)]
+    #     special_subgraphs.append((route, color))
     helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
 
 

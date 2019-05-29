@@ -55,4 +55,5 @@ if __name__ == '__main__':
     ]
     vehicles = [(('o', 1, 300), ('d', 1, 300))]
     csdp_ap = CsdpAp(graph)
-    routes = csdp_ap.solve(requests, vehicles, method='SP-based')
+    routes, cost = csdp_ap.solve(requests, vehicles, method='SP-based')
+    print routes, cost
