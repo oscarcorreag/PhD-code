@@ -241,15 +241,16 @@ class CsdpAp:
             self.z[(i, j, k)] = self._solver.NumVar(0.0, self._solver.infinity(), 'z(%d, %d, %d)' % (i, j, k))
 
     def _define_one_vehicle_one_pickup_constraints(self):
-        constraints = [0] * len(self._requests)
+        K = len(self._vehicles)
+        constraints = [0] * len(self._requests) * K
         for req, _ in enumerate(self._requests):
             shops = self._shops_by_req[req]
-            constraints[req] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
             for k, _ in enumerate(self._vehicles):
+                constraints[req * K + k] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
                 for i in shops:
                     for j, _ in self._working_graph[i].iteritems():
-                        coeff = constraints[req].GetCoefficient(self.x[(i, j, k)])
-                        constraints[req].SetCoefficient(self.x[(i, j, k)], coeff + 1.0)
+                        coeff = constraints[req * K + k].GetCoefficient(self.x[(i, j, k)])
+                        constraints[req * K + k].SetCoefficient(self.x[(i, j, k)], coeff + 1.0)
 
     def _define_same_vehicle_constraints(self):
         K = len(self._vehicles)
@@ -356,7 +357,8 @@ class CsdpAp:
 
     def _define_precedence_constraints(self):
         K = len(self._vehicles)
-        constraints = [0] * ((len(self._shops) + 1) * K)
+        # constraints = [0] * ((len(self._shops) + 1) * K)
+        constraints = [0] * ((sum([len(self._shops_by_req[req]) for req in range(len(self._requests))]) + 1) * K)
         cnt = 0
         for req, _ in enumerate(self._requests):
             shops = self._shops_by_req[req]
