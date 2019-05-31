@@ -398,7 +398,7 @@ class CsdpAp:
             objective.SetCoefficient(x, coeff + self._working_graph[i][j])
         objective.SetMinimization()
 
-    def solve(self, requests, vehicles, method="MILP", verbose=False, fraction_sd=.5):
+    def solve(self, requests, vehicles, method="MILP", verbose=False, partition_method='SP-fraction', fraction_sd=.5):
 
         self._requests = requests
         self._vehicles = vehicles
@@ -409,7 +409,7 @@ class CsdpAp:
 
         if method == "SP-based":
             self._pre_process_requests()
-            return self._sp_based(fraction_sd=fraction_sd)
+            return self._sp_based(partition_method=partition_method, fraction_sd=fraction_sd)
 
     def _define_milp(self):
         self._define_vars()
@@ -466,10 +466,10 @@ class CsdpAp:
             self._shops.update(shops)
             self._customers.update(customers)
 
-    def _sp_based(self, fraction_sd=.5):
+    def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5):
         routes = list()
         cost = 0
-        partitions = self._compute_partitions(fraction_sd=fraction_sd)
+        partitions = self._compute_partitions(method=partition_method, fraction_sd=fraction_sd)
         # Solve each partition
         for partition in partitions.iteritems():
             path, c = self._solve_partition(partition)
@@ -477,31 +477,80 @@ class CsdpAp:
             cost += c
         return routes, cost
 
-    def _compute_partitions(self, method='SP-based', fraction_sd=.5):
+    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5):
         partitions = {}
-        if method == 'SP-based':
-            # TODO: In case there are overlapping between drivers' shortest paths regions, define strategy. For now,
-            # each partition corresponds to each driver's exploration regions.
-            customers_taken = list()
-            pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in self._vehicles]
-            self._graph.compute_dist_paths(pairs=pairs, compute_paths=False)
-            priority_queue = PriorityDictionary()
+        # Drivers' shortest paths are computed.
+        pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in self._vehicles]
+        self._graph.compute_dist_paths(pairs=pairs)
+        # --------------------------------------------------------------------------------------------------------------
+        # SP-fraction:  Shortest-path trees are grown from drivers' shortest-path's road intersections.
+        #               Drivers' shortest paths are iterated in shortest-distance ascending order as a tie-breaker for
+        #               common customers.
+        # --------------------------------------------------------------------------------------------------------------
+        if method == 'SP-fraction':
+            taken = list()
+            #  Priority queue is built based on shortest distances.
+            vehicles_pd = PriorityDictionary()
             for vehicle in self._vehicles:
                 (start_v, _, _), (end_v, _, _) = vehicle
-                priority_queue[vehicle] = self._graph.dist[(start_v, end_v)]
-            # for (start_v, _, _), (end_v, _, _) in self._vehicles:
-            for vehicle in priority_queue:
-                # vehicle = (start_v, end_v)
+                vehicles_pd[vehicle] = self._graph.dist[(start_v, end_v)]
+            # For each driver, a set of regions is computed. Each region corresponds to a road intersection of the
+            # shortest path of the driver and contains sets of shops and customers.
+            for vehicle in vehicles_pd:
                 (start_v, _, _), (end_v, _, _) = vehicle
-                regions = \
-                    self._compute_regions(start_v, end_v, fraction_sd=fraction_sd, excluded_customers=customers_taken)
+                path = self._graph.paths[(start_v, end_v)]
+                dist = self._graph.dist[(start_v, end_v)]
+                regions = self._compute_regions(path, dist, fraction_sd=fraction_sd, excluded_customers=taken)
+                # Shops and customers of different regions of the same driver are gathered. We are interested in
+                # returning shops and customers by driver (partition) so we drop the extra level of disaggregation.
                 shops = set()
                 customers = set()
                 for shops_customers in regions.values():
                     shops.update(shops_customers['shops'])
                     customers.update(shops_customers['customers'])
                 partitions[(start_v, end_v)] = {'customers': customers, 'shops': shops}
-                customers_taken.extend(customers)
+                # These are the customers taken by this partition.
+                taken.extend(customers)
+        # --------------------------------------------------------------------------------------------------------------
+        # SP-Voronoi:
+        # --------------------------------------------------------------------------------------------------------------
+        elif method == 'SP-Voronoi':
+            taken = set()
+            vertices_pd = PriorityDictionary()
+            for vehicle in self._vehicles:
+                (start_v, _, _), (end_v, _, _) = vehicle
+                partitions[(start_v, end_v)] = dict()
+                path = self._graph.paths[(start_v, end_v)]
+                for vertex in path:
+                    vertices_pd[(start_v, end_v, vertex)] = 0
+            distances = dict()
+            for vertex_info in vertices_pd:
+                start_v, end_v, vertex = vertex_info
+                distances[vertex] = vertices_pd[(start_v, end_v, vertex)]
+                if vertex in self._shops:
+                    try:
+                        partitions[(start_v, end_v)]['shops'].add(vertex)
+                    except KeyError:
+                        partitions[(start_v, end_v)]['shops'] = {vertex}
+                elif vertex in self._customers:
+                    try:
+                        partitions[(start_v, end_v)]['customers'].add(vertex)
+                    except KeyError:
+                        partitions[(start_v, end_v)]['customers'] = {vertex}
+                else:
+                    try:
+                        partitions[(start_v, end_v)]['others'].add(vertex)
+                    except KeyError:
+                        partitions[(start_v, end_v)]['others'] = {vertex}
+                taken.add(vertex)
+                #
+                for w, dist in self._graph[vertex].iteritems():
+                    vw_length = distances[vertex] + dist
+                    if w not in taken:
+                        if (start_v, end_v, w) not in vertices_pd or vw_length < vertices_pd[(start_v, end_v, w)]:
+                            vertices_pd[(start_v, end_v, w)] = vw_length
+        else:
+            raise NotImplementedError
         return partitions
 
     def _solve_partition(self, partition, method='BB'):
@@ -545,17 +594,13 @@ class CsdpAp:
             raise NotImplementedError
         return route, cost
 
-    def _compute_regions(self, start_v, end_v, fraction_sd=.5, excluded_customers=None):
+    def _compute_regions(self, path, dist, fraction_sd=.5, excluded_customers=None):
         customers = set(self._customers)
         if excluded_customers is not None:
             customers = customers.difference(excluded_customers)
-        # Compute shortest path and distance.
-        # Then, explore from each intermediate vertex in the path up to [shortest_distance] / 2.
+        # Explore from each intermediate vertex in the path up to [dist] * [fraction_sd]
         # Find shops and customers within those explored regions.
         regions = {}  # Customers and shops by intermediate vertex.
-        self._graph.compute_dist_paths([start_v], [end_v], recompute=True)
-        dist = self._graph.dist[(start_v, end_v)]
-        path = self._graph.paths[(start_v, end_v)]
         shops_region_revised = dict()
         for i, vertex in enumerate(path):
             # Explore graph from each intermediate vertex in driver's shortest path until 1/2 shortest distance.
