@@ -502,7 +502,8 @@ class CsdpAp:
                 dist = self._graph.dist[(start_v, end_v)]
                 regions = self._compute_regions(path, dist, fraction_sd=fraction_sd, excluded_customers=taken)
                 # Shops and customers of different regions of the same driver are gathered. We are interested in
-                # returning shops and customers by driver (partition) so we drop the extra level of disaggregation.
+                # returning shops and customers by driver (partition) so we drop the extra level of disaggregation,
+                # i.e., by region.
                 shops = set()
                 customers = set()
                 for shops_customers in regions.values():
@@ -512,43 +513,30 @@ class CsdpAp:
                 # These are the customers taken by this partition.
                 taken.extend(customers)
         # --------------------------------------------------------------------------------------------------------------
-        # SP-Voronoi:
+        # SP-Voronoi:   Drivers' shortest-path-based Voronoi cells are computed.
         # --------------------------------------------------------------------------------------------------------------
         elif method == 'SP-Voronoi':
-            taken = set()
-            vertices_pd = PriorityDictionary()
+            # Drivers' paths are gathered as a list to be sent as parameter for Voronoi cells computation.
+            paths = list()
             for vehicle in self._vehicles:
                 (start_v, _, _), (end_v, _, _) = vehicle
+                paths.append(self._graph.paths[(start_v, end_v)])
+            # Voronoi cells contain all kinds of vertices, i.e., not only shops and customers. Thus, cells must be
+            # sieved.
+            cells, _ = self._graph.get_voronoi_paths_cells(paths)
+            for (start_v, end_v), vertices in cells.iteritems():
                 partitions[(start_v, end_v)] = dict()
-                path = self._graph.paths[(start_v, end_v)]
-                for vertex in path:
-                    vertices_pd[(start_v, end_v, vertex)] = 0
-            distances = dict()
-            for vertex_info in vertices_pd:
-                start_v, end_v, vertex = vertex_info
-                distances[vertex] = vertices_pd[(start_v, end_v, vertex)]
-                if vertex in self._shops:
-                    try:
-                        partitions[(start_v, end_v)]['shops'].add(vertex)
-                    except KeyError:
-                        partitions[(start_v, end_v)]['shops'] = {vertex}
-                elif vertex in self._customers:
-                    try:
-                        partitions[(start_v, end_v)]['customers'].add(vertex)
-                    except KeyError:
-                        partitions[(start_v, end_v)]['customers'] = {vertex}
-                else:
-                    try:
-                        partitions[(start_v, end_v)]['others'].add(vertex)
-                    except KeyError:
-                        partitions[(start_v, end_v)]['others'] = {vertex}
-                taken.add(vertex)
-                #
-                for w, dist in self._graph[vertex].iteritems():
-                    vw_length = distances[vertex] + dist
-                    if w not in taken:
-                        if (start_v, end_v, w) not in vertices_pd or vw_length < vertices_pd[(start_v, end_v, w)]:
-                            vertices_pd[(start_v, end_v, w)] = vw_length
+                for vertex in vertices:
+                    if vertex in self._shops:
+                        try:
+                            partitions[(start_v, end_v)]['shops'].add(vertex)
+                        except KeyError:
+                            partitions[(start_v, end_v)]['shops'] = {vertex}
+                    elif vertex in self._customers:
+                        try:
+                            partitions[(start_v, end_v)]['customers'].add(vertex)
+                        except KeyError:
+                            partitions[(start_v, end_v)]['customers'] = {vertex}
         else:
             raise NotImplementedError
         return partitions
@@ -561,13 +549,17 @@ class CsdpAp:
         if method == 'BB':
             vehicle, shops_customers = partition
             start_v, end_v = vehicle
-            shops_dict = \
-                {k: self._shops_dict[k]
-                 for k in set(self._shops_dict.keys()).intersection(shops_customers['shops'])}
-            customers_dict = \
-                {k: self._customers_dict[k]
-                 for k in set(self._customers_dict.keys()).intersection(shops_customers['customers'])}
-            if not customers_dict:
+            shops_dict = dict()
+            if 'shops' in shops_customers:
+                shops_dict = \
+                    {k: self._shops_dict[k]
+                     for k in set(self._shops_dict.keys()).intersection(shops_customers['shops'])}
+            customers_dict = dict()
+            if 'customers' in shops_customers:
+                customers_dict = \
+                    {k: self._customers_dict[k]
+                     for k in set(self._customers_dict.keys()).intersection(shops_customers['customers'])}
+            if not shops_dict or not customers_dict:
                 self._graph.compute_dist_paths([start_v], [end_v])
                 route = self._graph.paths[(start_v, end_v)]
                 cost = self._graph.dist[(start_v, end_v)]
@@ -892,9 +884,13 @@ class PartialPath:
         non_visited_groups = PartialPath._groups_set.difference(visited_groups)
         # Shops in non-visited groups.
         for non_visited_group in non_visited_groups:
+            if non_visited_group not in PartialPath._shops_by_group_id:
+                continue
             to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(self._shops_lb))
         # Non-visited customers in visited groups.
         for visited_group in visited_groups:
+            if visited_group not in PartialPath._customers_by_group_id:
+                continue
             to_.update(PartialPath._customers_by_group_id[visited_group].difference(self.path))
         # Is it from a customer?
         if from_ in PartialPath._customers_set:

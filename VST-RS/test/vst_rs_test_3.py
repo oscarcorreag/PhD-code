@@ -65,8 +65,10 @@ if __name__ == '__main__':
     # ngh.draw_graph(special_nodes=special_nodes, node_weight_generator=generator)
 
     # Voronoi cells are computed and drawn.
-    p_cells, medoids = suitability_graph.get_voronoi_cells(
-        list(set(suitability_graph.keys()).difference(terminals).difference(pois)), pois)
+    p_cells, medoids = suitability_graph.get_voronoi_medoid_cells(
+        pois,
+        list(set(suitability_graph.keys()).difference(terminals).difference(pois))
+    )
     for p in pois:
         # noinspection PyTypeChecker
         special_nodes.append((p_cells[p], None, None))

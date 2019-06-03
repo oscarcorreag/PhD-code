@@ -400,7 +400,7 @@ class Digraph(dict):
             raise (RuntimeError, "Digraph: Wrong parameters when computing distances!")
         origins_ = []
         destinations_ = []
-        # When none is indicated, the graph nodes are the default.
+        # When None is indicated, the graph nodes are the default.
         if origins is None and destinations is None and pairs is None:
             origins_ = self.keys()
             destinations_ = self.keys()
@@ -470,9 +470,9 @@ class Digraph(dict):
     Compute Voronoi cells for a set of nodes and medoids as two dictionaries: (1) nodes by medoids, (2) medoids by node.
     '''
 
-    def get_voronoi_cells(self, nodes, medoids):
-        cells = {m: [] for m in medoids}
-        nodes_medoid = {}
+    def get_voronoi_medoid_cells(self, medoids, nodes):
+        cells = {m: [] for m in medoids}    # Medoids are the keys and the nodes are the elements of the cell.
+        generator_by_node = dict()          # Nodes are the keys and the value is its corresponding closest medoid.
         self.compute_dist_paths(origins=nodes, destinations=medoids, compute_paths=False)
         # Each node from the set [nodes] is assigned to its closest medoid.
         for n in nodes:
@@ -484,9 +484,60 @@ class Digraph(dict):
                     n_m = (n, m)
                 dists[m] = self.dist[n_m]
             medoid = min(dists.iteritems(), key=operator.itemgetter(1))[0]
-            cells[medoid].append(n)  # Medoids are the keys and the nodes are the elements of the cell.
-            nodes_medoid[n] = medoid  # Nodes are the keys and the value is its corresponding medoid.
-        return cells, nodes_medoid
+            cells[medoid].append(n)
+            generator_by_node[n] = medoid
+        return cells, generator_by_node
+
+    def get_voronoi_paths_cells(self, paths, nodes=None):
+        cells = dict()              # Paths are the keys and the nodes are the elements of the cell.
+        generator_by_node = dict()  # Nodes are the keys and the value is its corresponding closest path.
+        # When None is indicated, the graph nodes are the default.
+        if nodes is None:
+            nodes_ = set(self.keys())
+        else:
+            nodes_ = set(nodes)
+        # A priority queue is created. It will help retrieve the next farthest node to any shortest path.
+        priority_dict = PriorityDictionary()
+        # Paths are traversed in no specific order.
+        # TODO: Perhaps a smarter way of traversing, e.g., based on distance, may be needed.
+        for p in paths:
+            if len(p) == 0:
+                continue
+            origin = p[0]
+            destination = p[-1]
+            # Cells are initialized.
+            # A cell is identified by the path's origin and destination.
+            cells[(origin, destination)] = list()
+            for node in p:
+                # Check whether the node is of interest.
+                # In that case, since the node is part of the path, the distance is zero and the generator is such path.
+                if node in nodes_:
+                    priority_dict[node] = 0
+                    generator_by_node[node] = (origin, destination)
+        #
+        distances = dict()
+        for node in priority_dict:
+            origin, destination = generator_by_node[node]
+            # The closest path has been found for the current node.
+            cells[(origin, destination)].append(node)
+            # Store the associated shortest distance.
+            distances[node] = priority_dict[node]
+            # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
+            if not self.node_weighted:
+                adj_nodes = self[node]
+            else:
+                adj_nodes = self[node][1]
+            # Traverse the adjacency list.
+            for w, dist in adj_nodes.iteritems():
+                vw_length = distances[node] + dist
+                # In case w is of interest and has not been visited before...
+                if w in nodes_ and w not in distances:
+                    # If w's distance is improved, this distance and generator are updated.
+                    if w not in priority_dict or vw_length < priority_dict[w]:
+                        priority_dict[w] = vw_length
+                        generator_by_node[w] = (origin, destination)
+
+        return cells, generator_by_node
 
     def get_medoid(self, nodes):
         self.compute_dist_paths(origins=nodes, destinations=nodes, compute_paths=False)
@@ -617,7 +668,7 @@ class Digraph(dict):
                 # In case v-w shortest distance has already been computed.
                 if w in distances:
                     if vw_length < distances[w]:
-                        raise(ValueError, "Dijkstra: found better path to already-final vertex")
+                        raise (ValueError, "Dijkstra: found better path to already-final vertex")
                 # In case w has not been visited before or the current computed distance is better than the one computed
                 # before.
                 elif w not in priority_queue or vw_length < priority_queue[w]:
@@ -692,7 +743,7 @@ class Digraph(dict):
                 # In case v-w shortest distance has already been computed.
                 if w in distances[end]:
                     if vw_length < distances[end][w]:
-                        raise(ValueError, "Meet-in-the-middle: found better path to already-final vertex")
+                        raise (ValueError, "Meet-in-the-middle: found better path to already-final vertex")
                 # In case w has not been visited before or the current computed distance is better than the one computed
                 # before.
                 elif (end, w) not in priority_queue or vw_length < priority_queue[(end, w)]:

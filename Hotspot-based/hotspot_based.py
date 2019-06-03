@@ -37,7 +37,7 @@ class HotspotBased:
         # print self.__graph.issues_dist_paths
 
         # Compute P-Voronoi cells.
-        _, self.__medoids = self.__graph.get_voronoi_cells(temp, self.__pois)
+        _, self.__medoids = self.__graph.get_voronoi_medoid_cells(self.__pois, temp)
 
         # Subtree-SVs
         self.__leaves_subtree_sv = {}
