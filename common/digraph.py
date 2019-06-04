@@ -470,7 +470,7 @@ class Digraph(dict):
     Compute Voronoi cells for a set of nodes and medoids as two dictionaries: (1) nodes by medoids, (2) medoids by node.
     '''
 
-    def get_voronoi_medoid_cells(self, medoids, nodes):
+    def get_voronoi_medoids_cells(self, medoids, nodes):
         cells = {m: [] for m in medoids}    # Medoids are the keys and the nodes are the elements of the cell.
         generator_by_node = dict()          # Nodes are the keys and the value is its corresponding closest medoid.
         self.compute_dist_paths(origins=nodes, destinations=medoids, compute_paths=False)
@@ -780,3 +780,23 @@ class Digraph(dict):
                 elif w not in priority_queue or vw_length < priority_queue[w]:
                     priority_queue[w] = vw_length
         return distances
+
+    def nodes_within_ellipse(self, focal_1, focal_2, constant):
+        ellipse = dict()
+        priority_dict = PriorityDictionary()
+        priority_dict[focal_1] = 0
+        priority_dict[focal_2] = 0
+
+        for v in priority_dict:
+
+            if priority_dict[v] > constant / 2.:
+                break
+
+            ellipse[v] = priority_dict[v]
+
+            # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
+            if not self.node_weighted:
+                adj_nodes = self[v]
+            else:
+                adj_nodes = self[v][1]
+

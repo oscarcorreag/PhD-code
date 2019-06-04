@@ -537,6 +537,8 @@ class CsdpAp:
                             partitions[(start_v, end_v)]['customers'].add(vertex)
                         except KeyError:
                             partitions[(start_v, end_v)]['customers'] = {vertex}
+        elif method == 'Threshold':
+
         else:
             raise NotImplementedError
         return partitions
@@ -550,33 +552,44 @@ class CsdpAp:
             vehicle, shops_customers = partition
             start_v, end_v = vehicle
             shops_dict = dict()
+            # Filter out the shops that are not in the partition.
             if 'shops' in shops_customers:
                 shops_dict = \
                     {k: self._shops_dict[k]
                      for k in set(self._shops_dict.keys()).intersection(shops_customers['shops'])}
             customers_dict = dict()
+            # Filter out the customers who are not in the partition and do not have a shop that can serve them.
             if 'customers' in shops_customers:
-                customers_dict = \
-                    {k: self._customers_dict[k]
-                     for k in set(self._customers_dict.keys()).intersection(shops_customers['customers'])}
+                local_customers = set(self._customers_dict.keys()).intersection(shops_customers['customers'])
+                for c in local_customers:
+                    for s in shops_dict:
+                        if self._customers_dict[c] == self._shops_dict[s]:
+                            customers_dict[c] = self._customers_dict[c]
+                            break
+            # If there are no shops nor customers, the driver follows her original route.
             if not shops_dict or not customers_dict:
                 self._graph.compute_dist_paths([start_v], [end_v])
                 route = self._graph.paths[(start_v, end_v)]
                 cost = self._graph.dist[(start_v, end_v)]
             else:
+                # Otherwise, partial paths' lower bounds are stored into a priority queue.
                 PartialPath.init(self._graph, shops_dict, customers_dict, start_v, end_v)
                 initial_paths = PartialPath.init_paths()
                 priority_queue = PriorityDictionary()
+                # There are MORE THAN ONE initial path as there are more than one alternative pick-up locations.
+                # The lower bounds must be computed taking into account only one from each group of shops each time.
                 for initial_path in initial_paths:
                     priority_queue[initial_path] = initial_path.lb
                 partial_path = None
                 for p in priority_queue:
-                    # if p.path[-1] == end_v:
+                    # Check whether ALL customers have been served. This is the termination condition.
                     visited_customers = set(p.path).intersection(customers_dict.keys())
                     if len(visited_customers) == len(customers_dict.keys()) and p.path[-1] == end_v:
                         partial_path = p
                         break
+                    # Expands the partial path = computes partial path's offspring.
                     offspring = p.spawn()
+                    # Priority queue is fed up with the offspring.
                     for child in offspring:
                         priority_queue[child] = child.lb
                 if partial_path is not None:

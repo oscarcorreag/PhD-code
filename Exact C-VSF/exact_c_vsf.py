@@ -25,7 +25,7 @@ class ExactC_VSF:
             self.__graph.compute_dist_paths(origins=temp, destinations=temp, compute_paths=False)
 
         # Compute P-Voronoi cells.
-        self.__p_cells, self.__medoids = self.__graph.get_voronoi_medoid_cells(self.__pois, temp)
+        self.__p_cells, self.__medoids = self.__graph.get_voronoi_medoids_cells(self.__pois, temp)
 
     def __get_candidates_terminal(self, terminal):
         candidates = set()

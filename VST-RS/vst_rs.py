@@ -206,7 +206,7 @@ class VST_RS:
             # Convergence is attained when medoids do not change from the previous iteration after computing them for
             # each Voronoi cell.
             while set(prev_medoids) != set(medoids) and iterations < max_iter:
-                groups, _ = self.graph.get_voronoi_medoid_cells(medoids, users)
+                groups, _ = self.graph.get_voronoi_medoids_cells(medoids, users)
                 prev_medoids = list(medoids)
                 medoids = [self.graph.get_medoid(g) for _, g in groups.iteritems()]
                 iterations += 1
@@ -226,7 +226,7 @@ class VST_RS:
         self.z = z
         self.S = S
         # Compute P-Voronoi cells.
-        self.p_cells, self.medoids = self.graph.get_voronoi_medoid_cells(self.pois, self.U)
+        self.p_cells, self.medoids = self.graph.get_voronoi_medoids_cells(self.pois, self.U)
         # Compute distances between users as they are used when grouping them.
         for _, cell in self.p_cells.iteritems():
             self.graph.compute_dist_paths(origins=cell, destinations=cell, compute_paths=False)
