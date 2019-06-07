@@ -1,5 +1,6 @@
 from unittest import TestCase
 from grid_digraph_generator import GridDigraphGenerator
+from networkx_graph_helper import NetworkXGraphHelper
 
 
 class TestDigraph(TestCase):
@@ -84,3 +85,37 @@ class TestDigraph(TestCase):
                                  24: (10, 14)
                              })
 
+    def test_nodes_within_ellipse(self):
+        generator = GridDigraphGenerator()
+        graph = generator.generate(5, 5, edge_weighted=False)
+        ellipse, _ = graph.nodes_within_ellipse(11, 13, 4)
+        self.assertDictEqual(ellipse,
+                             {
+                                 6: {11: 1, 13: 3},
+                                 7: {11: 2, 13: 2},
+                                 8: {11: 3, 13: 1},
+                                 10: {11: 1, 13: 3},
+                                 11: {11: 0, 13: 2},
+                                 12: {11: 1, 13: 1},
+                                 13: {11: 2, 13: 0},
+                                 14: {11: 3, 13: 1},
+                                 16: {11: 1, 13: 3},
+                                 17: {11: 2, 13: 2},
+                                 18: {11: 3, 13: 1}
+                             })
+
+    # def test_nodes_within_ellipse_opt(self):
+    #     generator = GridDigraphGenerator()
+    #     graph = generator.generate(50, 50)
+    #     graph.compute_dist_paths(pairs=[(1260, 2060), (1260, 1359), (1359, 2060)], compute_paths=True)
+    #     print graph.dist[(1260, 1359)], graph.dist[(1359, 2060)]
+    #     print graph.paths[(1359, 2060)]
+    #     helper = NetworkXGraphHelper(graph)
+    #     sd = graph.dist[(1260, 2060)]
+    #     constant = sd * 1.1
+    #     ellipse_1, iterations_1 = graph.nodes_within_ellipse(1260, 2060, constant)
+    #     helper.draw_graph(special_nodes=[(ellipse_1.keys(), None, 30)])
+    #     ellipse_2, iterations_2 = graph.nodes_within_ellipse_opt(1260, 2060, constant)
+    #     helper.draw_graph(special_nodes=[(ellipse_2.keys(), None, 30)])
+    #     self.assertListEqual(sorted(ellipse_1.keys()), sorted(ellipse_2.keys()))
+    #     self.assertGreater(iterations_1, iterations_2)

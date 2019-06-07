@@ -398,7 +398,8 @@ class CsdpAp:
             objective.SetCoefficient(x, coeff + self._working_graph[i][j])
         objective.SetMinimization()
 
-    def solve(self, requests, vehicles, method="MILP", verbose=False, partition_method='SP-fraction', fraction_sd=.5):
+    def solve(self, requests, vehicles, method="MILP", verbose=False, partition_method='SP-fraction', fraction_sd=.5,
+              threshold_sd=1.5):
 
         self._requests = requests
         self._vehicles = vehicles
@@ -409,7 +410,7 @@ class CsdpAp:
 
         if method == "SP-based":
             self._pre_process_requests()
-            return self._sp_based(partition_method=partition_method, fraction_sd=fraction_sd)
+            return self._sp_based(partition_method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd)
 
     def _define_milp(self):
         self._define_vars()
@@ -466,10 +467,11 @@ class CsdpAp:
             self._shops.update(shops)
             self._customers.update(customers)
 
-    def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5):
+    def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
         routes = list()
         cost = 0
-        partitions = self._compute_partitions(method=partition_method, fraction_sd=fraction_sd)
+        partitions = \
+            self._compute_partitions(method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd)
         # Solve each partition
         for partition in partitions.iteritems():
             path, c = self._solve_partition(partition)
@@ -477,7 +479,7 @@ class CsdpAp:
             cost += c
         return routes, cost
 
-    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5):
+    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
         partitions = {}
         # Drivers' shortest paths are computed.
         pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in self._vehicles]
@@ -537,8 +539,29 @@ class CsdpAp:
                             partitions[(start_v, end_v)]['customers'].add(vertex)
                         except KeyError:
                             partitions[(start_v, end_v)]['customers'] = {vertex}
-        elif method == 'Threshold':
-
+        # --------------------------------------------------------------------------------------------------------------
+        # SP-threshold: Vertices within ellipses with constant = threshold are retrieved for each driver as an initial
+        #               partition. The partition must be solved accordingly, i.e., regarding the threshold, this is the
+        #               initial partition only.
+        #               TODO: What about overlapping? Are the customers partitioned from here or when solving?
+        # --------------------------------------------------------------------------------------------------------------
+        elif method == 'SP-threshold':
+            for vehicle in self._vehicles:
+                (start_v, _, _), (end_v, _, _) = vehicle
+                dist = self._graph.dist[(start_v, end_v)]
+                ellipse = self._graph.nodes_within_ellipse(start_v, end_v, dist * threshold_sd)
+                partitions[(start_v, end_v)] = dict()
+                for vertex in ellipse.keys():
+                    if vertex in self._shops:
+                        try:
+                            partitions[(start_v, end_v)]['shops'].add(vertex)
+                        except KeyError:
+                            partitions[(start_v, end_v)]['shops'] = {vertex}
+                    elif vertex in self._customers:
+                        try:
+                            partitions[(start_v, end_v)]['customers'].add(vertex)
+                        except KeyError:
+                            partitions[(start_v, end_v)]['customers'] = {vertex}
         else:
             raise NotImplementedError
         return partitions

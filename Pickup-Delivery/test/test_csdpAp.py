@@ -52,9 +52,10 @@ class TestCsdpAp(TestCase):
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition=SP-Voronoi
         # --------------------------------------------------------------------------------------------------------------
-        rs, ss, cs, vs = sample(nc=50, ng=3, min_s=5, max_s=10, nv=4, vertices=graph.keys(), seed=0)
-        _, cost = csdp_ap.solve(rs, vs, method="SP-based", fraction_sd=0.3)
-        print cost
+        rs, ss, cs, vs = sample(nc=20, ng=3, min_s=5, max_s=10, nv=4, vertices=graph.keys(), seed=0)
         _, cost = csdp_ap.solve(rs, vs, method="SP-based", partition_method='SP-Voronoi')
+        self.assertEquals(cost, 108)
+        _, cost = csdp_ap.solve(rs, vs, method="SP-based", partition_method='SP-threshold')
         print cost
         self.assertEquals(cost, 108)
+

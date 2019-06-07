@@ -688,21 +688,21 @@ class Digraph(dict):
         distances = {0: {}, 1: {}}  # dictionary of final distances
         predecessors = {0: {}, 1: {}}  # dictionary of predecessors
 
-        priority_queue = PriorityDictionary()  # est.dist. of non-final vert.
+        priority_dict = PriorityDictionary()  # est.dist. of non-final vert.
 
         # One priority queue where each entry's key informs which node the estimated distance is computed from.
-        priority_queue[(0, origin)] = 0  # 0: from origin
-        priority_queue[(1, destination)] = 0  # 1: from destination
+        priority_dict[(0, origin)] = 0  # 0: from origin
+        priority_dict[(1, destination)] = 0  # 1: from destination
 
         distance = sys.maxint
         path = []
         middle = None
 
-        for end, v in priority_queue:
+        for end, v in priority_dict:
 
             # If the next node's distance is bigger than 1/2 the candidate shortest distance then such candidate is the
             # final shortest distance.
-            if priority_queue[(end, v)] >= distance / 2.:
+            if priority_dict[(end, v)] >= distance / 2.:
                 if compute_path or track_edges:
                     # Build the path from the origin to the middle node.
                     w = middle
@@ -722,7 +722,7 @@ class Digraph(dict):
                     if track_edges:
                         self.__track_edges(path)
                 break
-            distances[end][v] = priority_queue[(end, v)]
+            distances[end][v] = priority_dict[(end, v)]
 
             # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
             if not self.node_weighted:
@@ -746,8 +746,8 @@ class Digraph(dict):
                         raise (ValueError, "Meet-in-the-middle: found better path to already-final vertex")
                 # In case w has not been visited before or the current computed distance is better than the one computed
                 # before.
-                elif (end, w) not in priority_queue or vw_length < priority_queue[(end, w)]:
-                    priority_queue[(end, w)] = vw_length
+                elif (end, w) not in priority_dict or vw_length < priority_dict[(end, w)]:
+                    priority_dict[(end, w)] = vw_length
                     predecessors[end][w] = v
         return distance, path
 
@@ -781,18 +781,99 @@ class Digraph(dict):
                     priority_queue[w] = vw_length
         return distances
 
+    # def nodes_within_ellipse_opt(self, focal_1, focal_2, constant):
+    #
+    #     ellipse = dict()
+    #
+    #     distances = {focal_1: {}, focal_2: {}}
+    #     predecessors = {focal_1: {}, focal_2: {}}
+    #
+    #     priority_dict = PriorityDictionary()
+    #     priority_dict[(focal_1, focal_1)] = 0
+    #     priority_dict[(focal_2, focal_2)] = 0
+    #
+    #     iterations = 0
+    #     flag = False
+    #     discarded = set()
+    #     for focal, v in priority_dict:
+    #
+    #         iterations += 1
+    #
+    #         if priority_dict[(focal, v)] > constant:
+    #             break
+    #         # if not flag and priority_dict[(focal, v)] > constant / 2.:
+    #         #     for f, x in priority_dict.keys():
+    #         #         if predecessors[f][x] not in ellipse:
+    #         #             discarded.add((f, x))
+    #         #     flag = True
+    #
+    #         # if priority_dict[(focal, v)] > constant / 2.:
+    #         #     if predecessors[focal][v] not in ellipse:
+    #         #         continue
+    #
+    #         # if flag and (focal, v) in discarded:
+    #         #     continue
+    #
+    #         distances[focal][v] = priority_dict[(focal, v)]
+    #
+    #         other_focal = focal_1 if focal == focal_2 else focal_2
+    #         if v in distances[other_focal]:
+    #             if distances[focal][v] + distances[other_focal][v] <= constant:
+    #                 ellipse[v] = {focal: distances[focal][v],
+    #                               other_focal: distances[other_focal][v]
+    #                               }
+    #
+    #         # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
+    #         if not self.node_weighted:
+    #             adj_nodes = self[v]
+    #         else:
+    #             adj_nodes = self[v][1]
+    #
+    #         for w, dist in adj_nodes.iteritems():
+    #             vw_length = distances[focal][v] + dist
+    #             if w not in distances[focal]:
+    #                 if distances[focal][v] > constant / 2.:
+    #                     if predecessors[focal][v] in ellipse:
+    #                         if (focal, w) not in priority_dict or vw_length < priority_dict[(focal, w)]:
+    #                             priority_dict[(focal, w)] = vw_length
+    #                             predecessors[focal][w] = v
+    #                     elif (focal, w) in priority_dict and vw_length < priority_dict[(focal, w)]:
+    #                         priority_dict[(focal, w)] = vw_length
+    #                         predecessors[focal][w] = v
+    #                 elif (focal, w) not in priority_dict or vw_length < priority_dict[(focal, w)]:
+    #                     priority_dict[(focal, w)] = vw_length
+    #                     predecessors[focal][w] = v
+    #
+    #     return ellipse, iterations
+
     def nodes_within_ellipse(self, focal_1, focal_2, constant):
+
         ellipse = dict()
+
+        distances = {focal_1: {}, focal_2: {}}
+
         priority_dict = PriorityDictionary()
-        priority_dict[focal_1] = 0
-        priority_dict[focal_2] = 0
+        priority_dict[(focal_1, focal_1)] = 0
+        priority_dict[(focal_2, focal_2)] = 0
 
-        for v in priority_dict:
+        # iterations = 0
+        for focal, v in priority_dict:
 
-            if priority_dict[v] > constant / 2.:
+            # iterations += 1
+
+            if priority_dict[(focal, v)] > constant:
                 break
 
-            ellipse[v] = priority_dict[v]
+            distances[focal][v] = priority_dict[(focal, v)]
+
+            other_focal = focal_1 if focal == focal_2 else focal_2
+
+            if v in distances[other_focal]:
+                if distances[focal][v] + distances[other_focal][v] <= constant:
+                    ellipse[v] = {
+                        focal: distances[focal][v],
+                        other_focal: distances[other_focal][v]
+                    }
 
             # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
             if not self.node_weighted:
@@ -800,3 +881,10 @@ class Digraph(dict):
             else:
                 adj_nodes = self[v][1]
 
+            for w, dist in adj_nodes.iteritems():
+                vw_length = distances[focal][v] + dist
+                if w not in distances[focal]:
+                    if (focal, w) not in priority_dict or vw_length < priority_dict[(focal, w)]:
+                        priority_dict[(focal, w)] = vw_length
+        # return ellipse, iterations
+        return ellipse

@@ -113,7 +113,7 @@ if __name__ == '__main__':
     # REQUESTS ARE RANDOM
     # ------------------------------------------------------------------------------------------------------------------
     # Show the initial set up.
-    rs, ss, cs, vs = sample(nc=20, ng=2, min_s=3, max_s=3, nv=3, vertices=graph.keys(), seed=0)
+    rs, ss, cs, vs = sample(nc=10, ng=2, min_s=3, max_s=3, nv=3, vertices=graph.keys(), seed=0)
 
     ss_by_g = dict()
     for s, g in ss.iteritems():
@@ -144,23 +144,31 @@ if __name__ == '__main__':
         ends.append(end_v)
     special_nodes.extend([(starts, '#00FF00', 75), (ends, '#00FF00', 25)])
 
-    helper.draw_graph(special_nodes=special_nodes, print_node_labels=True)
+    helper.draw_graph(special_nodes=special_nodes)
 
     # Show the shortest paths of the drivers.
     pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in vs]
     graph.compute_dist_paths(pairs=pairs)
 
     paths = list()
+    ellipsis = list()
     for ord_, vehicle in enumerate(vs):
         (start_v, _, _), (end_v, _, _) = vehicle
-        path = graph.paths[tuple(sorted([start_v, end_v]))]
+        pair = tuple(sorted([start_v, end_v]))
+        path = graph.paths[pair]
         paths.append(path)
+        ellipse = graph.nodes_within_ellipse(start_v, end_v, graph.dist[pair] * 1.1)
+        ellipsis.append(ellipse)
 
-    cells, _ = graph.get_voronoi_paths_cells(paths)
+    # cells, _ = graph.get_voronoi_paths_cells(paths)
+    # special_nodes_and_expansion = list(special_nodes)
+    # for (start_v, end_v), vertices in cells.iteritems():
+    #     # color = ec[ord_ % len(ec)]
+    #     special_nodes_and_expansion.insert(0, (vertices, None, 15))
     special_nodes_and_expansion = list(special_nodes)
-    for (start_v, end_v), vertices in cells.iteritems():
+    for ellipse in ellipsis:
         # color = ec[ord_ % len(ec)]
-        special_nodes_and_expansion.insert(0, (vertices, None, 15))
+        special_nodes_and_expansion.insert(0, (ellipse.keys(), None, 15))
 
     special_subgraphs = helper.special_subgraphs_from_paths(paths)
     helper.draw_graph(special_nodes=special_nodes_and_expansion, special_subgraphs=special_subgraphs)
@@ -183,7 +191,7 @@ if __name__ == '__main__':
     #
     # Show a solution with the SP-based approach.
     csdp_ap = CsdpAp(graph)
-    routes, cost = csdp_ap.solve(rs, vs, method="SP-based", partition_method='SP-Voronoi')
+    routes, cost = csdp_ap.solve(rs, vs, method="SP-based", partition_method='SP-threshold', threshold_sd=1.1)
 
     special_subgraphs = helper.special_subgraphs_from_paths(routes)
     helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
