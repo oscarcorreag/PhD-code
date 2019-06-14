@@ -747,8 +747,8 @@ class PartialPath:
         PartialPath._origin = origin
         PartialPath._destination = destination
 
-        PartialPath._shops_by_group_id = dict()  # Group ID with corresponding shops.
-        PartialPath._customers_by_group_id = dict()  # Group ID with corresponding customers.
+        PartialPath._shops_by_group_id = dict()         # Group ID with corresponding shops.
+        PartialPath._customers_by_group_id = dict()     # Group ID with corresponding customers.
         for shop, group_id in shops_dict.iteritems():
             try:
                 PartialPath._shops_by_group_id[group_id].add(shop)
@@ -1036,7 +1036,7 @@ class PartialPathThreshold:
         self._threshold -= self._dist
         vertices = \
             PartialPathThreshold._graph.nodes_within_ellipse(vertex, PartialPathThreshold._destination, self._threshold)
-        self._compute_bounds()
+        # self._compute_bounds()
 
-    def _compute_bounds(self):
+    # def _compute_bounds(self):
 
