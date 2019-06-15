@@ -38,76 +38,76 @@ if __name__ == '__main__':
     graph = generator.generate(m, n, edge_weighted=True)
     helper = NetworkXGraphHelper(graph)
 
-    # rs = [
-    #     ([(691, 1, 300), (603, 1, 300)], (398, 1, 300)),
-    #     # ([(719, 1, 300)], (445, 1, 300)),
-    #     ([(718, 1, 300)], (445, 1, 300)),
-    #     # ([(719, 1, 300)], (576, 1, 300)),
-    #     ([(718, 1, 300)], (576, 1, 300)),
-    # ]
-    # # ss = {691: 1, 603: 1, 719: 2}
-    # ss = {691: 1, 603: 1, 718: 2}
-    # cs = {398: 1, 445: 2, 576: 2}
-    # # cs = {398: 1, 410: 2, 576: 2}
-    #
-    # vs = [
-    #     ((549, 1, 300), (535, 1, 300))
-    # ]
-    #
-    # ss_by_g = {1: [691, 603], 2: [718]}
-    # cs_by_g = {1: [398], 2: [445, 576]}
-    #
-    # special_nodes = list()
-    # ec = list(element_colors)
-    # shuffle(ec)
-    # for ord_, (g, customers) in enumerate(cs_by_g.iteritems()):
-    #     shops = ss_by_g[g]
-    #     color = ec[ord_ % len(ec)]
-    #     special_nodes.append((shops, color, 75))
-    #     special_nodes.append((customers, color, 25))
-    # starts = list()
-    # ends = list()
-    # for (start_v, _, _), (end_v, _, _) in vs:
-    #     starts.append(start_v)
-    #     ends.append(end_v)
-    # special_nodes.extend([(starts, '#00FF00', 75), (ends, '#00FF00', 25)])
-    #
-    # helper.draw_graph(special_nodes=special_nodes, print_node_labels=True)
-    #
-    # # Show the shortest paths of the drivers.
-    # pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in vs]
-    # graph.compute_dist_paths(pairs=pairs)
-    #
-    # paths = list()
-    # for ord_, vehicle in enumerate(vs):
-    #     (start_v, _, _), (end_v, _, _) = vehicle
-    #     path = graph.paths[tuple(sorted([start_v, end_v]))]
-    #     paths.append(path)
-    # special_subgraphs = helper.special_subgraphs_from_paths(paths)
-    # helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
-    #
-    # # Show the expansion.
-    # special_nodes_and_expansion = list(special_nodes)
-    # shuffle(ec)
-    # for ord_, vehicle in enumerate(vs):
-    #     (start_v, _, _), (end_v, _, _) = vehicle
-    #     dist = graph.dist[tuple(sorted([start_v, end_v]))]
-    #     path = graph.paths[tuple(sorted([start_v, end_v]))]
-    #     vertices_region = set()
-    #     for n in path:
-    #         dists = graph.explore_upto(n, dist * fraction_sd)
-    #         vertices_region.update(dists.keys())
-    #     color = ec[ord_ % len(ec)]
-    #     special_nodes_and_expansion.insert(0, (vertices_region, color, 15))
-    # helper.draw_graph(special_nodes=special_nodes_and_expansion)
-    #
-    # # Show a solution with the SP-based approach.
-    # csdp_ap = CsdpAp(graph)
-    # routes, cost = csdp_ap.solve(rs, vs, method="SP-based", fraction_sd=fraction_sd)
-    # # routes, cost = csdp_ap.solve(rs, vs, method="SP-based", partition_method='SP-Voronoi')
-    #
-    # special_subgraphs = helper.special_subgraphs_from_paths(routes)
-    # helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
+    rs = [
+        ([(691, 1, 300), (603, 1, 300)], (398, 1, 300)),
+        # ([(719, 1, 300)], (445, 1, 300)),
+        ([(718, 1, 300)], (445, 1, 300)),
+        # ([(719, 1, 300)], (576, 1, 300)),
+        ([(718, 1, 300)], (576, 1, 300)),
+    ]
+    # ss = {691: 1, 603: 1, 719: 2}
+    ss = {691: 1, 603: 1, 718: 2}
+    cs = {398: 1, 445: 2, 576: 2}
+    # cs = {398: 1, 410: 2, 576: 2}
+
+    vs = [
+        ((549, 1, 300), (535, 1, 300))
+    ]
+
+    ss_by_g = {1: [691, 603], 2: [718]}
+    cs_by_g = {1: [398], 2: [445, 576]}
+
+    special_nodes = list()
+    ec = list(element_colors)
+    shuffle(ec)
+    for ord_, (g, customers) in enumerate(cs_by_g.iteritems()):
+        shops = ss_by_g[g]
+        color = ec[ord_ % len(ec)]
+        special_nodes.append((shops, color, 75))
+        special_nodes.append((customers, color, 25))
+    starts = list()
+    ends = list()
+    for (start_v, _, _), (end_v, _, _) in vs:
+        starts.append(start_v)
+        ends.append(end_v)
+    special_nodes.extend([(starts, '#00FF00', 75), (ends, '#00FF00', 25)])
+
+    helper.draw_graph(special_nodes=special_nodes, print_node_labels=True)
+
+    # Show the shortest paths of the drivers.
+    pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in vs]
+    graph.compute_dist_paths(pairs=pairs)
+
+    paths = list()
+    for ord_, vehicle in enumerate(vs):
+        (start_v, _, _), (end_v, _, _) = vehicle
+        path = graph.paths[tuple(sorted([start_v, end_v]))]
+        paths.append(path)
+    special_subgraphs = helper.special_subgraphs_from_paths(paths)
+    helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
+
+    # Show the expansion.
+    special_nodes_and_expansion = list(special_nodes)
+    shuffle(ec)
+    for ord_, vehicle in enumerate(vs):
+        (start_v, _, _), (end_v, _, _) = vehicle
+        dist = graph.dist[tuple(sorted([start_v, end_v]))]
+        path = graph.paths[tuple(sorted([start_v, end_v]))]
+        vertices_region = set()
+        for n in path:
+            dists = graph.explore_upto(n, dist * fraction_sd)
+            vertices_region.update(dists.keys())
+        color = ec[ord_ % len(ec)]
+        special_nodes_and_expansion.insert(0, (vertices_region, color, 15))
+    helper.draw_graph(special_nodes=special_nodes_and_expansion)
+
+    # Show a solution with the SP-based approach.
+    csdp_ap = CsdpAp(graph)
+    routes, cost = csdp_ap.solve(rs, vs, method="SP-based", fraction_sd=fraction_sd)
+    # routes, cost = csdp_ap.solve(rs, vs, method="SP-based", partition_method='SP-Voronoi')
+
+    special_subgraphs = helper.special_subgraphs_from_paths(routes)
+    helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)
 
     # ------------------------------------------------------------------------------------------------------------------
     # REQUESTS ARE RANDOM

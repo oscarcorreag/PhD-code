@@ -599,8 +599,8 @@ class CsdpAp:
                 priority_queue = PriorityDictionary()
                 # There are MORE THAN ONE initial path as there are more than one alternative pick-up locations.
                 # The lower bounds must be computed taking into account only one from each group of shops each time.
-                PartialPath.init(self._graph, shops_dict, customers_dict, start_v, end_v)
-                initial_paths = PartialPath.init_paths()
+                initial_paths = PartialPath.init(self._graph, shops_dict, customers_dict, start_v, end_v)
+                # initial_paths = PartialPath.init_paths()
                 for initial_path in initial_paths:
                     priority_queue[initial_path] = initial_path.lb
                 partial_path = None
@@ -714,18 +714,18 @@ class PartialPath:
     # TODO: Generalize to any kind, i.e, DIRECTED/UNDIRECTED.
     # _graph = Digraph(undirected=False)
     _graph = Digraph()
-    _shops_dict = dict()        # Each shop is associated with the ID of the group to which it belongs.
-    _customers_dict = dict()    # Each customer is associated with the ID of the group of shops that may serve him.
+    _shops_dict = dict()                # Shop with corresponding group ID.
+    _shops_by_group_id = dict()         # Group ID with corresponding shops.
+    _customers_by_group_id = dict()     # Group ID with corresponding customers.
     _shops_set = set()
     _customers_set = set()
     _groups_set = set()
-    _shops_by_group_id = dict()  # Group ID with corresponding shops.
-    _customers_by_group_id = dict()  # Group ID with corresponding customers.
     _origin = None
     _destination = None
+    _threshold = None
 
     @staticmethod
-    def init(graph, shops_dict, customers_dict, origin, destination):
+    def init(graph, shops_dict, customers_dict, origin, destination, threshold=None):
         """
         Parameters
         ----------
@@ -739,16 +739,17 @@ class PartialPath:
             Where the Hamiltonian path starts from.
         :param destination:
             Where the Hamiltonian path finishes.
+        :param threshold:
+            Upper bound for the Hamiltonian path's distance.
         :return:
         """
         PartialPath._graph = graph
         PartialPath._shops_dict = shops_dict
-        PartialPath._customers_dict = customers_dict
         PartialPath._origin = origin
         PartialPath._destination = destination
+        PartialPath._threshold = threshold
 
-        PartialPath._shops_by_group_id = dict()         # Group ID with corresponding shops.
-        PartialPath._customers_by_group_id = dict()     # Group ID with corresponding customers.
+        # Populate auxiliary shops and customers dictionaries indexed by group ID.
         for shop, group_id in shops_dict.iteritems():
             try:
                 PartialPath._shops_by_group_id[group_id].add(shop)
@@ -760,55 +761,17 @@ class PartialPath:
             except KeyError:
                 PartialPath._customers_by_group_id[group_id] = {customer}
 
-        PartialPath._shops_set = set()
-        PartialPath._customers_set = set()
-        for _, shops in PartialPath._shops_by_group_id.iteritems():
-            PartialPath._shops_set.update(shops)
-        for _, customers in PartialPath._customers_by_group_id.iteritems():
-            PartialPath._customers_set.update(customers)
-
+        # Populate shops, customers and groups sets for faster search.
+        PartialPath._shops_set = set(shops_dict.keys())
+        PartialPath._customers_set = set(customers_dict.keys())
         PartialPath._groups_set = set(PartialPath._shops_by_group_id.keys())
 
-    def __init__(self, path=None, dist=0, shops_lb=None):
-        """
-        Parameters
-        ----------
-        :param path: list
-            It is specially useful when a partial path spawns offspring.
-        :param dist: float
-            Traveled distance.
-        :param lb: float
-            Lower bound.
-        :param shops_lb: iterable
-            Shops that were considered when the lower bound was computed. Each shop in this set serves a different group
-            of customers. Remember that only one shop per group of customers can be part of the solution.
-        """
-        if shops_lb is not None:
-            self._shops_lb = set(shops_lb)
-        else:
-            self._shops_lb = set()
-        if path is not None:
-            self.path = list(path)
-            self._dist = dist
-            self.lb = 0
-        else:  # When a path is not given, it is initialized with the origin.
-            self.path = list()
-            self._append_vertex(PartialPath._origin)  # Compute lower bound, so no need of self._lb assignment.
-            # self._dist = 0
-
-    @staticmethod
-    def init_paths():
-        """
-        Create the initial paths. There is more than one tree in the branch and bound optimization process since the
-        pickup points are mutually exclusive within each group. Therefore, there are as many trees as shops times the
-        number of combinations of shops from different groups.
-
-        :return: list
-            Initial paths.
-        """
+        # Create the initial paths. There is more than one tree in the branch and bound optimization process since the
+        # pickup points are mutually exclusive within each group. Therefore, there are as many trees as the sum over all
+        # shops where, for each shop, the number of trees is the number of combinations of shops from different groups.
         initial_paths = []
         # The initial paths all start from the origin and go to a shop.
-        for shop, group_id in PartialPath._shops_dict.iteritems():
+        for shop, group_id in shops_dict.iteritems():
             # For each shop, the shops from the other groups are retrieved as we need the combinations of them.
             other_group_ids = PartialPath._groups_set.difference([group_id])
             other_groups = [PartialPath._shops_by_group_id[gi] for gi in other_group_ids]
@@ -817,10 +780,30 @@ class PartialPath:
             # Create the initial paths as such. Each path starts with the origin. The next vertex in the path is the
             # current shop.
             for comb_shops in combs_shops:
-                path = PartialPath([PartialPath._origin], 0, shops_lb=comb_shops)
+                path = PartialPath([PartialPath._origin], 0, comb_shops, customers_dict.keys())
                 path._append_vertex(shop)
                 initial_paths.append(path)
         return initial_paths
+
+    def __init__(self, path, dist, shops, customers):
+        """
+        Parameters
+        ----------
+        :param path: list
+            It is specially useful when a partial path spawns offspring.
+        :param dist: float
+            Traveled distance.
+        :param shops: iterable
+            Shops that can be part of the path and are not in it yet.
+        :param customers: iterable
+            Customers that can be part of the path and are not in it yet.
+        """
+        self.path = list(path)
+        self.dist_lb = 0
+        self.cust_ub = 0
+        self._dist = dist
+        self._shops = set(shops)
+        self._customers = set(customers)
 
     def spawn(self):
         """
@@ -834,7 +817,7 @@ class PartialPath:
         offspring = []
         to_ = self._where_to(self.path[-1])
         for vertex in to_:
-            child = PartialPath(self.path, self._dist, shops_lb=self._shops_lb)
+            child = PartialPath(self.path, self._dist, self._shops, self._customers)
             child._append_vertex(vertex)
             offspring.append(child)
         return offspring
@@ -857,13 +840,28 @@ class PartialPath:
             PartialPath._graph.compute_dist_paths([path_end], [vertex], compute_paths=False)
             self.path.append(vertex)
             self._dist = self._dist + PartialPath._graph.dist[(path_end, vertex)]
-        # In case the new vertex is a shop, remove it from the shops to be used when computing the lower bound.
-        # IMPORTANT: This list has to be up-to-date and not to include any shop already visited.
-        self._shops_lb.discard(vertex)
-        # Update the lower bound.
-        self._compute_lb()
+        # Update non-visited shops and customers.
+        if PartialPath._threshold:
+            ellipse = \
+                self._graph.nodes_within_ellipse(vertex, PartialPath._destination, PartialPath._threshold - self._dist)
+            shops = set()
+            customers = set()
+            for v in ellipse.keys():
+                if v in self._shops:
+                    shops.add(v)
+                elif v in self._customers:
+                    customers.add(v)
+            self._shops = shops
+            self._customers = customers
+            # Update the upper bound for visited customers.
+            self._compute_cust_ub()
+        else:
+            self._shops.discard(vertex)
+            self._customers.discard(vertex)
+            # Update the distance lower bound.
+            self._compute_dist_lb()
 
-    def _compute_lb(self):
+    def _compute_dist_lb(self):
         """
         Compute the lower bound. This may be thought as a matrix where the row entries are the starting points and the
         column entries are the destinations.
@@ -899,7 +897,19 @@ class PartialPath:
             if dist_col_wise[to_].values():
                 mins_col_wise.append(min(dist_col_wise[to_].values()))
         # The lower bound is the sum of the row- and column-wise minimum values and path distance so far.
-        self.lb = sum(mins_row_wise.values()) + sum(mins_col_wise) + self._dist
+        self.dist_lb = sum(mins_row_wise.values()) + sum(mins_col_wise) + self._dist
+
+    def _compute_cust_ub(self):
+        #
+        # visited_customers = PartialPath._customers_set.intersection(self.path)
+        # ub = len(visited_customers)
+        #
+        visited_shops = PartialPath._shops_set.intersection(self.path)
+        visited_groups = {PartialPath._shops_dict[visited_shop] for visited_shop in visited_shops}
+        for visited_group in visited_groups:
+            if visited_group not in PartialPath._customers_by_group_id:
+                continue
+            self.cust_ub += len(PartialPath._customers_by_group_id[visited_group].intersection(self._customers))
 
     def _where_to(self, from_):
         """
@@ -918,12 +928,12 @@ class PartialPath:
         for non_visited_group in non_visited_groups:
             if non_visited_group not in PartialPath._shops_by_group_id:
                 continue
-            to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(self._shops_lb))
+            to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(self._shops))
         # Non-visited customers in visited groups.
         for visited_group in visited_groups:
             if visited_group not in PartialPath._customers_by_group_id:
                 continue
-            to_.update(PartialPath._customers_by_group_id[visited_group].difference(self.path))
+            to_.update(PartialPath._customers_by_group_id[visited_group].intersection(self._customers))
         # Is it from a customer?
         if from_ in PartialPath._customers_set:
             # Then, it is possible to go to the destination.
@@ -941,11 +951,10 @@ class PartialPath:
         :return: set
             Vertices to visit.
         """
+        # Non-visited shops.
+        to_ = set(self._shops)
         # Non-visited customers.
-        to_ = PartialPath._customers_set.difference(self.path)
-        # Set of shops sent in instantiation time.
-        # IMPORTANT: This list has to be up-to-date and not to include any shop already visited.
-        to_.update(self._shops_lb)
+        to_.update(self._customers)
         # Prevent visiting itself.
         to_.discard(from_)
         # Destination is possible when it is a customer.
@@ -962,11 +971,10 @@ class PartialPath:
         """
         # The last vertex in the path.
         from_ = {self.path[-1]}
+        # Non-visited shops.
+        from_.update(self._shops)
         # Non-visited customers.
-        from_.update(PartialPath._customers_set.difference(self.path))
-        # Set of shops sent in instantiation time.
-        # IMPORTANT: This list has to be up-to-date and not to include any shop already visited.
-        from_.update(self._shops_lb)
+        from_.update(self._customers)
         return from_
 
     def transform_to_actual_path(self):
@@ -982,61 +990,3 @@ class PartialPath:
             w = self.path[i + 1]
             actual_path.extend(PartialPath._graph.paths[(v, w)][1:])
         return actual_path
-
-
-class PartialPathThreshold:
-
-    _graph = Digraph()
-    _shops_dict = dict()
-    _customers_dict = dict()
-    _origin = None
-    _destination = None
-    _threshold = 0
-
-    @staticmethod
-    def init(graph, shops_dict, customers_dict, origin, destination, threshold):
-        """
-
-        :param graph:
-        :param shops_dict:
-        :param customers_dict:
-        :param origin:
-        :param destination:
-        :param threshold:
-        :return:
-        """
-        PartialPathThreshold._graph = graph
-        PartialPathThreshold._shops_dict = shops_dict
-        PartialPathThreshold._customers_dict = customers_dict
-        PartialPathThreshold._origin = origin
-        PartialPathThreshold._destination = destination
-        PartialPathThreshold._threshold = threshold
-
-    def __init__(self, path=None, dist=0):
-        if path is not None:
-            self.path = list(path)
-            self._dist = dist
-            self.lb_d = 0
-            self.lb_c = 0
-            self.ub_c = 0
-        else:  # When a path is not given, it is initialized with the origin.
-            self.path = list()
-            self._append_vertex(PartialPathThreshold._origin)  # Compute lower bound, so no need of self._lb assignment.
-            # self._dist = 0
-
-    def _append_vertex(self, vertex):
-        if not self.path:
-            self.path = [vertex]
-            self._dist = 0  # No distance when there is one vertex in the path.
-        else:
-            path_end = self.path[-1]
-            PartialPathThreshold._graph.compute_dist_paths([path_end], [vertex], compute_paths=False)
-            self.path.append(vertex)
-            self._dist = self._dist + PartialPathThreshold._graph.dist[(path_end, vertex)]
-        self._threshold -= self._dist
-        vertices = \
-            PartialPathThreshold._graph.nodes_within_ellipse(vertex, PartialPathThreshold._destination, self._threshold)
-        # self._compute_bounds()
-
-    # def _compute_bounds(self):
-
