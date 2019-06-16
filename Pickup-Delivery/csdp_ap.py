@@ -67,7 +67,8 @@ def sample_vehicles(nv, vertices, seed=None):
 
 class CsdpAp:
     def __init__(self, graph):
-        self._graph = Digraph(undirected=False)
+        # self._graph = Digraph(undirected=False)
+        self._graph = Digraph()
         self._graph.append_from_graph(graph)
         self._working_graph = Digraph(undirected=False)
 
@@ -398,19 +399,20 @@ class CsdpAp:
             objective.SetCoefficient(x, coeff + self._working_graph[i][j])
         objective.SetMinimization()
 
-    def solve(self, requests, vehicles, method="MILP", verbose=False, partition_method='SP-fraction', fraction_sd=.5,
-              threshold_sd=1.5):
+    def solve(self, requests, vehicles, method='MILP', verbose=False, partition_method='SP-fraction', fraction_sd=.5,
+              threshold_sd=1.5, solve_partition_method='BB'):
 
         self._requests = requests
         self._vehicles = vehicles
 
-        if method == "MILP":
+        if method == 'MILP':
             self._build_working_graph()
             return self._solve_milp(verbose)
 
-        if method == "SP-based":
+        if method == 'SP-based':
             self._pre_process_requests()
-            return self._sp_based(partition_method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd)
+            return self._sp_based(partition_method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd,
+                                  solve_partition_method=solve_partition_method)
 
     def _define_milp(self):
         self._define_vars()
@@ -467,14 +469,17 @@ class CsdpAp:
             self._shops.update(shops)
             self._customers.update(customers)
 
-    def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
+    def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB'):
         routes = list()
         cost = 0
         partitions = \
             self._compute_partitions(method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd)
         # Solve each partition
         for partition in partitions.iteritems():
-            path, c = self._solve_partition(partition)
+            path, c = self._solve_partition(partition,
+                                            method=solve_partition_method,
+                                            partition_method=partition_method,
+                                            threshold_sd=threshold_sd)
             routes.append(path)
             cost += c
         return routes, cost
@@ -495,13 +500,14 @@ class CsdpAp:
             vehicles_pd = PriorityDictionary()
             for vehicle in self._vehicles:
                 (start_v, _, _), (end_v, _, _) = vehicle
-                vehicles_pd[vehicle] = self._graph.dist[(start_v, end_v)]
+                vehicles_pd[vehicle] = self._graph.dist[tuple(sorted([start_v, end_v]))]
             # For each driver, a set of regions is computed. Each region corresponds to a road intersection of the
             # shortest path of the driver and contains sets of shops and customers.
             for vehicle in vehicles_pd:
                 (start_v, _, _), (end_v, _, _) = vehicle
-                path = self._graph.paths[(start_v, end_v)]
-                dist = self._graph.dist[(start_v, end_v)]
+                path = self._graph.paths[tuple(sorted([start_v, end_v]))]
+                # dist = self._graph.dist[(start_v, end_v)]
+                dist = vehicles_pd[vehicle]
                 regions = self._compute_regions(path, dist, fraction_sd=fraction_sd, excluded_customers=taken)
                 # Shops and customers of different regions of the same driver are gathered. We are interested in
                 # returning shops and customers by driver (partition) so we drop the extra level of disaggregation,
@@ -522,7 +528,7 @@ class CsdpAp:
             paths = list()
             for vehicle in self._vehicles:
                 (start_v, _, _), (end_v, _, _) = vehicle
-                paths.append(self._graph.paths[(start_v, end_v)])
+                paths.append(self._graph.paths[tuple(sorted([start_v, end_v]))])
             # Voronoi cells contain all kinds of vertices, i.e., not only shops and customers. Thus, cells must be
             # sieved.
             cells, _ = self._graph.get_voronoi_paths_cells(paths)
@@ -548,7 +554,7 @@ class CsdpAp:
         elif method == 'SP-threshold':
             for vehicle in self._vehicles:
                 (start_v, _, _), (end_v, _, _) = vehicle
-                dist = self._graph.dist[(start_v, end_v)]
+                dist = self._graph.dist[tuple(sorted([start_v, end_v]))]
                 ellipse = self._graph.nodes_within_ellipse(start_v, end_v, dist * threshold_sd)
                 partitions[(start_v, end_v)] = dict()
                 for vertex in ellipse.keys():
@@ -566,22 +572,25 @@ class CsdpAp:
             raise NotImplementedError
         return partitions
 
-    def _solve_partition(self, partition, method='BB'):
+    def _solve_partition(self, partition, method='BB', partition_method='SP-fraction', threshold_sd=1.5):
         route = list()
         cost = 0
         # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
         # one driver only.
         if method == 'BB':
             vehicle, shops_customers = partition
+            # Compute the shortest path for this driver as it is used later.
             start_v, end_v = vehicle
-            shops_dict = dict()
+            self._graph.compute_dist_paths([start_v], [end_v])
+            start_end = tuple(sorted([start_v, end_v]))
             # Filter out the shops that are not in the partition.
+            shops_dict = dict()
             if 'shops' in shops_customers:
                 shops_dict = \
                     {k: self._shops_dict[k]
                      for k in set(self._shops_dict.keys()).intersection(shops_customers['shops'])}
-            customers_dict = dict()
             # Filter out the customers who are not in the partition and do not have a shop that can serve them.
+            customers_dict = dict()
             if 'customers' in shops_customers:
                 local_customers = set(self._customers_dict.keys()).intersection(shops_customers['customers'])
                 for c in local_customers:
@@ -591,18 +600,29 @@ class CsdpAp:
                             break
             # If there are no shops nor customers, the driver follows her original route.
             if not shops_dict or not customers_dict:
-                self._graph.compute_dist_paths([start_v], [end_v])
-                route = self._graph.paths[(start_v, end_v)]
-                cost = self._graph.dist[(start_v, end_v)]
+                route = self._graph.paths[start_end]
+                cost = self._graph.dist[start_end]
             else:
                 # Otherwise, partial paths' lower bounds are stored into a priority queue.
                 priority_queue = PriorityDictionary()
                 # There are MORE THAN ONE initial path as there are more than one alternative pick-up locations.
-                # The lower bounds must be computed taking into account only one from each group of shops each time.
-                initial_paths = PartialPath.init(self._graph, shops_dict, customers_dict, start_v, end_v)
-                # initial_paths = PartialPath.init_paths()
+                if partition_method == 'SP-threshold':
+                    dist = self._graph.dist[start_end]
+                    initial_paths = PartialPath.init(self._graph,
+                                                     shops_dict,
+                                                     customers_dict,
+                                                     start_v,
+                                                     end_v,
+                                                     dist * threshold_sd)
+                else:
+                    # The lower bounds must be computed taking into account only one from each group of shops each time.
+                    initial_paths = PartialPath.init(self._graph,
+                                                     shops_dict,
+                                                     customers_dict,
+                                                     start_v,
+                                                     end_v)
                 for initial_path in initial_paths:
-                    priority_queue[initial_path] = initial_path.lb
+                    priority_queue[initial_path] = initial_path.dist_lb
                 partial_path = None
                 for p in priority_queue:
                     # Check whether ALL customers have been served. This is the termination condition.
@@ -614,10 +634,10 @@ class CsdpAp:
                     offspring = p.spawn()
                     # Priority queue is fed up with the offspring.
                     for child in offspring:
-                        priority_queue[child] = child.lb
+                        priority_queue[child] = child.dist_lb
                 if partial_path is not None:
                     route = partial_path.transform_to_actual_path()
-                    cost = partial_path.lb
+                    cost = partial_path.dist_lb
         else:
             raise NotImplementedError
         return route, cost
@@ -675,7 +695,7 @@ class CsdpAp:
         for (i, j, _), variable in self.x.iteritems():
             if variable.solution_value():
                 self._graph.compute_dist_paths([i], [j], recompute=True)
-                routes.append(self._graph.paths[(i, j)])
+                routes.append(self._graph.paths[tuple(sorted([i, j]))])
         return routes
 
     def print_milp_constraints(self):
@@ -750,6 +770,8 @@ class PartialPath:
         PartialPath._threshold = threshold
 
         # Populate auxiliary shops and customers dictionaries indexed by group ID.
+        PartialPath._shops_by_group_id = dict()
+        PartialPath._customers_by_group_id = dict()
         for shop, group_id in shops_dict.iteritems():
             try:
                 PartialPath._shops_by_group_id[group_id].add(shop)
@@ -764,7 +786,8 @@ class PartialPath:
         # Populate shops, customers and groups sets for faster search.
         PartialPath._shops_set = set(shops_dict.keys())
         PartialPath._customers_set = set(customers_dict.keys())
-        PartialPath._groups_set = set(PartialPath._shops_by_group_id.keys())
+        PartialPath._groups_set = \
+            set(PartialPath._shops_by_group_id.keys()).intersection(PartialPath._customers_by_group_id.keys())
 
         # Create the initial paths. There is more than one tree in the branch and bound optimization process since the
         # pickup points are mutually exclusive within each group. Therefore, there are as many trees as the sum over all
@@ -801,6 +824,7 @@ class PartialPath:
         self.path = list(path)
         self.dist_lb = 0
         self.cust_ub = 0
+        self.cust_lb = 0
         self._dist = dist
         self._shops = set(shops)
         self._customers = set(customers)
@@ -839,7 +863,7 @@ class PartialPath:
             path_end = self.path[-1]
             PartialPath._graph.compute_dist_paths([path_end], [vertex], compute_paths=False)
             self.path.append(vertex)
-            self._dist = self._dist + PartialPath._graph.dist[(path_end, vertex)]
+            self._dist = self._dist + PartialPath._graph.dist[tuple(sorted([path_end, vertex]))]
         # Update non-visited shops and customers.
         if PartialPath._threshold:
             ellipse = \
@@ -879,7 +903,7 @@ class PartialPath:
             # Here we also fill the distances-by-destination-and-starting-point data structure.
             dist_row_wise = list()
             for to_ in candidates_to:
-                dist = PartialPath._graph.dist[(vertex, to_)]
+                dist = PartialPath._graph.dist[tuple(sorted([vertex, to_]))]
                 dist_row_wise.append(dist)
                 try:
                     dist_col_wise[to_][vertex] = dist
@@ -901,15 +925,18 @@ class PartialPath:
 
     def _compute_cust_ub(self):
         #
-        # visited_customers = PartialPath._customers_set.intersection(self.path)
-        # ub = len(visited_customers)
+        visited_customers = PartialPath._customers_set.intersection(self.path)
+        ub = len(visited_customers)
         #
         visited_shops = PartialPath._shops_set.intersection(self.path)
         visited_groups = {PartialPath._shops_dict[visited_shop] for visited_shop in visited_shops}
         for visited_group in visited_groups:
             if visited_group not in PartialPath._customers_by_group_id:
                 continue
-            self.cust_ub += len(PartialPath._customers_by_group_id[visited_group].intersection(self._customers))
+            ub += len(PartialPath._customers_by_group_id[visited_group].intersection(self._customers))
+        if ub > len(visited_customers):
+            self.cust_lb += 1
+        self.cust_ub = ub
 
     def _where_to(self, from_):
         """
@@ -988,5 +1015,5 @@ class PartialPath:
         for i in range(len(self.path) - 1):
             v = self.path[i]
             w = self.path[i + 1]
-            actual_path.extend(PartialPath._graph.paths[(v, w)][1:])
+            actual_path.extend(PartialPath._graph.paths[tuple(sorted([v, w]))][1:])
         return actual_path

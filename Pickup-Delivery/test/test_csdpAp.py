@@ -54,6 +54,6 @@ class TestCsdpAp(TestCase):
         # SP-based -> Partition=SP-Voronoi
         # --------------------------------------------------------------------------------------------------------------
         _, cost = csdp_ap.solve(rs, vs, method="SP-based", partition_method='SP-Voronoi')
-        self.assertEquals(cost, 204)
+        self.assertEquals(cost, 162)
 
 
