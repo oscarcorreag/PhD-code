@@ -294,7 +294,7 @@ class CsdpAp:
                     pass
                 try:
                     coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, end_v, k)])
-                    constraints[ord_ * K + k].SetCoefficient(self.x[(i, end_v, k)], coeff -1.0)
+                    constraints[ord_ * K + k].SetCoefficient(self.x[(i, end_v, k)], coeff - 1.0)
                 except KeyError:
                     pass
 
@@ -489,18 +489,18 @@ class CsdpAp:
         # Drivers' shortest paths are computed.
         pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in self._vehicles]
         self._graph.compute_dist_paths(pairs=pairs)
+        #  Priority queue is built based on shortest distances.
+        vehicles_pd = PriorityDictionary()
+        for vehicle in self._vehicles:
+            (start_v, _, _), (end_v, _, _) = vehicle
+            vehicles_pd[vehicle] = self._graph.dist[tuple(sorted([start_v, end_v]))]
         # --------------------------------------------------------------------------------------------------------------
         # SP-fraction:  Shortest-path trees are grown from drivers' shortest-path's road intersections.
         #               Drivers' shortest paths are iterated in shortest-distance ascending order as a tie-breaker for
-        #               common customers.
+        #               common customers between drivers.
         # --------------------------------------------------------------------------------------------------------------
         if method == 'SP-fraction':
             taken = list()
-            #  Priority queue is built based on shortest distances.
-            vehicles_pd = PriorityDictionary()
-            for vehicle in self._vehicles:
-                (start_v, _, _), (end_v, _, _) = vehicle
-                vehicles_pd[vehicle] = self._graph.dist[tuple(sorted([start_v, end_v]))]
             # For each driver, a set of regions is computed. Each region corresponds to a road intersection of the
             # shortest path of the driver and contains sets of shops and customers.
             for vehicle in vehicles_pd:
@@ -546,18 +546,19 @@ class CsdpAp:
                         except KeyError:
                             partitions[(start_v, end_v)]['customers'] = {vertex}
         # --------------------------------------------------------------------------------------------------------------
-        # SP-threshold: Vertices within ellipses with constant = threshold are retrieved for each driver as an initial
-        #               partition. The partition must be solved accordingly, i.e., regarding the threshold, this is the
-        #               initial partition only.
-        #               TODO: What about overlapping? Are the customers partitioned from here or when solving?
+        # SP-threshold: Vertices within ellipses with constant = SD * threshold_sd are retrieved for each driver as an
+        #               initial partition. The partition must be solved accordingly, i.e., regarding the threshold, this
+        #               is the initial partition only.
         # --------------------------------------------------------------------------------------------------------------
         elif method == 'SP-threshold':
-            for vehicle in self._vehicles:
+            taken = list()
+            for vehicle in vehicles_pd:
                 (start_v, _, _), (end_v, _, _) = vehicle
                 dist = self._graph.dist[tuple(sorted([start_v, end_v]))]
                 ellipse = self._graph.nodes_within_ellipse(start_v, end_v, dist * threshold_sd)
                 partitions[(start_v, end_v)] = dict()
-                for vertex in ellipse.keys():
+                vertices_left = set(ellipse.keys()).difference(taken)
+                for vertex in vertices_left:
                     if vertex in self._shops:
                         try:
                             partitions[(start_v, end_v)]['shops'].add(vertex)
@@ -568,6 +569,9 @@ class CsdpAp:
                             partitions[(start_v, end_v)]['customers'].add(vertex)
                         except KeyError:
                             partitions[(start_v, end_v)]['customers'] = {vertex}
+                # These are the customers taken by this partition.
+                if 'customers' in partitions[(start_v, end_v)]:
+                    taken.extend(partitions[(start_v, end_v)]['customers'])
         else:
             raise NotImplementedError
         return partitions
@@ -614,6 +618,9 @@ class CsdpAp:
                                                      start_v,
                                                      end_v,
                                                      dist * threshold_sd)
+                    for initial_path in initial_paths:
+                        if initial_path.cust_lb > 0:
+                            priority_queue[initial_path] = initial_path.cust_ub * (-1)
                 else:
                     # The lower bounds must be computed taking into account only one from each group of shops each time.
                     initial_paths = PartialPath.init(self._graph,
@@ -621,23 +628,40 @@ class CsdpAp:
                                                      customers_dict,
                                                      start_v,
                                                      end_v)
-                for initial_path in initial_paths:
-                    priority_queue[initial_path] = initial_path.dist_lb
-                partial_path = None
-                for p in priority_queue:
-                    # Check whether ALL customers have been served. This is the termination condition.
-                    visited_customers = set(p.path).intersection(customers_dict.keys())
-                    if len(visited_customers) == len(customers_dict.keys()) and p.path[-1] == end_v:
-                        partial_path = p
-                        break
-                    # Expands the partial path = computes partial path's offspring.
-                    offspring = p.spawn()
-                    # Priority queue is fed up with the offspring.
-                    for child in offspring:
-                        priority_queue[child] = child.dist_lb
-                if partial_path is not None:
-                    route = partial_path.transform_to_actual_path()
-                    cost = partial_path.dist_lb
+                    for initial_path in initial_paths:
+                        priority_queue[initial_path] = initial_path.dist_lb
+                if len(priority_queue) == 0:
+                    route = self._graph.paths[start_end]
+                    cost = self._graph.dist[start_end]
+                else:
+                    partial_path = None
+                    actual_cust_ub = 0
+                    for p in priority_queue:
+                        # Check whether ALL customers have been served. This is the termination condition.
+                        if len(p.customers) == 0 and p.path[-1] == end_v:
+                            if partition_method == 'SP-threshold':
+                                if actual_cust_ub == 0:
+                                    partial_path = p
+                                    actual_cust_ub = partial_path.cust_ub
+                                else:
+                                    if p.cust_ub == actual_cust_ub and p.dist < partial_path.dist:
+                                        partial_path = p
+                            else:
+                                partial_path = p
+                                break
+                        # Expands the partial path = computes partial path's offspring.
+                        offspring = p.spawn()
+                        # Priority queue is fed up with the offspring.
+                        if partition_method == 'SP-threshold':
+                            for child in offspring:
+                                if child.cust_lb > 0 and child.cust_ub >= actual_cust_ub:
+                                    priority_queue[child] = child.cust_ub * (-1)
+                        else:
+                            for child in offspring:
+                                priority_queue[child] = child.dist_lb
+                    if partial_path is not None:
+                        route = partial_path.transform_to_actual_path()
+                        cost = partial_path.dist
         else:
             raise NotImplementedError
         return route, cost
@@ -734,9 +758,9 @@ class PartialPath:
     # TODO: Generalize to any kind, i.e, DIRECTED/UNDIRECTED.
     # _graph = Digraph(undirected=False)
     _graph = Digraph()
-    _shops_dict = dict()                # Shop with corresponding group ID.
-    _shops_by_group_id = dict()         # Group ID with corresponding shops.
-    _customers_by_group_id = dict()     # Group ID with corresponding customers.
+    _shops_dict = dict()  # Shop with corresponding group ID.
+    _shops_by_group_id = dict()  # Group ID with corresponding shops.
+    _customers_by_group_id = dict()  # Group ID with corresponding customers.
     _shops_set = set()
     _customers_set = set()
     _groups_set = set()
@@ -825,9 +849,9 @@ class PartialPath:
         self.dist_lb = 0
         self.cust_ub = 0
         self.cust_lb = 0
-        self._dist = dist
-        self._shops = set(shops)
-        self._customers = set(customers)
+        self.dist = dist
+        self.shops = set(shops)
+        self.customers = set(customers)
 
     def spawn(self):
         """
@@ -841,7 +865,7 @@ class PartialPath:
         offspring = []
         to_ = self._where_to(self.path[-1])
         for vertex in to_:
-            child = PartialPath(self.path, self._dist, self._shops, self._customers)
+            child = PartialPath(self.path, self.dist, self.shops, self.customers)
             child._append_vertex(vertex)
             offspring.append(child)
         return offspring
@@ -858,30 +882,34 @@ class PartialPath:
         """
         if not self.path:
             self.path = [vertex]
-            self._dist = 0  # No distance when there is one vertex in the path.
+            self.dist = 0  # No distance when there is one vertex in the path.
         else:
             path_end = self.path[-1]
             PartialPath._graph.compute_dist_paths([path_end], [vertex], compute_paths=False)
             self.path.append(vertex)
-            self._dist = self._dist + PartialPath._graph.dist[tuple(sorted([path_end, vertex]))]
+            self.dist = self.dist + PartialPath._graph.dist[tuple(sorted([path_end, vertex]))]
         # Update non-visited shops and customers.
         if PartialPath._threshold:
             ellipse = \
-                self._graph.nodes_within_ellipse(vertex, PartialPath._destination, PartialPath._threshold - self._dist)
-            shops = set()
-            customers = set()
-            for v in ellipse.keys():
-                if v in self._shops:
-                    shops.add(v)
-                elif v in self._customers:
-                    customers.add(v)
-            self._shops = shops
-            self._customers = customers
+                self._graph.nodes_within_ellipse(vertex, PartialPath._destination, PartialPath._threshold - self.dist)
+            non_visited = set(ellipse.keys()).difference(self.path)
+            self.shops = self.shops.intersection(non_visited)
+            customers = self.customers.intersection(non_visited)
+            #
+            self.customers = set()
+            visited_shops = PartialPath._shops_set.intersection(self.path)
+            all_shops = set(visited_shops)
+            all_shops.update(self.shops)
+            groups = {PartialPath._shops_dict[shop] for shop in all_shops}
+            for group in groups:
+                if group not in PartialPath._customers_by_group_id:
+                    continue
+                self.customers.update(PartialPath._customers_by_group_id[group].intersection(customers))
             # Update the upper bound for visited customers.
-            self._compute_cust_ub()
+            self._compute_cust_bs()
         else:
-            self._shops.discard(vertex)
-            self._customers.discard(vertex)
+            self.shops.discard(vertex)
+            self.customers.discard(vertex)
             # Update the distance lower bound.
             self._compute_dist_lb()
 
@@ -921,22 +949,12 @@ class PartialPath:
             if dist_col_wise[to_].values():
                 mins_col_wise.append(min(dist_col_wise[to_].values()))
         # The lower bound is the sum of the row- and column-wise minimum values and path distance so far.
-        self.dist_lb = sum(mins_row_wise.values()) + sum(mins_col_wise) + self._dist
+        self.dist_lb = sum(mins_row_wise.values()) + sum(mins_col_wise) + self.dist
 
-    def _compute_cust_ub(self):
-        #
+    def _compute_cust_bs(self):
         visited_customers = PartialPath._customers_set.intersection(self.path)
-        ub = len(visited_customers)
-        #
-        visited_shops = PartialPath._shops_set.intersection(self.path)
-        visited_groups = {PartialPath._shops_dict[visited_shop] for visited_shop in visited_shops}
-        for visited_group in visited_groups:
-            if visited_group not in PartialPath._customers_by_group_id:
-                continue
-            ub += len(PartialPath._customers_by_group_id[visited_group].intersection(self._customers))
-        if ub > len(visited_customers):
-            self.cust_lb += 1
-        self.cust_ub = ub
+        self.cust_lb = len(visited_customers) + (1 if len(self.customers) > 0 else 0)
+        self.cust_ub = len(visited_customers) + len(self.customers)
 
     def _where_to(self, from_):
         """
@@ -955,12 +973,12 @@ class PartialPath:
         for non_visited_group in non_visited_groups:
             if non_visited_group not in PartialPath._shops_by_group_id:
                 continue
-            to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(self._shops))
+            to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(self.shops))
         # Non-visited customers in visited groups.
         for visited_group in visited_groups:
             if visited_group not in PartialPath._customers_by_group_id:
                 continue
-            to_.update(PartialPath._customers_by_group_id[visited_group].intersection(self._customers))
+            to_.update(PartialPath._customers_by_group_id[visited_group].intersection(self.customers))
         # Is it from a customer?
         if from_ in PartialPath._customers_set:
             # Then, it is possible to go to the destination.
@@ -979,9 +997,9 @@ class PartialPath:
             Vertices to visit.
         """
         # Non-visited shops.
-        to_ = set(self._shops)
+        to_ = set(self.shops)
         # Non-visited customers.
-        to_.update(self._customers)
+        to_.update(self.customers)
         # Prevent visiting itself.
         to_.discard(from_)
         # Destination is possible when it is a customer.
@@ -999,9 +1017,9 @@ class PartialPath:
         # The last vertex in the path.
         from_ = {self.path[-1]}
         # Non-visited shops.
-        from_.update(self._shops)
+        from_.update(self.shops)
         # Non-visited customers.
-        from_.update(self._customers)
+        from_.update(self.customers)
         return from_
 
     def transform_to_actual_path(self):
