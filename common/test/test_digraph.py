@@ -4,14 +4,17 @@ from networkx_graph_helper import NetworkXGraphHelper
 
 
 class TestDigraph(TestCase):
-    def test_get_voronoi_paths_cells(self):
+
+    def setUp(self):
         generator = GridDigraphGenerator()
-        graph = generator.generate(5, 5, edge_weighted=False)
+        self.graph = generator.generate(5, 5, edge_weighted=False)
+
+    def test_get_voronoi_paths_cells(self):
         # --------------------------------------------------------------------------------------------------------------
         # Paths DO NOT OVERLAP.
         # --------------------------------------------------------------------------------------------------------------
         paths = [[1, 2, 3, 4], [16, 17, 18, 19]]
-        cells, paths_by_node = graph.get_voronoi_paths_cells(paths)
+        cells, paths_by_node = self.graph.get_voronoi_paths_cells(paths)
         self.assertDictEqual(cells,
                              {
                                  (16, 19): [16, 17, 18, 19, 11, 12, 13, 14, 15, 21, 22, 23, 24, 10, 20],
@@ -50,7 +53,7 @@ class TestDigraph(TestCase):
         # Paths DO OVERLAP.
         # --------------------------------------------------------------------------------------------------------------
         paths = [[2, 7, 12, 17, 22], [10, 11, 12, 13, 14]]
-        cells, paths_by_node = graph.get_voronoi_paths_cells(paths)
+        cells, paths_by_node = self.graph.get_voronoi_paths_cells(paths)
         self.assertDictEqual(cells,
                              {
                                  (2, 22): [2, 7, 17, 22, 1, 3, 6, 8, 21, 23, 0, 4],
@@ -86,9 +89,7 @@ class TestDigraph(TestCase):
                              })
 
     def test_nodes_within_ellipse(self):
-        generator = GridDigraphGenerator()
-        graph = generator.generate(5, 5, edge_weighted=False)
-        ellipse, _ = graph.nodes_within_ellipse(11, 13, 4)
+        ellipse = self.graph.nodes_within_ellipse(11, 13, 4)
         self.assertDictEqual(ellipse,
                              {
                                  6: {11: 1, 13: 3},
@@ -104,18 +105,7 @@ class TestDigraph(TestCase):
                                  18: {11: 3, 13: 1}
                              })
 
-    # def test_nodes_within_ellipse_opt(self):
-    #     generator = GridDigraphGenerator()
-    #     graph = generator.generate(50, 50)
-    #     graph.compute_dist_paths(pairs=[(1260, 2060), (1260, 1359), (1359, 2060)], compute_paths=True)
-    #     print graph.dist[(1260, 1359)], graph.dist[(1359, 2060)]
-    #     print graph.paths[(1359, 2060)]
-    #     helper = NetworkXGraphHelper(graph)
-    #     sd = graph.dist[(1260, 2060)]
-    #     constant = sd * 1.1
-    #     ellipse_1, iterations_1 = graph.nodes_within_ellipse(1260, 2060, constant)
-    #     helper.draw_graph(special_nodes=[(ellipse_1.keys(), None, 30)])
-    #     ellipse_2, iterations_2 = graph.nodes_within_ellipse_opt(1260, 2060, constant)
-    #     helper.draw_graph(special_nodes=[(ellipse_2.keys(), None, 30)])
-    #     self.assertListEqual(sorted(ellipse_1.keys()), sorted(ellipse_2.keys()))
-    #     self.assertGreater(iterations_1, iterations_2)
+    def test_get_k_closest_destinations(self):
+        dist, paths = self.graph.get_k_closest_destinations(12, 3, [0, 1, 2, 3, 4])
+        self.assertDictEqual(dist, {1: 3, 2: 2, 3: 3})
+        self.assertDictEqual(paths, {1: [12, 7, 2, 1], 2: [12, 7, 2], 3: [12, 7, 2, 3]})

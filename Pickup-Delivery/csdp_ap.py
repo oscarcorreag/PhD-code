@@ -482,6 +482,24 @@ class CsdpAp:
                                             threshold_sd=threshold_sd)
             routes.append(path)
             cost += c
+
+        # Who were the non-visited customers?
+        visited = {v for route in routes for v in route}
+        non_visited = self._customers.difference(visited)
+        # Find nearest shop for each customer.
+        for non_visited_customer in non_visited:
+            customer_group = self._customers_dict[non_visited_customer]
+            shops_customer = self._shops_by_group_id[customer_group]
+            dist, paths = self._graph.get_k_closest_destinations(non_visited_customer, 1, shops_customer)
+            if len(dist) != 1:
+                raise (RuntimeError, "SP-based: There must be at least one nearest shop able to serve each customer.")
+            for nearest, d in dist.iteritems():
+                # IMPORTANT: We are assuming shortest path is the SAME in both directions.
+                cost += (2 * d)
+                from_customer_path = paths[nearest]
+                path = from_customer_path[::-1][:-1]
+                path.extend(from_customer_path)
+                routes.append(path)
         return routes, cost
 
     def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
@@ -506,7 +524,6 @@ class CsdpAp:
             for vehicle in vehicles_pd:
                 (start_v, _, _), (end_v, _, _) = vehicle
                 path = self._graph.paths[tuple(sorted([start_v, end_v]))]
-                # dist = self._graph.dist[(start_v, end_v)]
                 dist = vehicles_pd[vehicle]
                 regions = self._compute_regions(path, dist, fraction_sd=fraction_sd, excluded_customers=taken)
                 # Shops and customers of different regions of the same driver are gathered. We are interested in

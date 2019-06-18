@@ -553,21 +553,53 @@ class Digraph(dict):
         return min(sums.iteritems(), key=operator.itemgetter(1))[0]
 
     def get_k_closest_destinations(self, n, k, destinations=None):
+
+        distances = dict()
+        predecessors = {}
+        paths = {}
+        priority_dict = PriorityDictionary()
+        priority_dict[n] = 0
+
         if destinations is None:
             destinations_ = self.keys()
         else:
             destinations_ = list(destinations)
-        distances = dict()
-        for d in destinations_:
-            if self.undirected:
-                n_d = tuple(sorted([n, d]))
+        reached_nodes = []
+
+        for v in priority_dict:
+            distances[v] = priority_dict[v]
+            if v in destinations_:
+                reached_nodes.append(v)
+                path = []
+                w = v
+                while 1:
+                    path.append(w)
+                    if w == n:
+                        break
+                    w = predecessors[w]
+                path.reverse()
+                paths[v] = path
+                if len(reached_nodes) == k:
+                    distances = {u: dist for u, dist in distances.iteritems() if u in destinations_}
+                    break
+            # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
+            if not self.node_weighted:
+                adj_nodes = self[v]
             else:
-                n_d = (n, d)
-            distances[d] = self.dist[n_d]
-        sorted_dist = sorted(distances.iteritems(), key=operator.itemgetter(1))
-        if k > len(sorted_dist):
-            return sorted_dist
-        return sorted_dist[:k]
+                adj_nodes = self[v][1]
+            # Traverse the adjacency list.
+            for w, dist in adj_nodes.iteritems():
+                vw_length = distances[v] + dist
+                # In case v-w shortest distance has already been computed.
+                if w in distances:
+                    if vw_length < distances[w]:
+                        raise (ValueError, "Get k closest destinations: found better path to already-final vertex")
+                # In case w has not been visited before or the current computed distance is better than the one computed
+                # before.
+                elif w not in priority_dict or vw_length < priority_dict[w]:
+                    priority_dict[w] = vw_length
+                    predecessors[w] = v
+        return distances, paths
 
     def __track_edges(self, path):
         origin = path[0]
@@ -590,18 +622,18 @@ class Digraph(dict):
         distances = {}  # dictionary of final distances
         predecessors = {}  # dictionary of predecessors
         paths = {}  # dictionary of paths
-        priority_queue = PriorityDictionary()  # est.dist. of non-final vert.
-        priority_queue[origin] = 0
+        priority_dict = PriorityDictionary()  # est.dist. of non-final vert.
+        priority_dict[origin] = 0
 
         if destinations is None:
             destinations = []
         reached_nodes = []
 
-        for v in priority_queue:
+        for v in priority_dict:
 
             # When a node is retrieved from the priority queue, means that there is no shortest way to get to it.
             # Therefore, this distance is the final.
-            distances[v] = priority_queue[v]
+            distances[v] = priority_dict[v]
 
             if compute_paths or track_edges:
                 if v in destinations:
@@ -671,8 +703,8 @@ class Digraph(dict):
                         raise (ValueError, "Dijkstra: found better path to already-final vertex")
                 # In case w has not been visited before or the current computed distance is better than the one computed
                 # before.
-                elif w not in priority_queue or vw_length < priority_queue[w]:
-                    priority_queue[w] = vw_length
+                elif w not in priority_dict or vw_length < priority_dict[w]:
+                    priority_dict[w] = vw_length
                     predecessors[w] = v
 
         if self.node_weighted and consider_node_weights:
@@ -754,13 +786,13 @@ class Digraph(dict):
     def explore_upto(self, starting, upper_bound):
 
         distances = {}  # dictionary of final distances
-        priority_queue = PriorityDictionary()  # est.dist. of non-final vert.
-        priority_queue[starting] = 0
+        priority_dict = PriorityDictionary()  # est.dist. of non-final vert.
+        priority_dict[starting] = 0
 
-        for v in priority_queue:
-            if priority_queue[v] > upper_bound:
+        for v in priority_dict:
+            if priority_dict[v] > upper_bound:
                 break
-            distances[v] = priority_queue[v]
+            distances[v] = priority_dict[v]
 
             # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
             if not self.node_weighted:
@@ -777,8 +809,8 @@ class Digraph(dict):
                         raise (ValueError, "Explore upto: found better path to already-final vertex")
                 # In case w has not been visited before or the current computed distance is better than the one computed
                 # before.
-                elif w not in priority_queue or vw_length < priority_queue[w]:
-                    priority_queue[w] = vw_length
+                elif w not in priority_dict or vw_length < priority_dict[w]:
+                    priority_dict[w] = vw_length
         return distances
 
     # def nodes_within_ellipse_opt(self, focal_1, focal_2, constant):
