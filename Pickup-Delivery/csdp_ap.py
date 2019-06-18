@@ -486,9 +486,11 @@ class CsdpAp:
         # Who were the non-visited customers?
         visited = {v for route in routes for v in route}
         non_visited = self._customers.difference(visited)
-        # Find nearest shop for each customer.
+        # These customers are going to be served by their nearest shop. The cost for each non-visited customer is twice
+        # the shortest distance between such customer and her nearest shop.
         for non_visited_customer in non_visited:
             customer_group = self._customers_dict[non_visited_customer]
+            # Which shops can serve the current non-visited customer?
             shops_customer = self._shops_by_group_id[customer_group]
             dist, paths = self._graph.get_k_closest_destinations(non_visited_customer, 1, shops_customer)
             if len(dist) != 1:
@@ -647,20 +649,27 @@ class CsdpAp:
                                                      end_v)
                     for initial_path in initial_paths:
                         priority_queue[initial_path] = initial_path.dist_lb
+                # If the priority dictionary is empty, it means that there weren't customers within the threshold. Thus,
+                # the driver follows her original route.
                 if len(priority_queue) == 0:
                     route = self._graph.paths[start_end]
                     cost = self._graph.dist[start_end]
                 else:
                     partial_path = None
+                    # This is the maximum number of customers to be served found out after exhausting the priority
+                    # dictionary.
                     actual_cust_ub = 0
                     for p in priority_queue:
                         # Check whether ALL customers have been served. This is the termination condition.
                         if len(p.customers) == 0 and p.path[-1] == end_v:
                             if partition_method == 'SP-threshold':
+                                # This is when the maximum number of customers within a threshold is found out.
                                 if actual_cust_ub == 0:
                                     partial_path = p
                                     actual_cust_ub = partial_path.cust_ub
                                 else:
+                                    # The next time, I have to check whether the current path is cheaper and it is
+                                    # serving the same maximum number of customers.
                                     if p.cust_ub == actual_cust_ub and p.dist < partial_path.dist:
                                         partial_path = p
                             else:
@@ -671,6 +680,8 @@ class CsdpAp:
                         # Priority queue is fed up with the offspring.
                         if partition_method == 'SP-threshold':
                             for child in offspring:
+                                # child.cust_ub >= actual_cust_ub is always true as long as the maximum number has not
+                                # been found out yet.
                                 if child.cust_lb > 0 and child.cust_ub >= actual_cust_ub:
                                     priority_queue[child] = child.cust_ub * (-1)
                         else:
@@ -771,9 +782,6 @@ class PartialPath:
     """
 
     # Graph distances may be updated by an instance which in turn may benefit others.
-    # IMPORTANT: Assume the graph is DIRECTED.
-    # TODO: Generalize to any kind, i.e, DIRECTED/UNDIRECTED.
-    # _graph = Digraph(undirected=False)
     _graph = Digraph()
     _shops_dict = dict()  # Shop with corresponding group ID.
     _shops_by_group_id = dict()  # Group ID with corresponding shops.
@@ -867,14 +875,13 @@ class PartialPath:
         self.cust_ub = 0
         self.cust_lb = 0
         self.dist = dist
-        self.shops = set(shops)
-        self.customers = set(customers)
+        self.shops = set(shops)  # Contains non-visited shops only.
+        self.customers = set(customers)  # Contains non-visited customers only. It is exhausted as they are visited.
 
     def spawn(self):
         """
-        Create offspring where each child is one of the possible candidate vertices to visit. It is important to that
-        each child inherits the list of shops 'self._shops_lb' as they inform which shops where used to compute the
-        parent's lower bound.
+        Create offspring where each child is one of the possible candidate vertices to visit. It is important that
+        each child inherits the list of shops 'self.shops' and customers 'self.customers' to be visited.
 
         :return: list
             Offspring.
@@ -907,12 +914,13 @@ class PartialPath:
             self.dist = self.dist + PartialPath._graph.dist[tuple(sorted([path_end, vertex]))]
         # Update non-visited shops and customers.
         if PartialPath._threshold:
+            # Shops and customers that may be visited within a threshold are computed.
             ellipse = \
                 self._graph.nodes_within_ellipse(vertex, PartialPath._destination, PartialPath._threshold - self.dist)
             non_visited = set(ellipse.keys()).difference(self.path)
             self.shops = self.shops.intersection(non_visited)
             customers = self.customers.intersection(non_visited)
-            #
+            # Customers who cannot be served by any shop are filtered out.
             self.customers = set()
             visited_shops = PartialPath._shops_set.intersection(self.path)
             all_shops = set(visited_shops)
@@ -922,7 +930,7 @@ class PartialPath:
                 if group not in PartialPath._customers_by_group_id:
                     continue
                 self.customers.update(PartialPath._customers_by_group_id[group].intersection(customers))
-            # Update the upper bound for visited customers.
+            # Update the upper and lower bounds for visited customers.
             self._compute_cust_bs()
         else:
             self.shops.discard(vertex)
@@ -969,8 +977,13 @@ class PartialPath:
         self.dist_lb = sum(mins_row_wise.values()) + sum(mins_col_wise) + self.dist
 
     def _compute_cust_bs(self):
+        # The minimum number of customers (lower bound) to visit is the current number of already visited customers and
+        # at least one more from the set of non-visited customers. IMPORTANT: Customers who cannot be served by any shop
+        # were filtered out.
         visited_customers = PartialPath._customers_set.intersection(self.path)
         self.cust_lb = len(visited_customers) + (1 if len(self.customers) > 0 else 0)
+        # The maximum number of customers (upper bound) to visit is the current number of already visited customers and
+        # the number of non-visited customers.
         self.cust_ub = len(visited_customers) + len(self.customers)
 
     def _where_to(self, from_):

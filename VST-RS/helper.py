@@ -15,7 +15,7 @@ def assign_users_to_pois(graph, users, pois, method, seed=0, k=3):
     elif method == "k-closest":
         np.random.seed(seed)
         for u in users:
-            k_closest = graph.get_k_closest_destinations(u, k, pois)
+            k_closest, _ = graph.get_k_closest_destinations(u, k, pois)
             p = pois[np.random.randint(0, len(k_closest))]
             requests.append((u, p))
     else:

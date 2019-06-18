@@ -570,6 +570,7 @@ class Digraph(dict):
             distances[v] = priority_dict[v]
             if v in destinations_:
                 reached_nodes.append(v)
+                # Build the shortest path to the current destination.
                 path = []
                 w = v
                 while 1:
@@ -579,7 +580,8 @@ class Digraph(dict):
                     w = predecessors[w]
                 path.reverse()
                 paths[v] = path
-                if len(reached_nodes) == k:
+                # Check whether the number of nearest destinations has been reached or the total number of destinations.
+                if len(reached_nodes) == k or len(reached_nodes) == len(destinations_):
                     distances = {u: dist for u, dist in distances.iteritems() if u in destinations_}
                     break
             # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
