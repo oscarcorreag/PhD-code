@@ -157,7 +157,7 @@ if __name__ == '__main__':
         pair = tuple(sorted([start_v, end_v]))
         path = graph.paths[pair]
         paths.append(path)
-        ellipse = graph.nodes_within_ellipse(start_v, end_v, graph.dist[pair] * 1.1)
+        ellipse = graph.nodes_within_ellipse(start_v, end_v, graph.dist[pair] * 1.5)
         ellipsis.append(ellipse)
 
     # cells, _ = graph.get_voronoi_paths_cells(paths)
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     #
     # Show a solution with the SP-based approach.
     csdp_ap = CsdpAp(graph)
-    routes, cost = csdp_ap.solve(rs, vs, method="SP-based", partition_method='SP-threshold', threshold_sd=1.1)
+    routes, cost = csdp_ap.solve(rs, vs, method="SP-based", partition_method='SP-threshold', threshold_sd=1.5)
 
     special_subgraphs = helper.special_subgraphs_from_paths(routes)
     helper.draw_graph(special_nodes=special_nodes, special_subgraphs=special_subgraphs)

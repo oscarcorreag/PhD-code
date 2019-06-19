@@ -489,6 +489,16 @@ class Digraph(dict):
         return cells, generator_by_node
 
     def get_voronoi_paths_cells(self, paths, nodes=None):
+        """
+        Compute the Voronoi cells based on the paths as generators. If a path is one vertex, this reduces to compute the
+        Voronoi cells with a medoid as generator.
+
+        :param paths: list
+            Paths as generators.
+        :param nodes: Iterable
+            Nodes to be included in the cells.
+        :return:
+        """
         cells = dict()              # Paths are the keys and the nodes are the elements of the cell.
         generator_by_node = dict()  # Nodes are the keys and the value is its corresponding closest path.
         # When None is indicated, the graph nodes are the default.

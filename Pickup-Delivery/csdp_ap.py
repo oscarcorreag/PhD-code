@@ -89,8 +89,8 @@ class CsdpAp:
         # --------------------------------------------------------------------------------------------------------------
         self._shops = set()
         self._customers = set()
-        self._shops_by_req = dict()
-        self._customers_by_req = dict()
+        # self._shops_by_req = dict()
+        # self._customers_by_req = dict()
 
         self._shops_dict = dict()
         self._customers_dict = dict()
@@ -100,9 +100,14 @@ class CsdpAp:
         # self.N_cl_pl = dict()
 
         self.N = list()
-        self.M_s = list()
-        self.M_e = list()
-        self.M = list()
+        self.H_s = list()
+        self.H_e = list()
+        self.H = list()
+        self.F_s = list()
+        self.F_e = list()
+        self.F = list()
+        self.map_dedicated = dict()
+        self.D = list()
         self._V_tws = dict()  # All vertices each with its time window.
         # --------------------------------------------------------------------------------------------------------------
         # MILP
@@ -112,37 +117,39 @@ class CsdpAp:
         self.B = dict()
         self.z = dict()
 
-    def _define_vertex_subsets(self):
-        # N+, N-, N := N+ U N-, N(r)+, N(r)-
-        # Retrieve time windows of shops and customers.
-        for req, (shops_tws, (customer, e_c, l_c)) in enumerate(self._requests):
-            shops = list()
-            for shop, e_s, l_s in shops_tws:
-                shops.append(shop)
-                self._V_tws[shop] = (e_s, l_s)
-            self._shops_by_req[req] = shops
-            self._customers_by_req[req] = customer
-            # self.N_cl_pl[customer] = shops  # Shops by customer
-            self._shops.update(shops)
-            self._customers.add(customer)
-            self._V_tws[customer] = (e_c, l_c)
-        self.N.extend(self._shops)
-        self.N.extend(self._customers)
-        # M+, M-, M := M+ U M-
-        # Retrieve time windows of vehicles.
-        for (start_v, e_sv, l_sv), (end_v, e_ev, l_ev) in self._vehicles:
-            self.M_s.append(start_v)
-            self.M_e.append(end_v)
-            self._V_tws[start_v] = (e_sv, l_sv)
-            self._V_tws[end_v] = (e_ev, l_ev)
-        self.M.extend(self.M_s)
-        self.M.extend(self.M_e)
+    # def _define_vertex_subsets(self):
+    #     # N+, N-, N := N+ U N-, N(r)+, N(r)-
+    #     # Retrieve time windows of shops and customers.
+    #     for req, (shops_tws, (customer, e_c, l_c)) in enumerate(self._requests):
+    #         shops = list()
+    #         for shop, e_s, l_s in shops_tws:
+    #             shops.append(shop)
+    #             self._V_tws[shop] = (e_s, l_s)
+    #         self._shops_by_req[req] = shops
+    #         self._customers_by_req[req] = customer
+    #         # self.N_cl_pl[customer] = shops  # Shops by customer
+    #         self._shops.update(shops)
+    #         self._customers.add(customer)
+    #         self._V_tws[customer] = (e_c, l_c)
+    #     self.N.extend(self._shops)
+    #     self.N.extend(self._customers)
+    #     # M+, M-, M := M+ U M-
+    #     # Retrieve time windows of vehicles.
+    #     for (start_v, e_sv, l_sv), (end_v, e_ev, l_ev) in self._vehicles:
+    #         self.H_s.append(start_v)
+    #         self.H_e.append(end_v)
+    #         self._V_tws[start_v] = (e_sv, l_sv)
+    #         self._V_tws[end_v] = (e_ev, l_ev)
+    #     self.H.extend(self.H_s)
+    #     self.H.extend(self.H_e)
 
     def _define_arc_subsets(self):
         # Arc subset A1: From each vehicle start location to each pick-up location.
-        for i in self.M_s:
+        for i in self.H_s:
             for j in self._shops:
                 self.A1.append((i, j))
+        for i in self.F_s:
+            self.A1.append((i, self.map_dedicated[i]))
         # Arc subset A2: Between pick-up locations from different requests.
         for req_i, shops_i in self._shops_by_req.iteritems():
             for req_j, shops_j in self._shops_by_req.iteritems():
@@ -167,7 +174,7 @@ class CsdpAp:
                     self.A5.append((i, j))
         # Arc subset A6: From each on-line customer location to each vehicle end location.
         for i in self._customers:
-            for j in self.M_e:
+            for j in self.H_e:
                 self.A6.append((i, j))
         # Arc subset A7: From a vehicle start location to the same-vehicle end location.
         for (i, _, _), (j, _, _) in self._vehicles:
@@ -403,7 +410,7 @@ class CsdpAp:
               threshold_sd=1.5, solve_partition_method='BB'):
 
         self._requests = requests
-        self._vehicles = vehicles
+        self._vehicles = list(vehicles)
 
         if method == 'MILP':
             self._build_working_graph()
@@ -453,14 +460,17 @@ class CsdpAp:
 
     def _pre_process_requests(self):
         customers_by_shops = dict()
-        #
+        # Which customers are served by this group pf shops?
         for shops_tws, (customer, _, _) in self._requests:
             shops = tuple(sorted([shop for shop, _, _ in shops_tws]))
             try:
                 customers_by_shops[shops].add(customer)
             except KeyError:
                 customers_by_shops[shops] = {customer}
-        #
+        # Create group ID which relates shops and customers, i.e., breaks N:N relationship.
+        # Populate data structures to answer queries as follows:
+        # (a) customer -> group ID -> shops
+        # (b) shop -> group ID -> shops
         for shops, customers in customers_by_shops.iteritems():
             group_id = id_generator()
             self._shops_by_group_id[group_id] = shops
@@ -468,6 +478,37 @@ class CsdpAp:
             self._customers_dict.update({customer: group_id for customer in customers})
             self._shops.update(shops)
             self._customers.update(customers)
+        # N+ (shops), N- (customers), N := N+ U N-
+        self.N = list()
+        self.N.extend(self._shops)
+        self.N.extend(self._customers)
+        # Ad hoc drivers -> H+: initial locations, H-: destinations, H := H+ U H-
+        self.H_s = list()
+        self.H_e = list()
+        self.H = list()
+        for (start_v, _, _), (end_v, _, _) in self._vehicles:
+            self.H_s.append(start_v)
+            self.H_e.append(end_v)
+        self.H.extend(self.H_s)
+        self.H.extend(self.H_e)
+        # Dedicated drivers -> F+: initial locations, F-: destinations, F := F+ U F-
+        self.F_s = list()
+        self.F_e = list()
+        self.map_dedicated = dict()
+        self.F = list()
+        # Create two auxiliary vertices for each shop: initial location and destination of a dedicated driver.
+        # One driver is located at each shop.
+        for shop in self._shops:
+            start_v = id_generator()
+            end_v = id_generator()
+            self.F_s.append(start_v)
+            self.F_e.append(end_v)
+            self._vehicles.append(((start_v, None, None), (end_v, None, None)))  # Update list of vehicles
+            # A map is created to identify to which shop an auxiliary vertex refers.
+            self.map_dedicated[start_v] = shop
+            self.map_dedicated[end_v] = shop
+        self.F.extend(self.F_s)
+        self.F.extend(self.F_e)
 
     def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB'):
         routes = list()
@@ -486,22 +527,26 @@ class CsdpAp:
         # Who were the non-visited customers?
         visited = {v for route in routes for v in route}
         non_visited = self._customers.difference(visited)
-        # These customers are going to be served by their nearest shop. The cost for each non-visited customer is twice
-        # the shortest distance between such customer and her nearest shop.
+        # These customers are going to be served by their nearest shop. When a dedicated vehicle starting from a shop
+        # has to serve more than one customer, this becomes a new partition of the CSDP-AP problem.
+        partitions = dict()
         for non_visited_customer in non_visited:
             customer_group = self._customers_dict[non_visited_customer]
             # Which shops can serve the current non-visited customer?
             shops_customer = self._shops_by_group_id[customer_group]
-            dist, paths = self._graph.get_k_closest_destinations(non_visited_customer, 1, shops_customer)
+            dist, _ = self._graph.get_k_closest_destinations(non_visited_customer, 1, shops_customer)
             if len(dist) != 1:
                 raise (RuntimeError, "SP-based: There must be at least one nearest shop able to serve each customer.")
             for nearest, d in dist.iteritems():
-                # IMPORTANT: We are assuming shortest path is the SAME in both directions.
-                cost += (2 * d)
-                from_customer_path = paths[nearest]
-                path = from_customer_path[::-1][:-1]
-                path.extend(from_customer_path)
-                routes.append(path)
+                if (nearest, nearest) not in partitions:
+                    partitions[(nearest, nearest)] = {'shops': {nearest}, 'customers': {non_visited_customer}}
+                else:
+                    partitions[(nearest, nearest)]['customers'].add(non_visited_customer)
+        # Solve the partitions created for the dedicated fleet.
+        for partition in partitions.iteritems():
+            path, c = self._solve_partition(partition)
+            routes.append(path)
+            cost += c
         return routes, cost
 
     def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
@@ -595,7 +640,7 @@ class CsdpAp:
             raise NotImplementedError
         return partitions
 
-    def _solve_partition(self, partition, method='BB', partition_method='SP-fraction', threshold_sd=1.5):
+    def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5):
         route = list()
         cost = 0
         # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
@@ -804,11 +849,11 @@ class PartialPath:
             Shop as key and group ID as value.
         :param customers_dict: dict
             Customer as key and group ID as value.
-        :param origin:
+        :param origin: graph vertex
             Where the Hamiltonian path starts from.
-        :param destination:
+        :param destination: graph vertex
             Where the Hamiltonian path finishes.
-        :param threshold:
+        :param threshold: float
             Upper bound for the Hamiltonian path's distance.
         :return:
         """
@@ -865,9 +910,9 @@ class PartialPath:
             It is specially useful when a partial path spawns offspring.
         :param dist: float
             Traveled distance.
-        :param shops: iterable
+        :param shops: Iterable
             Shops that can be part of the path and are not in it yet.
-        :param customers: iterable
+        :param customers: Iterable
             Customers that can be part of the path and are not in it yet.
         """
         self.path = list(path)
@@ -900,7 +945,7 @@ class PartialPath:
 
         Parameters
         ----------
-        :param vertex:
+        :param vertex: graph vertex
             Vertex to be appended.
         :return:
         """
@@ -990,7 +1035,7 @@ class PartialPath:
         """
         What are the possible next vertices to visit from a specific vertex?
 
-        :param from_: character string
+        :param from_: graph vertex
             Current vertex for which the possible vertices to visit after are computed.
         :return: set
             Vertices to visit.
@@ -1021,7 +1066,7 @@ class PartialPath:
         This is different from the '_where_to' method as in this case we can visit any customer as long as it has not
         been visited yet. Also, the shops to be visited are the ones sent as parameter when an instance is created.
 
-        :param from_: character string
+        :param from_: graph vertex
             Current vertex for which the possible vertices to visit are computed.
         :return: set
             Vertices to visit.
@@ -1063,5 +1108,8 @@ class PartialPath:
         for i in range(len(self.path) - 1):
             v = self.path[i]
             w = self.path[i + 1]
-            actual_path.extend(PartialPath._graph.paths[tuple(sorted([v, w]))][1:])
+            path = PartialPath._graph.paths[tuple(sorted([v, w]))]
+            if w == path[0]:
+                path.reverse()
+            actual_path.extend(path[1:])
         return actual_path
