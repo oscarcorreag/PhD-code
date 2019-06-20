@@ -114,3 +114,7 @@ class TestDigraph(TestCase):
         dist, paths = self.graph.get_k_closest_destinations(12, 3, [0, 1, 2, 3, 4])
         self.assertDictEqual(dist, {1: 3, 2: 2, 3: 3})
         self.assertDictEqual(paths, {1: [12, 7, 2, 1], 2: [12, 7, 2], 3: [12, 7, 2, 3]})
+
+    def test_clone_node(self):
+        new_node = self.graph.clone_node(12)
+        self.assertDictEqual(self.graph[12], self.graph[new_node])

@@ -72,7 +72,9 @@ class CsdpAp:
         self._graph.append_from_graph(graph)
         self._working_graph = Digraph(undirected=False)
 
-        self._vehicles = list()
+        self._drivers = list()
+        self._ad_hoc_drivers = list()
+        self._dedicated_drivers = list()
         self._requests = list()
         # --------------------------------------------------------------------------------------------------------------
         # Arc subsets
@@ -95,20 +97,21 @@ class CsdpAp:
         self._shops_dict = dict()
         self._customers_dict = dict()
         self._shops_by_group_id = dict()
-        # self._customers_by_group_id = dict()
+        self._customers_by_group_id = dict()
 
         # self.N_cl_pl = dict()
 
         self.N = list()
         self.H_s = list()
         self.H_e = list()
-        self.H = list()
+        # self.H = list()
         self.F_s = list()
         self.F_e = list()
-        self.F = list()
-        self.map_dedicated = dict()
+        # self.F = list()
+        self._shop_by_F = dict()
+        self._Fs_by_shop = dict()
         self.D = list()
-        self._V_tws = dict()  # All vertices each with its time window.
+        # self._V_tws = dict()  # All vertices each with its time window.
         # --------------------------------------------------------------------------------------------------------------
         # MILP
         # --------------------------------------------------------------------------------------------------------------
@@ -149,24 +152,23 @@ class CsdpAp:
             for j in self._shops:
                 self.A1.append((i, j))
         for i in self.F_s:
-            self.A1.append((i, self.map_dedicated[i]))
+            self.A1.append((i, self._shop_by_F[i]))
         # Arc subset A2: Between pick-up locations from different requests.
-        for req_i, shops_i in self._shops_by_req.iteritems():
-            for req_j, shops_j in self._shops_by_req.iteritems():
-                if req_i != req_j:
-                    for i in shops_i:
-                        for j in shops_j:
-                            self.A2.append((i, j))
+        for shop_1, group_id_1 in self._shops_dict.iteritems():
+            for group_id_2, shops in self._shops_by_group_id.iteritems():
+                if group_id_1 != group_id_2:
+                    for shop_2 in shops:
+                        self.A2.append((shop_1, shop_2))
         # Arc subset A3: From each pick-up location to each on-line customer location.
         for i in self._shops:
             for j in self._customers:
                 self.A3.append((i, j))
         # Arc subset A4: From each on-line customer location to pick-up locations of a different request.
-        for req_i, i in self._customers_by_req.iteritems():
-            for req_j, shops_j in self._shops_by_req.iteritems():
-                if req_i != req_j:
-                    for j in shops_j:
-                        self.A4.append((i, j))
+        for customer_1, group_id_1 in self._customers_dict.iteritems():
+            for group_id_2, shops in self._shops_by_group_id.iteritems():
+                if group_id_1 != group_id_2:
+                    for shop_2 in shops:
+                        self.A4.append((customer_1, shop_2))
         # Arc subset A5: Between on-line customer locations.
         for i in self._customers:
             for j in self._customers:
@@ -176,15 +178,20 @@ class CsdpAp:
         for i in self._customers:
             for j in self.H_e:
                 self.A6.append((i, j))
+        for customer, group_id in self._customers_dict.iteritems():
+            for shop in self._shops_by_group_id[group_id]:
+                _, end_v = self._Fs_by_shop[shop]
+                self.A6.append((customer, end_v))
         # Arc subset A7: From a vehicle start location to the same-vehicle end location.
-        for (i, _, _), (j, _, _) in self._vehicles:
+        for (i, _, _), (j, _, _) in self._drivers:
             self.A7.append((i, j))
 
     def _build_working_graph(self):
         # Shortest distances in the original graph are the weights of the arcs in the working graph.
         self._graph.compute_dist_paths(compute_paths=False)
         # Build vertex and arc sets.
-        self._define_vertex_subsets()
+        # self._define_vertex_subsets()
+        self._pre_process_requests_drivers()
         self._define_arc_subsets()
         # Build joint set of arcs and from it append edges to the working graph.
         A = list()
@@ -204,123 +211,182 @@ class CsdpAp:
         # --------------------------------------------------------------------------------------------------------------
         # These variables are defined over a subset of A1. Defining a x(i, j, k) for which i != k^+ does not make sense.
         for i, j in self.A1:
-            for k, ((start_v, _, _), _) in enumerate(self._vehicles):
-                if i == start_v:
-                    self.x[(i, j, k)] = self._solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
-        # These variables are defined over A2 U A3 U A4 U A5.
+            for (s_v, _, _), (e_v, _, _) in self._drivers:
+                if i == s_v:
+                    self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%d, %d, (%s, %s))" % (i, j, s_v, e_v))
+        # These variables are defined over A2 U A3 U A4 U A5 for ad hoc drivers.
         A_ = list()
         A_.extend(self.A2)
         A_.extend(self.A3)
         A_.extend(self.A4)
         A_.extend(self.A5)
         for i, j in A_:
-            for k, _ in enumerate(self._vehicles):
-                self.x[(i, j, k)] = self._solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
+            for s_v, e_v in self._ad_hoc_drivers:
+                self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%d, %d, (%s, %s))" % (i, j, s_v, e_v))
+        for i, j in self.A3:
+            for s_v, e_v in self._dedicated_drivers:
+                shop_start = self._shop_by_F[s_v]
+                group_shop = self._shops_dict[shop_start]
+                if i == shop_start and self._customers_dict[j] == group_shop:
+                    self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%d, %d, (%s, %s))" % (i, j, s_v, e_v))
+        for i, j in self.A5:
+            for s_v, e_v in self._dedicated_drivers:
+                shop_start = self._shop_by_F[s_v]
+                group_shop = self._shops_dict[shop_start]
+                if self._customers_dict[i] ==  group_shop and self._customers_dict[j] == group_shop:
+                    self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%d, %d, (%s, %s))" % (i, j, s_v, e_v))
         # These variables are defined over a subset of A6. Defining a x(i, j, k) for which j != k^- does not make sense.
         for i, j in self.A6:
-            for k, (_, (end_v, _, _)) in enumerate(self._vehicles):
-                if j == end_v:
-                    self.x[(i, j, k)] = self._solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
+            for (s_v, _, _), (e_v, _, _) in self._drivers:
+                if j == e_v:
+                    self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%d, %d, (%s, %s))" % (i, j, s_v, e_v))
         # These variables are defined over a subset of A7. Defining a x(i, j, k) for which i != k^+ or j != k^- does not
         # make sense. However, validating i and j is not needed as arcs {(i, j) : i = k^+ and j != k^-} are not created.
         for i, j in self.A7:
-            for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
-                if i == start_v and j == end_v:
-                    self.x[(i, j, k)] = self._solver.BoolVar("x(%d, %d, %d)" % (i, j, k))
+            for (s_v, _, _), (e_v, _, _) in self._drivers:
+                if i == s_v and j == e_v:
+                    self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%d, %d, (%s, %s))" % (i, j, s_v, e_v))
         # --------------------------------------------------------------------------------------------------------------
         # Time variables at which vehicles start servicing at vertices.
         # Time window constraints are defined implicitly.
         # --------------------------------------------------------------------------------------------------------------
         for i in self.N:
-            for k, _ in enumerate(self._vehicles):
-                # self.B[(i, k)] = self.solver.NumVar(0.0, self.solver.infinity(), 'B(%d, %d)' % (i, k))
-                self.B[(i, k)] = self._solver.NumVar(self._V_tws[i][0], self._V_tws[i][1], 'B(%d, %d)' % (i, k))
-        for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
-            # self.B[(start_v, k)] = self.solver.NumVar(0.0, self.solver.infinity(), 'B(%d, %d)' % (start_v, k))
-            self.B[(start_v, k)] = self._solver.NumVar(self._V_tws[start_v][0], self._V_tws[start_v][1],
-                                                       'B(%d, %d)' % (start_v, k))
-            # self.B[(end_v, k)] = self.solver.NumVar(0.0, self.solver.infinity(), 'B(%d, %d)' % (end_v, k))
-            self.B[(end_v, k)] = self._solver.NumVar(self._V_tws[end_v][0], self._V_tws[end_v][1],
-                                                     'B(%d, %d)' % (end_v, k))
+            for (s_v, _, _), (e_v, _, _) in self._drivers:
+                self.B[(i, (s_v, e_v))] = \
+                    self._solver.NumVar(0.0, self._solver.infinity(), 'B(%d, (%s, %s))' % (i, s_v, e_v))
+                # self.B[(i, k)] = self._solver.NumVar(self._V_tws[i][0], self._V_tws[i][1], 'B(%d, %d)' % (i, k))
+        for (s_v, _, _), (e_v, _, _) in self._drivers:
+            self.B[(s_v, (s_v, e_v))] = \
+                self._solver.NumVar(0.0, self._solver.infinity(), 'B(%d, (%s, %s))' % (s_v, s_v, e_v))
+            # self.B[(start_v, k)] = self._solver.NumVar(self._V_tws[start_v][0], self._V_tws[start_v][1],
+            #                                            'B(%d, %d)' % (start_v, k))
+            self.B[(e_v, (s_v, e_v))] = \
+                self._solver.NumVar(0.0, self._solver.infinity(), 'B(%d, (%s, %s))' % (e_v, s_v, e_v))
+            # self.B[(end_v, k)] = self._solver.NumVar(self._V_tws[end_v][0], self._V_tws[end_v][1],
+            #                                          'B(%d, %d)' % (end_v, k))
         # --------------------------------------------------------------------------------------------------------------
         # Auxiliary variables z := x(i, j, k) * B(i, k).
         # --------------------------------------------------------------------------------------------------------------
-        for i, j, k in self.x:
-            self.z[(i, j, k)] = self._solver.NumVar(0.0, self._solver.infinity(), 'z(%d, %d, %d)' % (i, j, k))
+        for i, j, (s_v, e_v) in self.x:
+            self.z[(i, j, (s_v, e_v))] = \
+                self._solver.NumVar(0.0, self._solver.infinity(), 'z(%d, %d, (%s, %s))' % (i, j, s_v, e_v))
 
-    def _define_one_vehicle_one_pickup_constraints(self):
-        K = len(self._vehicles)
-        constraints = [0] * len(self._requests) * K
-        for req, _ in enumerate(self._requests):
-            shops = self._shops_by_req[req]
-            for k, _ in enumerate(self._vehicles):
-                constraints[req * K + k] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
+    def _define_ad_hoc_visits_at_most_one_shop_per_retailer_constraints(self):
+        K = len(self._ad_hoc_drivers)
+        constraints = [0] * len(self._shops_by_group_id) * K
+        for ord_, (_, shops) in enumerate(self._shops_by_group_id.iteritems()):
+            for k, (s_v, e_v) in enumerate(self._ad_hoc_drivers):
+                constraints[ord_ * K + k] = self._solver.Constraint(0.0, 1.0, str(self._solver.NumConstraints()))
                 for i in shops:
-                    for j, _ in self._working_graph[i].iteritems():
-                        coeff = constraints[req * K + k].GetCoefficient(self.x[(i, j, k)])
-                        constraints[req * K + k].SetCoefficient(self.x[(i, j, k)], coeff + 1.0)
+                    for j in self._working_graph[i]:
+                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, j, (s_v, e_v))])
+                        constraints[ord_ * K + k].SetCoefficient(self.x[(i, j, (s_v, e_v))], coeff + 1.0)
 
-    def _define_same_vehicle_constraints(self):
-        K = len(self._vehicles)
-        constraints = [0] * len(self._requests) * K
-        for req, _ in enumerate(self._requests):
-            shops = self._shops_by_req[req]
-            customer = self._customers_by_req[req]
-            for k, _ in enumerate(self._vehicles):
-                constraints[req * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
+    def _define_customer_served_by_one_driver_constraints(self):
+        constraints = [0] * len(self._customers_dict)
+        for ord_, (j, group_id) in enumerate(self._customers_dict.iteritems()):
+            constraints[ord_] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
+            for s_v, e_v in self._ad_hoc_drivers:
+                for i in self.N:
+                    if i != j:
+                        coeff = constraints[ord_].GetCoefficient(self.x[(i, j, (s_v, e_v))])
+                        constraints[ord_].SetCoefficient(self.x[(i, j, (s_v, e_v))], coeff - 1.0)
+            for s_v, e_v in self._dedicated_drivers:
+                shop = self._shop_by_F[s_v]
+                coeff = constraints[ord_].GetCoefficient(self.x[(shop, j, (s_v, e_v))])
+                constraints[ord_].SetCoefficient(self.x[(shop, j, (s_v, e_v))], coeff - 1.0)
+                for i in self._customers_by_group_id[group_id]:
+                    if i != j:
+                        coeff = constraints[ord_].GetCoefficient(self.x[(i, j, (s_v, e_v))])
+                        constraints[ord_].SetCoefficient(self.x[(i, j, (s_v, e_v))], coeff - 1.0)
+
+    def _define_same_driver_constraints(self):
+        K = len(self._drivers)
+        k_ = len(self._ad_hoc_drivers)
+        constraints = [0] * len(self._customers_dict) * K
+        for ord_, (customer, group_id) in enumerate(self._customers_dict.iteritems()):
+            shops = self._shops_by_group_id[group_id]
+            for k, (s_v, e_v) in enumerate(self._ad_hoc_drivers):
+                constraints[ord_ * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
                 for i in shops:
-                    for j, _ in self._working_graph[i].iteritems():
-                        coeff = constraints[req * K + k].GetCoefficient(self.x[(i, j, k)])
-                        constraints[req * K + k].SetCoefficient(self.x[(i, j, k)], coeff + 1.0)
-                for j in self.N:  # [N = (only possible) origins] TO customers.
-                    if j != customer:
-                        coeff = constraints[req * K + k].GetCoefficient(self.x[(j, customer, k)])
-                        constraints[req * K + k].SetCoefficient(self.x[(j, customer, k)], coeff - 1.0)
+                    for j in self._working_graph[i]:
+                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, j, (s_v, e_v))])
+                        constraints[ord_ * K + k].SetCoefficient(self.x[(i, j, (s_v, e_v))], coeff + 1.0)
+                for i in self.N:  # [N = (only possible) origins] TO customers.
+                    if i != customer:
+                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, customer, (s_v, e_v))])
+                        constraints[ord_ * K + k].SetCoefficient(self.x[(i, customer, (s_v, e_v))], coeff - 1.0)
+            for k, (s_v, e_v) in enumerate(self._dedicated_drivers):
+                constraints[ord_ * K + k_ + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
+                shop = self._shop_by_F[s_v]
+                for j in self._working_graph[shop]:
+                    coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(shop, j, (s_v, e_v))])
+                    constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(shop, j, (s_v, e_v))], coeff + 1.0)
+                coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(shop, customer, (s_v, e_v))])
+                constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(shop, customer, (s_v, e_v))], coeff - 1.0)
+                for i in self._customers_by_group_id[group_id]:
+                    if i != customer:
+                        coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(i, customer, (s_v, e_v))])
+                        constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(i, customer, (s_v, e_v))], coeff - 1.0)
 
     def _define_flow_conservation_locations_constraints(self):
-        K = len(self._vehicles)
+        K = len(self._drivers)
         constraints = [0] * len(self.N) * K
         for ord_, i in enumerate(self.N):
-            for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
+            for k, ((s_v, _, _), (e_v, _, _)) in enumerate(self._drivers):
                 constraints[ord_ * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
                 for j in self.N:
                     try:
-                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(j, i, k)])
-                        constraints[ord_ * K + k].SetCoefficient(self.x[(j, i, k)], coeff + 1.0)
+                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(j, i, (s_v, e_v))])
+                        constraints[ord_ * K + k].SetCoefficient(self.x[(j, i, (s_v, e_v))], coeff + 1.0)
                     except KeyError:
                         pass
                     try:
-                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, j, k)])
-                        constraints[ord_ * K + k].SetCoefficient(self.x[(i, j, k)], coeff - 1.0)
+                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, j, (s_v, e_v))])
+                        constraints[ord_ * K + k].SetCoefficient(self.x[(i, j, (s_v, e_v))], coeff - 1.0)
                     except KeyError:
                         pass
                 try:
-                    coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(start_v, i, k)])
-                    constraints[ord_ * K + k].SetCoefficient(self.x[(start_v, i, k)], coeff + 1.0)
+                    coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(s_v, i, (s_v, e_v))])
+                    constraints[ord_ * K + k].SetCoefficient(self.x[(s_v, i, (s_v, e_v))], coeff + 1.0)
                 except KeyError:
                     pass
                 try:
-                    coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, end_v, k)])
-                    constraints[ord_ * K + k].SetCoefficient(self.x[(i, end_v, k)], coeff - 1.0)
+                    coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, e_v, (s_v, e_v))])
+                    constraints[ord_ * K + k].SetCoefficient(self.x[(i, e_v, (s_v, e_v))], coeff - 1.0)
                 except KeyError:
                     pass
 
-    def _define_flow_conservation_vehicle_constraints(self):
-        K = len(self._vehicles)
-        constraints = [0] * 2 * K
-        for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
+    def _define_flow_conservation_driver_constraints(self):
+        K = len(self._ad_hoc_drivers)
+        constraints = [0] * (2 * K + len(self._dedicated_drivers))
+        for k, (s_v, e_v) in enumerate(self._ad_hoc_drivers):
             constraints[k] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
-            for j in self._shops:
-                coeff = constraints[k].GetCoefficient(self.x[(start_v, j, k)])
-                constraints[k].SetCoefficient(self.x[(start_v, j, k)], coeff + 1.0)
-            coeff = constraints[k].GetCoefficient(self.x[(start_v, end_v, k)])
-            constraints[k].SetCoefficient(self.x[(start_v, end_v, k)], coeff + 1.0)
+            for j in self._working_graph[s_v]:
+                coeff = constraints[k].GetCoefficient(self.x[(s_v, j, (s_v, e_v))])
+                constraints[k].SetCoefficient(self.x[(s_v, j, (s_v, e_v))], coeff + 1.0)
+            # for j in self._shops:
+            #     coeff = constraints[k].GetCoefficient(self.x[(s_v, j, k)])
+            #     constraints[k].SetCoefficient(self.x[(s_v, j, k)], coeff + 1.0)
+            # coeff = constraints[k].GetCoefficient(self.x[(s_v, e_v, k)])
+            # constraints[k].SetCoefficient(self.x[(s_v, e_v, k)], coeff + 1.0)
             constraints[K + k] = self._solver.Constraint(1.0, 1.0, str(self._solver.NumConstraints()))
-            for j in self._customers:
-                coeff = constraints[K + k].GetCoefficient(self.x[(j, end_v, k)])
-                constraints[K + k].SetCoefficient(self.x[(j, end_v, k)], coeff + 1.0)
-            coeff = constraints[K + k].GetCoefficient(self.x[(start_v, end_v, k)])
-            constraints[K + k].SetCoefficient(self.x[(start_v, end_v, k)], coeff + 1.0)
+            for i in self._customers:
+                coeff = constraints[K + k].GetCoefficient(self.x[(i, e_v, (s_v, e_v))])
+                constraints[K + k].SetCoefficient(self.x[(i, e_v, (s_v, e_v))], coeff + 1.0)
+            coeff = constraints[K + k].GetCoefficient(self.x[(s_v, e_v, (s_v, e_v))])
+            constraints[K + k].SetCoefficient(self.x[(s_v, e_v, (s_v, e_v))], coeff + 1.0)
+        #
+        for k, (s_v, e_v) in enumerate(self._dedicated_drivers):
+            shop_start = self._shop_by_F[s_v]
+            group_id = self._shops_dict[shop_start]
+            constraints[2 * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
+            for j in self._working_graph[s_v]:
+                coeff = constraints[2 * K + k].GetCoefficient(self.x[(s_v, j, (s_v, e_v))])
+                constraints[2 * K + k].SetCoefficient(self.x[(s_v, j, (s_v, e_v))], coeff + 1.0)
+            for i in self._customers_by_group_id[group_id]:
+                coeff = constraints[2 * K + k].GetCoefficient(self.x[(i, e_v, (s_v, e_v))])
+                constraints[2 * K + k].SetCoefficient(self.x[(i, e_v, (s_v, e_v))], coeff - 1.0)
 
     def _define_time_consistency_constraints(self):
         # M = float(sys.maxint)
@@ -364,14 +430,14 @@ class CsdpAp:
             constraints[3 * X + ord_].SetCoefficient(self.z[(i, j, k)], coeff - 1.0)
 
     def _define_precedence_constraints(self):
-        K = len(self._vehicles)
+        K = len(self._drivers)
         # constraints = [0] * ((len(self._shops) + 1) * K)
         constraints = [0] * ((sum([len(self._shops_by_req[req]) for req in range(len(self._requests))]) + 1) * K)
         cnt = 0
         for req, _ in enumerate(self._requests):
             shops = self._shops_by_req[req]
             customer = self._customers_by_req[req]
-            for k, _ in enumerate(self._vehicles):
+            for k, _ in enumerate(self._drivers):
                 for i in shops:
                     constraints[cnt] = self._solver.Constraint(self._working_graph[i][customer],
                                                                self._solver.infinity(),
@@ -381,7 +447,7 @@ class CsdpAp:
                     coeff = constraints[cnt].GetCoefficient(self.B[(i, k)])
                     constraints[cnt].SetCoefficient(self.B[(i, k)], coeff - 1.0)
                     cnt += 1
-        for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._vehicles):
+        for k, ((start_v, _, _), (end_v, _, _)) in enumerate(self._drivers):
             constraints[cnt] = self._solver.Constraint(self._working_graph[start_v][end_v], self._solver.infinity(),
                                                        str(self._solver.NumConstraints()))
             coeff = constraints[cnt].GetCoefficient(self.B[(end_v, k)])
@@ -393,7 +459,7 @@ class CsdpAp:
     def _define_time_window_constraints(self):
         constraints = [0] * len(self._working_graph)
         for ord_, (i, e, l) in enumerate(self._V_tws):
-            for k, _ in enumerate(self._vehicles):
+            for k, _ in enumerate(self._drivers):
                 if (i, k) in self.B:
                     constraints[ord_] = self._solver.Constraint(e, l, str(self._solver.NumConstraints()))
                     coeff = constraints[ord_].GetCoefficient(self.B[(i, k)])
@@ -406,18 +472,18 @@ class CsdpAp:
             objective.SetCoefficient(x, coeff + self._working_graph[i][j])
         objective.SetMinimization()
 
-    def solve(self, requests, vehicles, method='MILP', verbose=False, partition_method='SP-fraction', fraction_sd=.5,
+    def solve(self, requests, drivers, method='MILP', verbose=False, partition_method='SP-fraction', fraction_sd=.5,
               threshold_sd=1.5, solve_partition_method='BB'):
 
         self._requests = requests
-        self._vehicles = list(vehicles)
+        self._drivers = list(drivers)
 
         if method == 'MILP':
             self._build_working_graph()
             return self._solve_milp(verbose)
 
         if method == 'SP-based':
-            self._pre_process_requests()
+            self._pre_process_requests_drivers()
             return self._sp_based(partition_method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd,
                                   solve_partition_method=solve_partition_method)
 
@@ -425,9 +491,9 @@ class CsdpAp:
         self._define_vars()
         self._define_objective()
         self._define_one_vehicle_one_pickup_constraints()
-        self._define_same_vehicle_constraints()
+        self._define_same_driver_constraints()
         self._define_flow_conservation_locations_constraints()
-        self._define_flow_conservation_vehicle_constraints()
+        self._define_flow_conservation_driver_constraints()
         self._define_time_consistency_constraints()
         self._define_precedence_constraints()
         # self._define_time_window_constraints()
@@ -458,7 +524,7 @@ class CsdpAp:
             return self._build_routes_milp(), self._solver.Objective().Value()
         return None, 0
 
-    def _pre_process_requests(self):
+    def _pre_process_requests_drivers(self):
         customers_by_shops = dict()
         # Which customers are served by this group pf shops?
         for shops_tws, (customer, _, _) in self._requests:
@@ -474,6 +540,7 @@ class CsdpAp:
         for shops, customers in customers_by_shops.iteritems():
             group_id = id_generator()
             self._shops_by_group_id[group_id] = shops
+            self._customers_by_group_id[group_id] = customers
             self._shops_dict.update({shop: group_id for shop in shops})
             self._customers_dict.update({customer: group_id for customer in customers})
             self._shops.update(shops)
@@ -482,33 +549,41 @@ class CsdpAp:
         self.N = list()
         self.N.extend(self._shops)
         self.N.extend(self._customers)
-        # Ad hoc drivers -> H+: initial locations, H-: destinations, H := H+ U H-
+        # --------------------------------------------------------------------------------------------------------------
+        # Ad hoc drivers -> H+: initial locations, H-: destinations
+        # --------------------------------------------------------------------------------------------------------------
         self.H_s = list()
         self.H_e = list()
-        self.H = list()
-        for (start_v, _, _), (end_v, _, _) in self._vehicles:
+        self._ad_hoc_drivers = list()
+        for (start_v, _, _), (end_v, _, _) in self._drivers:
             self.H_s.append(start_v)
             self.H_e.append(end_v)
-        self.H.extend(self.H_s)
-        self.H.extend(self.H_e)
-        # Dedicated drivers -> F+: initial locations, F-: destinations, F := F+ U F-
+            # Update list of AD HOC drivers.
+            self._ad_hoc_drivers.append((start_v, end_v))
+        # --------------------------------------------------------------------------------------------------------------
+        # Dedicated drivers -> F+: initial locations, F-: destinations
+        # --------------------------------------------------------------------------------------------------------------
         self.F_s = list()
         self.F_e = list()
-        self.map_dedicated = dict()
-        self.F = list()
+        # Maps are created to identify which shop an auxiliary vertex refers to and vice versa.
+        self._shop_by_F = dict()
+        self._Fs_by_shop = dict()
+        self._dedicated_drivers = list()
         # Create two auxiliary vertices for each shop: initial location and destination of a dedicated driver.
         # One driver is located at each shop.
         for shop in self._shops:
-            start_v = id_generator()
-            end_v = id_generator()
+            start_v = self._graph.clone_node(shop)
+            end_v = self._graph.clone_node(shop)
             self.F_s.append(start_v)
             self.F_e.append(end_v)
-            self._vehicles.append(((start_v, None, None), (end_v, None, None)))  # Update list of vehicles
-            # A map is created to identify to which shop an auxiliary vertex refers.
-            self.map_dedicated[start_v] = shop
-            self.map_dedicated[end_v] = shop
-        self.F.extend(self.F_s)
-        self.F.extend(self.F_e)
+            # Update list of DEDICATED drivers.
+            self._dedicated_drivers.append((start_v, end_v))
+            # Update list of drivers in general.
+            self._drivers.append(((start_v, None, None), (end_v, None, None)))
+            # Update maps.
+            self._shop_by_F[start_v] = shop
+            self._shop_by_F[end_v] = shop
+            self._Fs_by_shop[shop] = (start_v, end_v)
 
     def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB'):
         routes = list()
@@ -552,11 +627,11 @@ class CsdpAp:
     def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
         partitions = {}
         # Drivers' shortest paths are computed.
-        pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in self._vehicles]
+        pairs = [(start_v, end_v) for (start_v, _, _), (end_v, _, _) in self._drivers]
         self._graph.compute_dist_paths(pairs=pairs)
         #  Priority queue is built based on shortest distances.
         vehicles_pd = PriorityDictionary()
-        for vehicle in self._vehicles:
+        for vehicle in self._drivers:
             (start_v, _, _), (end_v, _, _) = vehicle
             vehicles_pd[vehicle] = self._graph.dist[tuple(sorted([start_v, end_v]))]
         # --------------------------------------------------------------------------------------------------------------
@@ -590,7 +665,7 @@ class CsdpAp:
         elif method == 'SP-Voronoi':
             # Drivers' paths are gathered as a list to be sent as parameter for Voronoi cells computation.
             paths = list()
-            for vehicle in self._vehicles:
+            for vehicle in self._drivers:
                 (start_v, _, _), (end_v, _, _) = vehicle
                 paths.append(self._graph.paths[tuple(sorted([start_v, end_v]))])
             # Voronoi cells contain all kinds of vertices, i.e., not only shops and customers. Thus, cells must be

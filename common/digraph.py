@@ -5,7 +5,7 @@ import sys
 import numpy as np
 
 from priodict import PriorityDictionary
-from utils import comb_v
+from utils import comb_v, id_generator
 
 
 class Digraph(dict):
@@ -932,3 +932,11 @@ class Digraph(dict):
                         priority_dict[(focal, w)] = vw_length
         # return ellipse, iterations
         return ellipse
+
+    def clone_node(self, node):
+        new_node = id_generator()
+        if self.node_weighted:
+            self[new_node] = (self[node][0], self[node][1].copy(), self[node][2].copy())
+        else:
+            self[new_node] = self[node].copy()
+        return new_node
