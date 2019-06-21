@@ -385,12 +385,16 @@ class Digraph(dict):
                 self.paths[v_w] = []
             self.issues_dist_paths.add(v_w)
 
-    def compute_missing_pairs_dist_paths(self, pairs):
+    def compute_missing_pairs_dist_paths(self, pairs, compute_paths=True):
         if self.undirected:
             pairs_dict = {tuple(sorted([o, d])): (o, d) for (o, d) in pairs}
         else:
             pairs_dict = {(o, d): (o, d) for (o, d) in pairs}
         missing = set(pairs_dict.keys()).difference(self.pairs_dist_paths)
+        if compute_paths:
+            for pair in pairs_dict.keys():
+                if pair not in self.paths:
+                    missing.add(pair)
         return [pairs_dict[p] for p in missing]
 
     def compute_dist_paths(self, origins=None, destinations=None, pairs=None, end_mode='all', compute_paths=True,
@@ -414,7 +418,7 @@ class Digraph(dict):
             pairs_ = pairs_.union(pairs)
         # Compute missing pairs in set of pairs already computed.
         if len(self.pairs_dist_paths) != 0:
-            missing = self.compute_missing_pairs_dist_paths(pairs_)
+            missing = self.compute_missing_pairs_dist_paths(pairs_, compute_paths=compute_paths)
             if recompute:
                 pairs_.update(missing)
             else:
@@ -935,8 +939,25 @@ class Digraph(dict):
 
     def clone_node(self, node):
         new_node = id_generator()
-        if self.node_weighted:
-            self[new_node] = (self[node][0], self[node][1].copy(), self[node][2].copy())
+        # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
+        if not self.node_weighted:
+            adj_nodes = self[node]
         else:
-            self[new_node] = self[node].copy()
+            adj_nodes = self[node][1]
+        for w, dist in adj_nodes.iteritems():
+            if self.is_undirected():
+                node_w = tuple(sorted([node, w]))
+                new_node_w = tuple(sorted([new_node, w]))
+            else:
+                node_w = (node, w)
+                new_node_w = (new_node, w)
+            capacity = 0
+            if self.is_capacitated():
+                capacity = self.get_capacities()[node_w]
+            if not self.node_weighted:
+                self.append_edge_2(new_node_w, dist, capacity)
+            else:
+                nodes_weights = (self[node][0], self[w][0])
+                nodes_info = (self[node][2], self[w][2])
+                self.append_edge_2(new_node_w, dist, capacity, nodes_weights=nodes_weights, nodes_info=nodes_info)
         return new_node

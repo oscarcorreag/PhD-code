@@ -36,15 +36,16 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------------------------------------------------------
     # MILP solution
     # ------------------------------------------------------------------------------------------------------------------
-    # routes, cost = csdp_ap.solve(requests, vehicles, verbose=True)
+    routes, cost = csdp_ap.solve(requests, vehicles)
+    ss = ngh.special_subgraphs_from_paths(routes)
     # csdp_ap.print_milp_constraints()
-    # if routes is not None:
-    #     ngh.draw_graph(special_nodes=[([3, 27, 12, 68, 63], None, 65), ([38, 55, 24], None, 65), ([6, 29, 78, 54], None, 65)],
-    #                    special_subgraphs=routes,
-    #                    title_1="MILP solution",
-    #                    title_2="Cost: %f" % cost,
-    #                    print_node_labels=True,
-    #                    print_edge_labels=False)
+    if routes is not None:
+        ngh.draw_graph(special_nodes=[([3, 27, 12, 68, 63], None, 65), ([38, 55, 24], None, 65), ([6, 29, 78, 54], None, 65)],
+                       special_subgraphs=ss,
+                       title_1="MILP solution",
+                       title_2="Cost: %f" % cost,
+                       print_node_labels=True,
+                       print_edge_labels=False)
         # ngh.draw_graph(
         #     special_nodes=[([3, 93], None, 65), ([6, 96], None, 65), ([1, 8, 91, 98], None, 65)],
         #     special_subgraphs=routes,
@@ -56,8 +57,9 @@ if __name__ == '__main__':
     # SP-based solution
     # ------------------------------------------------------------------------------------------------------------------
     routes, cost = csdp_ap.solve(requests, vehicles, method="SP-based", fraction_sd=.5)
+    ss = ngh.special_subgraphs_from_paths(routes)
     ngh.draw_graph(special_nodes=[([3, 27, 12, 68, 63], None, 65), ([38, 55, 24], None, 65), ([6, 29, 78, 54], None, 65)],
-                   special_subgraphs=routes,
+                   special_subgraphs=ss,
                    title_1="Sp-based solution",
                    title_2="Cost: %f" % cost,
                    print_node_labels=True,
