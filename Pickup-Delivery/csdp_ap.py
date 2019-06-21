@@ -70,7 +70,7 @@ class CsdpAp:
         # self._graph = Digraph(undirected=False)
         self._graph = Digraph()
         self._graph.append_from_graph(graph)
-        self._working_graph = Digraph(undirected=False)
+        self._working_graph = None
 
         self._drivers = list()
         self._ad_hoc_drivers = list()
@@ -91,23 +91,16 @@ class CsdpAp:
         # --------------------------------------------------------------------------------------------------------------
         self._shops = set()
         self._customers = set()
-        # self._shops_by_req = dict()
-        # self._customers_by_req = dict()
 
         self._shops_dict = dict()
         self._customers_dict = dict()
         self._shops_by_group_id = dict()
         self._customers_by_group_id = dict()
 
-        # self.N_cl_pl = dict()
-
         self.N = list()
         self.H_s = list()
         self.H_e = list()
-        # self.H = list()
         self.F_s = list()
-        self.F_e = list()
-        # self.F = list()
         self._shop_by_F = dict()
         self._Fs_by_shop = dict()
         self.D = list()
@@ -115,12 +108,19 @@ class CsdpAp:
         # --------------------------------------------------------------------------------------------------------------
         # MILP
         # --------------------------------------------------------------------------------------------------------------
-        self._solver = pywraplp.Solver("SolveIntegerProblem", pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
+        self._solver = None
         self.x = dict()
         self.B = dict()
         self.z = dict()
 
     def _define_arc_subsets(self):
+        self.A1 = list()
+        self.A2 = list()
+        self.A3 = list()
+        self.A4 = list()
+        self.A5 = list()
+        self.A6 = list()
+        self.A7 = list()
         # Arc subset A1: From each vehicle start location to each pick-up location.
         for i in self.H_s:
             for j in self._shops:
@@ -161,8 +161,8 @@ class CsdpAp:
             self.A7.append((i, j))
 
     def _build_working_graph(self):
-        # Build vertex and arc sets.
-        self._pre_process_requests_drivers()
+        self._working_graph = Digraph(undirected=False)
+        # Build arc sets.
         self._define_arc_subsets()
         # Build joint set of arcs and from it append edges to the working graph.
         A = list()
@@ -179,6 +179,9 @@ class CsdpAp:
             self._working_graph.append_edge_2((i, j), weight=self._graph.dist[tuple(sorted([i, j]))])
 
     def _define_vars(self):
+        self.x = dict()
+        self.B = dict()
+        self.z = dict()
         # --------------------------------------------------------------------------------------------------------------
         # Boolean variables associated with combinations of arcs and vehicles.
         # --------------------------------------------------------------------------------------------------------------
@@ -308,13 +311,14 @@ class CsdpAp:
                 if shop_start not in shops_customer:
                     continue
                 for j in self._customers_by_group_id[group_id]:
+                    coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(shop_start, j, (s_v, e_v))])
+                    constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(shop_start, j, (s_v, e_v))], coeff + 1.0)
+                for j in self._customers_by_group_id[group_id]:
                     if j != customer:
-                        coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(shop_start, j, (s_v, e_v))])
-                        constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(shop_start, j, (s_v, e_v))], coeff + 1.0)
                         coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(j, customer, (s_v, e_v))])
                         constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(j, customer, (s_v, e_v))], coeff - 1.0)
-                # coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(shop_start, customer, (s_v, e_v))])
-                # constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(shop_start, customer, (s_v, e_v))], coeff - 1.0)
+                coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(shop_start, customer, (s_v, e_v))])
+                constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(shop_start, customer, (s_v, e_v))], coeff - 1.0)
 
     def _define_flow_conservation_locations_constraints(self):
         K = len(self._drivers)
@@ -481,12 +485,14 @@ class CsdpAp:
         self._requests = requests
         self._drivers = list(drivers)
 
+        self._pre_process_requests_drivers()
+
         if method == 'MILP':
+            self._solver = pywraplp.Solver("SolveIntegerProblem", pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
             self._build_working_graph()
             return self._solve_milp(verbose)
 
         if method == 'SP-based':
-            self._pre_process_requests_drivers()
             return self._sp_based(partition_method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd,
                                   solve_partition_method=solve_partition_method)
 
@@ -542,14 +548,21 @@ class CsdpAp:
         # Populate data structures to answer queries as follows:
         # (a) customer -> group ID -> shops
         # (b) shop -> group ID -> shops
+        self._shops = set()
+        self._customers = set()
+        self._shops_dict = dict()
+        self._customers_dict = dict()
+        self._shops_by_group_id = dict()
+        self._customers_by_group_id = dict()
         for shops, customers in customers_by_shops.iteritems():
-            group_id = id_generator()
-            self._shops_by_group_id[group_id] = shops
-            self._customers_by_group_id[group_id] = customers
-            self._shops_dict.update({shop: group_id for shop in shops})
-            self._customers_dict.update({customer: group_id for customer in customers})
             self._shops.update(shops)
             self._customers.update(customers)
+            #
+            group_id = id_generator()
+            self._shops_dict.update({shop: group_id for shop in shops})
+            self._customers_dict.update({customer: group_id for customer in customers})
+            self._shops_by_group_id[group_id] = shops
+            self._customers_by_group_id[group_id] = customers
         # N+ (shops), N- (customers), N := N+ U N-
         self.N = list()
         self.N.extend(self._shops)
@@ -569,7 +582,6 @@ class CsdpAp:
         # Dedicated drivers -> F+: initial locations, F-: destinations
         # --------------------------------------------------------------------------------------------------------------
         self.F_s = list()
-        self.F_e = list()
         # Maps are created to identify which shop an auxiliary vertex refers to and vice versa.
         self._shop_by_F = dict()
         self._Fs_by_shop = dict()
@@ -577,10 +589,13 @@ class CsdpAp:
         # Create two auxiliary vertices for each shop: initial location and destination of a dedicated driver.
         # One driver is located at each shop.
         for shop in self._shops:
+            #
             start_v = self._graph.clone_node(shop)
             end_v = self._graph.clone_node(shop)
+            self._graph.append_edge_2(tuple(sorted([start_v, shop])), weight=0)
+            self._graph.append_edge_2(tuple(sorted([end_v, shop])), weight=0)
+            #
             self.F_s.append(start_v)
-            self.F_e.append(end_v)
             # Update list of DEDICATED drivers.
             self._dedicated_drivers.append((start_v, end_v))
             # Update list of drivers in general.
@@ -865,10 +880,12 @@ class CsdpAp:
 
     def _build_routes_milp(self):
         routes = list()
-        for (i, j, _), variable in self.x.iteritems():
+        for (i, j, (s_v, e_v)), variable in self.x.iteritems():
             if variable.solution_value():
+                print s_v, e_v
                 self._graph.compute_dist_paths([i], [j], recompute=True)
                 routes.append(self._graph.paths[tuple(sorted([i, j]))])
+        print routes
         return routes
 
     def print_milp_constraints(self):

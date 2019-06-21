@@ -75,14 +75,8 @@
             map.setCenter(new google.maps.LatLng(coords[0], coords[1]));
         }
 
-        var viewModel = {
-            // These are the initial options
-            availableMarkets: ko.observableArray(['France', 'Germany', 'Spain'])
-        };
-
-        // ... then later ...
-        viewModel.availableMarkets.push('China'); // Adds another option
-
+        
+		
         $(document).ready(function() {
             $('#accordion').accordion();
             $('body').layout({ applyDefaultStyles: true });
