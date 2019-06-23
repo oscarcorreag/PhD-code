@@ -51,7 +51,8 @@ if __name__ == '__main__':
     requests = [
         ([(3, 1, 300), (27, 1, 300)], (38, 1, 300)),
         ([(12, 1, 300), (68, 1, 300), (63, 1, 300)], (55, 1, 300)),
-        ([(3, 1, 300), (27, 1, 300)], (2, 1, 300))
+        ([(3, 1, 300), (27, 1, 300)], (2, 1, 300)),
+        ([(3, 1, 300), (27, 1, 300)], (24, 1, 300)),
     ]
     # vehicles = [
     #     ((6, 1, 300), (29, 1, 300)),
@@ -61,11 +62,12 @@ if __name__ == '__main__':
     # MILP
     # ------------------------------------------------------------------------------------------------------------------
     routes, cost = csdp_ap.solve(requests, vehicles)
+    # print routes
     ss = ngh.special_subgraphs_from_paths(routes)
-    csdp_ap.print_milp_constraints()
+    # csdp_ap.print_milp_constraints()
     if routes is not None:
         ngh.draw_graph(
-            special_nodes=[([3, 27, 12, 68, 63], None, 65), ([38, 55, 2], None, 65), ([6, 29, 78, 54], None, 65)],
+            special_nodes=[([3, 27, 12, 68, 63], None, 65), ([38, 55, 2, 24], None, 65), ([6, 29, 78, 54], None, 65)],
             special_subgraphs=ss,
             title_1="MILP solution",
             title_2="Cost: %f" % cost,

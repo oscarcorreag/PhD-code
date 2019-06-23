@@ -470,11 +470,15 @@ class Digraph(dict):
             inc = min(costs)
         return ecc, inc
 
-    '''
-    Compute Voronoi cells for a set of nodes and medoids as two dictionaries: (1) nodes by medoids, (2) medoids by node.
-    '''
-
     def get_voronoi_medoids_cells(self, medoids, nodes):
+        """
+        Compute Voronoi cells for a set of nodes and medoids as two dictionaries: (1) nodes by medoids, (2) medoids by
+        node.
+
+        :param medoids:
+        :param nodes:
+        :return:
+        """
         cells = {m: [] for m in medoids}    # Medoids are the keys and the nodes are the elements of the cell.
         generator_by_node = dict()          # Nodes are the keys and the value is its corresponding closest medoid.
         self.compute_dist_paths(origins=nodes, destinations=medoids, compute_paths=False)
@@ -829,71 +833,6 @@ class Digraph(dict):
                     priority_dict[w] = vw_length
         return distances
 
-    # def nodes_within_ellipse_opt(self, focal_1, focal_2, constant):
-    #
-    #     ellipse = dict()
-    #
-    #     distances = {focal_1: {}, focal_2: {}}
-    #     predecessors = {focal_1: {}, focal_2: {}}
-    #
-    #     priority_dict = PriorityDictionary()
-    #     priority_dict[(focal_1, focal_1)] = 0
-    #     priority_dict[(focal_2, focal_2)] = 0
-    #
-    #     iterations = 0
-    #     flag = False
-    #     discarded = set()
-    #     for focal, v in priority_dict:
-    #
-    #         iterations += 1
-    #
-    #         if priority_dict[(focal, v)] > constant:
-    #             break
-    #         # if not flag and priority_dict[(focal, v)] > constant / 2.:
-    #         #     for f, x in priority_dict.keys():
-    #         #         if predecessors[f][x] not in ellipse:
-    #         #             discarded.add((f, x))
-    #         #     flag = True
-    #
-    #         # if priority_dict[(focal, v)] > constant / 2.:
-    #         #     if predecessors[focal][v] not in ellipse:
-    #         #         continue
-    #
-    #         # if flag and (focal, v) in discarded:
-    #         #     continue
-    #
-    #         distances[focal][v] = priority_dict[(focal, v)]
-    #
-    #         other_focal = focal_1 if focal == focal_2 else focal_2
-    #         if v in distances[other_focal]:
-    #             if distances[focal][v] + distances[other_focal][v] <= constant:
-    #                 ellipse[v] = {focal: distances[focal][v],
-    #                               other_focal: distances[other_focal][v]
-    #                               }
-    #
-    #         # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
-    #         if not self.node_weighted:
-    #             adj_nodes = self[v]
-    #         else:
-    #             adj_nodes = self[v][1]
-    #
-    #         for w, dist in adj_nodes.iteritems():
-    #             vw_length = distances[focal][v] + dist
-    #             if w not in distances[focal]:
-    #                 if distances[focal][v] > constant / 2.:
-    #                     if predecessors[focal][v] in ellipse:
-    #                         if (focal, w) not in priority_dict or vw_length < priority_dict[(focal, w)]:
-    #                             priority_dict[(focal, w)] = vw_length
-    #                             predecessors[focal][w] = v
-    #                     elif (focal, w) in priority_dict and vw_length < priority_dict[(focal, w)]:
-    #                         priority_dict[(focal, w)] = vw_length
-    #                         predecessors[focal][w] = v
-    #                 elif (focal, w) not in priority_dict or vw_length < priority_dict[(focal, w)]:
-    #                     priority_dict[(focal, w)] = vw_length
-    #                     predecessors[focal][w] = v
-    #
-    #     return ellipse, iterations
-
     def nodes_within_ellipse(self, focal_1, focal_2, constant):
 
         ellipse = dict()
@@ -961,3 +900,25 @@ class Digraph(dict):
                 nodes_info = (self[node][2], self[w][2])
                 self.append_edge_2(new_node_w, dist, capacity, nodes_weights=nodes_weights, nodes_info=nodes_info)
         return new_node
+
+    def expand_contracted_path(self, contracted_path):
+        if len(contracted_path) == 0:
+            return list()
+        pairs = list()
+        for i in range(len(contracted_path) - 1):
+            v = contracted_path[i]
+            w = contracted_path[i + 1]
+            pairs.append((v, w))
+        self.compute_dist_paths(pairs=pairs)
+        expanded_path = [contracted_path[0]]
+        for i in range(len(contracted_path) - 1):
+            v = contracted_path[i]
+            w = contracted_path[i + 1]
+            if self.is_undirected():
+                path = self.paths[tuple(sorted([v, w]))]
+                if w == path[0]:
+                    path.reverse()
+            else:
+                path = self.paths[(v, w)]
+            expanded_path.extend(path[1:])
+        return expanded_path

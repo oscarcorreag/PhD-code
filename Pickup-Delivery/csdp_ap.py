@@ -1,3 +1,5 @@
+import operator
+
 from digraph import Digraph
 from ortools.linear_solver import pywraplp
 from utils import id_generator
@@ -209,7 +211,7 @@ class CsdpAp:
             for s_v, e_v in self._dedicated_drivers:
                 shop_start = self._shop_by_F[s_v]
                 group_shop = self._shops_dict[shop_start]
-                if self._customers_dict[i] ==  group_shop and self._customers_dict[j] == group_shop:
+                if self._customers_dict[i] == group_shop and self._customers_dict[j] == group_shop:
                     self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v))
         # These variables are defined over a subset of A6. Defining a x(i, j, k) for which j != k^- does not make sense.
         for i, j in self.A6:
@@ -289,36 +291,36 @@ class CsdpAp:
                         coeff = constraints[ord_].GetCoefficient(self.x[(i, customer, (s_v, e_v))])
                         constraints[ord_].SetCoefficient(self.x[(i, customer, (s_v, e_v))], coeff + 1.0)
 
-    def _define_same_driver_constraints(self):
-        K = len(self._drivers)
-        k_ = len(self._ad_hoc_drivers)
-        constraints = [0] * len(self._customers_dict) * K
-        for ord_, (customer, group_id) in enumerate(self._customers_dict.iteritems()):
-            shops_customer = self._shops_by_group_id[group_id]
-            for k, (s_v, e_v) in enumerate(self._ad_hoc_drivers):
-                constraints[ord_ * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
-                for i in shops_customer:
-                    for j in self._working_graph[i]:
-                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, j, (s_v, e_v))])
-                        constraints[ord_ * K + k].SetCoefficient(self.x[(i, j, (s_v, e_v))], coeff + 1.0)
-                for i in self.N:  # [N = (only possible) origins] TO customers.
-                    if i != customer:
-                        coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, customer, (s_v, e_v))])
-                        constraints[ord_ * K + k].SetCoefficient(self.x[(i, customer, (s_v, e_v))], coeff - 1.0)
-            for k, (s_v, e_v) in enumerate(self._dedicated_drivers):
-                constraints[ord_ * K + k_ + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
-                shop_start = self._shop_by_F[s_v]
-                if shop_start not in shops_customer:
-                    continue
-                for j in self._customers_by_group_id[group_id]:
-                    coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(shop_start, j, (s_v, e_v))])
-                    constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(shop_start, j, (s_v, e_v))], coeff + 1.0)
-                for j in self._customers_by_group_id[group_id]:
-                    if j != customer:
-                        coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(j, customer, (s_v, e_v))])
-                        constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(j, customer, (s_v, e_v))], coeff - 1.0)
-                coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(shop_start, customer, (s_v, e_v))])
-                constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(shop_start, customer, (s_v, e_v))], coeff - 1.0)
+    # def _define_same_driver_constraints(self):
+    #     K = len(self._drivers)
+    #     k_ = len(self._ad_hoc_drivers)
+    #     constraints = [0] * len(self._customers_dict) * K
+    #     for ord_, (customer, group_id) in enumerate(self._customers_dict.iteritems()):
+    #         shops_customer = self._shops_by_group_id[group_id]
+    #         for k, (s_v, e_v) in enumerate(self._ad_hoc_drivers):
+    #             constraints[ord_ * K + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
+    #             for i in shops_customer:
+    #                 for j in self._working_graph[i]:
+    #                     coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, j, (s_v, e_v))])
+    #                     constraints[ord_ * K + k].SetCoefficient(self.x[(i, j, (s_v, e_v))], coeff + 1.0)
+    #             for i in self.N:  # [N = (only possible) origins] TO customers.
+    #                 if i != customer:
+    #                     coeff = constraints[ord_ * K + k].GetCoefficient(self.x[(i, customer, (s_v, e_v))])
+    #                     constraints[ord_ * K + k].SetCoefficient(self.x[(i, customer, (s_v, e_v))], coeff - 1.0)
+    #         for k, (s_v, e_v) in enumerate(self._dedicated_drivers):
+    #             constraints[ord_ * K + k_ + k] = self._solver.Constraint(0.0, 0.0, str(self._solver.NumConstraints()))
+    #             shop_start = self._shop_by_F[s_v]
+    #             if shop_start not in shops_customer:
+    #                 continue
+    #             for j in self._customers_by_group_id[group_id]:
+    #                 coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(shop_start, j, (s_v, e_v))])
+    #                 constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(shop_start, j, (s_v, e_v))], coeff + 1.0)
+    #             for j in self._customers_by_group_id[group_id]:
+    #                 if j != customer:
+    #                     coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(j, customer, (s_v, e_v))])
+    #                     constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(j, customer, (s_v, e_v))], coeff - 1.0)
+    #             coeff = constraints[ord_ * K + k_ + k].GetCoefficient(self.x[(shop_start, customer, (s_v, e_v))])
+    #             constraints[ord_ * K + k_ + k].SetCoefficient(self.x[(shop_start, customer, (s_v, e_v))], coeff - 1.0)
 
     def _define_flow_conservation_locations_constraints(self):
         K = len(self._drivers)
@@ -463,6 +465,9 @@ class CsdpAp:
             constraints[cnt].SetCoefficient(self.B[(s_v, (s_v, e_v))], coeff - 1.0)
             cnt += 1
 
+    def _define_threshold_constraints(self):
+
+
     # def _define_time_window_constraints(self):
     #     constraints = [0] * len(self._working_graph)
     #     for ord_, (i, e, l) in enumerate(self._V_tws):
@@ -480,7 +485,7 @@ class CsdpAp:
         objective.SetMinimization()
 
     def solve(self, requests, drivers, method='MILP', verbose=False, partition_method='SP-fraction', fraction_sd=.5,
-              threshold_sd=1.5, solve_partition_method='BB'):
+              threshold_sd=None, solve_partition_method='BB'):
 
         self._requests = requests
         self._drivers = list(drivers)
@@ -502,14 +507,14 @@ class CsdpAp:
         # self._define_one_vehicle_one_pickup_constraints()
         self._define_ad_hoc_visits_at_most_one_shop_per_retailer_constraints()
         self._define_customer_served_by_one_driver_constraints()
-        self._define_same_driver_constraints()
+        # self._define_same_driver_constraints()
         self._define_flow_conservation_locations_constraints()
         self._define_flow_conservation_driver_constraints()
         self._define_time_consistency_constraints()
         self._define_precedence_constraints()
         # self._define_time_window_constraints()
 
-    def _solve_milp(self, verbose=False):
+    def _solve_milp(self, threshold_sd=None, verbose=False):
 
         self._define_milp()
         result_status = self._solver.Solve()
@@ -824,7 +829,8 @@ class CsdpAp:
                             for child in offspring:
                                 priority_queue[child] = child.dist_lb
                     if partial_path is not None:
-                        route = partial_path.transform_to_actual_path()
+                        # route = partial_path.transform_to_actual_path()
+                        route = self._graph.expand_contracted_path(partial_path.path)
                         cost = partial_path.dist
         else:
             raise NotImplementedError
@@ -837,7 +843,7 @@ class CsdpAp:
         # Explore from each intermediate vertex in the path up to [dist] * [fraction_sd]
         # Find shops and customers within those explored regions.
         regions = {}  # Customers and shops by intermediate vertex.
-        shops_region_revised = dict()
+        # shops_region_revised = dict()
         for i, vertex in enumerate(path):
             # Explore graph from each intermediate vertex in driver's shortest path until 1/2 shortest distance.
             region = self._graph.explore_upto(vertex, dist * fraction_sd)
@@ -846,46 +852,68 @@ class CsdpAp:
             customers_region = customers.intersection(region.keys())
             # Which shops are in this region?
             shops_region = self._shops.intersection(region.keys())
-            # Which of those customers can be attended?
-            # They are going to be the ones who have at least one of their preferred shops within the same region or
-            # within a previous region.
-            customers_region_revised = set()
-            shops_region_revised[vertex] = set()
-            for customer_region in customers_region:
-                shops_customer = self._shops_by_group_id[self._customers_dict[customer_region]]
-                # Check within this region.
-                temp = shops_region.intersection(shops_customer)
-                if temp:
-                    customers_region_revised.add(customer_region)
-                    shops_region_revised[vertex].update(temp)
-                # else:  # Otherwise, check in previous regions.
-                # Check in previous regions, too.
-                for j in range(i - 1, -1, -1):
-                    previous_vertex = path[j]
-                    shops_past_region = regions[previous_vertex]['shops']
-                    temp = shops_past_region.intersection(shops_customer)
-                    if temp:
-                        customers_region_revised.add(customer_region)
-                        shops_region_revised[previous_vertex].update(temp)
-                        # A break would've been efficient but it incorrectly could prevent shops in previous
-                        # regions to be included in the search space. Of course, the inclusion of the customer
-                        # into the set is not needed but luckily nothing happens as it is a set.
-            # Gather customers and shops and classify them by intermediate vertex.
-            regions[vertex] = {'customers': customers_region_revised, 'shops': shops_region}
-        # Update regions with shops that may serve customers, i.e., there might be shops within regions that are not
-        # used at all.
-        for vertex in path:
-            regions[vertex]['shops'] = shops_region_revised[vertex]
+            # # Which of those customers can be attended?
+            # # They are going to be the ones who have at least one of their preferred shops within the same region or
+            # # within a previous region.
+            # customers_region_revised = set()
+            # shops_region_revised[vertex] = set()
+            # for customer_region in customers_region:
+            #     shops_customer = self._shops_by_group_id[self._customers_dict[customer_region]]
+            #     # Check within this region.
+            #     temp = shops_region.intersection(shops_customer)
+            #     if temp:
+            #         customers_region_revised.add(customer_region)
+            #         shops_region_revised[vertex].update(temp)
+            #     # else:  # Otherwise, check in previous regions.
+            #     # Check in previous regions, too.
+            #     for j in range(i - 1, -1, -1):
+            #         previous_vertex = path[j]
+            #         shops_past_region = regions[previous_vertex]['shops']
+            #         temp = shops_past_region.intersection(shops_customer)
+            #         if temp:
+            #             customers_region_revised.add(customer_region)
+            #             shops_region_revised[previous_vertex].update(temp)
+            #             # A break would've been efficient but it incorrectly could prevent shops in previous
+            #             # regions to be included in the search space. Of course, the inclusion of the customer
+            #             # into the set is not needed but luckily nothing happens as it is a set.
+            # # Gather customers and shops and classify them by intermediate vertex.
+            # regions[vertex] = {'customers': customers_region_revised, 'shops': shops_region}
+            regions[vertex] = {'customers': customers_region, 'shops': shops_region}
+        # # Update regions with shops that may serve customers, i.e., there might be shops within regions that are not
+        # # used at all.
+        # for vertex in path:
+        #     regions[vertex]['shops'] = shops_region_revised[vertex]
         return regions
 
     def _build_routes_milp(self):
         routes = list()
+        #
+        routes_by_driver_1 = dict()
         for (i, j, (s_v, e_v)), variable in self.x.iteritems():
             if variable.solution_value():
-                print s_v, e_v
-                self._graph.compute_dist_paths([i], [j], recompute=True)
-                routes.append(self._graph.paths[tuple(sorted([i, j]))])
-        print routes
+                try:
+                    routes_by_driver_1[(s_v, e_v)][i] = self.B[i, (s_v, e_v)].solution_value()
+                except KeyError:
+                    routes_by_driver_1[(s_v, e_v)] = {i: self.B[i, (s_v, e_v)].solution_value()}
+                try:
+                    routes_by_driver_1[(s_v, e_v)][j] = self.B[j, (s_v, e_v)].solution_value()
+                except KeyError:
+                    routes_by_driver_1[(s_v, e_v)] = {j: self.B[j, (s_v, e_v)].solution_value()}
+        #
+        routes_by_driver_2 = dict()
+        for driver, subroute in routes_by_driver_1.iteritems():
+            routes_by_driver_2[driver] = list()
+            sorted_subroute = sorted(subroute.items(), key=operator.itemgetter(1))
+            for var_val in sorted_subroute:
+                vertex = var_val[0]
+                if vertex in self._shop_by_F:
+                    vertex = self._shop_by_F[vertex]
+                routes_by_driver_2[driver].append(vertex)
+            # print sorted_subroute
+        for route in routes_by_driver_2.values():
+            routes.append(self._graph.expand_contracted_path(route))
+        # self._graph.compute_dist_paths([i], [j], recompute=True)
+        # routes.append(self._graph.paths[tuple(sorted([i, j]))])
         return routes
 
     def print_milp_constraints(self):
@@ -1190,19 +1218,19 @@ class PartialPath:
         from_.update(self.customers)
         return from_
 
-    def transform_to_actual_path(self):
-        pairs = list()
-        for i in range(len(self.path) - 1):
-            v = self.path[i]
-            w = self.path[i + 1]
-            pairs.append((v, w))
-        PartialPath._graph.compute_dist_paths(pairs=pairs, recompute=True)
-        actual_path = [PartialPath._origin]
-        for i in range(len(self.path) - 1):
-            v = self.path[i]
-            w = self.path[i + 1]
-            path = PartialPath._graph.paths[tuple(sorted([v, w]))]
-            if w == path[0]:
-                path.reverse()
-            actual_path.extend(path[1:])
-        return actual_path
+    # def transform_to_actual_path(self):
+    #     pairs = list()
+    #     for i in range(len(self.path) - 1):
+    #         v = self.path[i]
+    #         w = self.path[i + 1]
+    #         pairs.append((v, w))
+    #     PartialPath._graph.compute_dist_paths(pairs=pairs, recompute=True)
+    #     actual_path = [PartialPath._origin]
+    #     for i in range(len(self.path) - 1):
+    #         v = self.path[i]
+    #         w = self.path[i + 1]
+    #         path = PartialPath._graph.paths[tuple(sorted([v, w]))]
+    #         if w == path[0]:
+    #             path.reverse()
+    #         actual_path.extend(path[1:])
+    #     return actual_path
