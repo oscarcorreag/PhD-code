@@ -112,6 +112,7 @@ class CsdpAp:
         # --------------------------------------------------------------------------------------------------------------
         self._solver = None
         self.x = dict()
+        self.xs_by_driver = dict()
         self.B = dict()
         self.z = dict()
 
@@ -182,6 +183,7 @@ class CsdpAp:
 
     def _define_vars(self):
         self.x = dict()
+        self.xs_by_driver = dict()
         self.B = dict()
         self.z = dict()
         # --------------------------------------------------------------------------------------------------------------
@@ -258,6 +260,10 @@ class CsdpAp:
         for i, j, (s_v, e_v) in self.x:
             self.z[(i, j, (s_v, e_v))] = \
                 self._solver.NumVar(0.0, self._solver.infinity(), 'z(%s, %s, (%s, %s))' % (i, j, s_v, e_v))
+            try:
+                self.xs_by_driver[(s_v, e_v)].append((i, j, self.x[(i, j, (s_v, e_v))]))
+            except KeyError:
+                self.xs_by_driver[(s_v, e_v)] = [(i, j, self.x[(i, j, (s_v, e_v))])]
 
     def _define_ad_hoc_visits_at_most_one_shop_per_retailer_constraints(self):
         K = len(self._ad_hoc_drivers)
@@ -465,8 +471,18 @@ class CsdpAp:
             constraints[cnt].SetCoefficient(self.B[(s_v, (s_v, e_v))], coeff - 1.0)
             cnt += 1
 
-    def _define_threshold_constraints(self):
-
+    def _define_threshold_constraints(self, threshold_sd=1.5):
+        pairs = list()
+        for s_v, e_v in self._ad_hoc_drivers:
+            pairs.append((s_v, e_v))
+        self._graph.compute_dist_paths(pairs=pairs, compute_paths=False)
+        constraints = [0] * len(self._ad_hoc_drivers)
+        for k, (s_v, e_v) in enumerate(self._ad_hoc_drivers):
+            thr = self._graph.dist[tuple(sorted([s_v, e_v]))] * threshold_sd
+            constraints[k] = self._solver.Constraint(0.0, thr, str(self._solver.NumConstraints()))
+            for i, j, x in self.xs_by_driver[(s_v, e_v)]:
+                coeff = constraints[k].GetCoefficient(x)
+                constraints[k].SetCoefficient(x, coeff + self._working_graph[i][j])
 
     # def _define_time_window_constraints(self):
     #     constraints = [0] * len(self._working_graph)
@@ -485,38 +501,38 @@ class CsdpAp:
         objective.SetMinimization()
 
     def solve(self, requests, drivers, method='MILP', verbose=False, partition_method='SP-fraction', fraction_sd=.5,
-              threshold_sd=None, solve_partition_method='BB'):
+              threshold_sd=1.5, solve_partition_method='BB'):
 
         self._requests = requests
         self._drivers = list(drivers)
 
         self._pre_process_requests_drivers()
 
-        if method == 'MILP':
+        if method == 'MILP' or method == 'MILP-threshold':
             self._solver = pywraplp.Solver("SolveIntegerProblem", pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
             self._build_working_graph()
-            return self._solve_milp(verbose)
+            return self._solve_milp(method, threshold_sd, verbose)
 
         if method == 'SP-based':
             return self._sp_based(partition_method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd,
                                   solve_partition_method=solve_partition_method)
 
-    def _define_milp(self):
+    def _define_milp(self, method='MILP', threshold_sd=1.5):
         self._define_vars()
         self._define_objective()
-        # self._define_one_vehicle_one_pickup_constraints()
         self._define_ad_hoc_visits_at_most_one_shop_per_retailer_constraints()
         self._define_customer_served_by_one_driver_constraints()
-        # self._define_same_driver_constraints()
         self._define_flow_conservation_locations_constraints()
         self._define_flow_conservation_driver_constraints()
         self._define_time_consistency_constraints()
         self._define_precedence_constraints()
+        if method == 'MILP-threshold':
+            self._define_threshold_constraints(threshold_sd)
         # self._define_time_window_constraints()
 
-    def _solve_milp(self, threshold_sd=None, verbose=False):
+    def _solve_milp(self, method='MILP', threshold_sd=1.5, verbose=False):
 
-        self._define_milp()
+        self._define_milp(method, threshold_sd)
         result_status = self._solver.Solve()
         # The problem has an optimal solution.
         # assert result_status == pywraplp.Solver.OPTIMAL

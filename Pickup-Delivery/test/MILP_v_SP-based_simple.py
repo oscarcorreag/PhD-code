@@ -54,14 +54,25 @@ if __name__ == '__main__':
         ([(3, 1, 300), (27, 1, 300)], (2, 1, 300)),
         ([(3, 1, 300), (27, 1, 300)], (24, 1, 300)),
     ]
-    # vehicles = [
-    #     ((6, 1, 300), (29, 1, 300)),
-    #     ((78, 1, 300), (54, 1, 300))
-    # ]
     # ------------------------------------------------------------------------------------------------------------------
     # MILP
     # ------------------------------------------------------------------------------------------------------------------
     routes, cost = csdp_ap.solve(requests, vehicles)
+    # print routes
+    ss = ngh.special_subgraphs_from_paths(routes)
+    # csdp_ap.print_milp_constraints()
+    if routes is not None:
+        ngh.draw_graph(
+            special_nodes=[([3, 27, 12, 68, 63], None, 65), ([38, 55, 2, 24], None, 65), ([6, 29, 78, 54], None, 65)],
+            special_subgraphs=ss,
+            title_1="MILP solution",
+            title_2="Cost: %f" % cost,
+            print_node_labels=True,
+            print_edge_labels=False)
+    # ------------------------------------------------------------------------------------------------------------------
+    # MILP-threshold = 1.5
+    # ------------------------------------------------------------------------------------------------------------------
+    routes, cost = csdp_ap.solve(requests, vehicles, method='MILP-threshold')
     # print routes
     ss = ngh.special_subgraphs_from_paths(routes)
     # csdp_ap.print_milp_constraints()
