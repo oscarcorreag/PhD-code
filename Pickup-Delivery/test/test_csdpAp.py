@@ -19,20 +19,24 @@ class TestCsdpAp(TestCase):
             ([(718, 1, 300)], (576, 1, 300)),
         ]
         #
-        vs = [((549, 1, 300), (535, 1, 300))]
+        ds = [((549, 1, 300), (535, 1, 300))]
         # --------------------------------------------------------------------------------------------------------------
         # MILP
         # --------------------------------------------------------------------------------------------------------------
-        routes, cost = csdp_ap.solve(rs, vs)
-        self.assertAlmostEqual(cost, 15.398041333334774, 2)
+        routes, cost = csdp_ap.solve(rs, ds)
+        self.assertAlmostEqual(cost, 27.970369551096667, 2)
         self.assertListEqual(routes,
-                             [[549, 548, 547, 546, 545, 575, 574, 573, 603, 573, 574, 575, 576, 546, 547, 517, 518, 519,
-                               489, 459, 429, 399, 398, 399, 400, 401, 371, 372, 373, 374, 375, 376, 406, 407, 377, 378,
-                               379, 380, 381, 411, 412, 413, 414, 415, 445, 444, 474, 504, 534, 535]])
+                             [[549, 579, 580, 581, 582, 583, 584, 585, 586, 616, 617, 618, 619, 620, 590, 591, 592, 622,
+                               623, 653, 654, 655, 625, 626, 627, 657, 658, 659, 689, 719, 718, 719, 689, 659, 658, 657,
+                               627, 626, 625, 655, 654, 653, 623, 622, 592, 591, 590, 620, 619, 618, 617, 616, 586, 585,
+                               584, 583, 582, 581, 580, 579, 578, 577, 576, 575, 574, 573, 603, 573, 574, 575, 545, 546,
+                               547, 517, 518, 519, 489, 459, 429, 399, 398, 399, 400, 401, 371, 372, 373, 374, 375, 376,
+                               406, 407, 377, 378, 379, 380, 381, 411, 412, 413, 414, 415, 445, 444, 474, 504, 534,
+                               535]])
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition='SP-fraction' -> fraction_sd=0.5
         # --------------------------------------------------------------------------------------------------------------
-        routes, cost = csdp_ap.solve(rs, vs, method='SP-based', fraction_sd=0.5)
+        routes, cost = csdp_ap.solve(rs, ds, method='SP-based', fraction_sd=0.5)
         self.assertAlmostEqual(cost, 30.133139017410407, 2)
         self.assertListEqual(routes,
                              [[549, 579, 580, 581, 582, 583, 584, 585, 586, 616, 617, 618, 619, 620, 590, 591, 592, 622,
@@ -46,7 +50,7 @@ class TestCsdpAp(TestCase):
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition='SP-Voronoi'
         # --------------------------------------------------------------------------------------------------------------
-        routes, cost = csdp_ap.solve(rs, vs, method='SP-based', partition_method='SP-Voronoi')
+        routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-Voronoi')
         self.assertAlmostEquals(cost, 27.970369551096667, 2)
         self.assertListEqual(routes,
                              [[549, 579, 580, 581, 582, 583, 584, 585, 586, 616, 617, 618, 619, 620, 590, 591, 592, 622,
@@ -61,49 +65,49 @@ class TestCsdpAp(TestCase):
         # RANDOM REQUESTS
         # --------------------------------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
-        rs, ss, cs, vs = sample(nc=10, ng=3, min_s=5, max_s=10, nv=4, vertices=graph.keys(), seed=0)
+        rs, ss, cs, ds = sample(nc=10, ng=3, min_s=5, max_s=10, nv=4, vertices=graph.keys(), seed=0)
         # --------------------------------------------------------------------------------------------------------------
         # MILP
         # --------------------------------------------------------------------------------------------------------------
-        _, cost = csdp_ap.solve(rs, vs)
+        _, cost = csdp_ap.solve(rs, ds)
         self.assertAlmostEquals(cost, 36.70533857636814, 2)
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition='SP-fraction' -> fraction_sd=0.5
         # --------------------------------------------------------------------------------------------------------------
-        _, cost = csdp_ap.solve(rs, vs, method='SP-based', fraction_sd=0.5)
+        _, cost = csdp_ap.solve(rs, ds, method='SP-based', fraction_sd=0.5)
         self.assertAlmostEquals(cost, 41.645754611406204, 2)
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition='SP-Voronoi'
         # --------------------------------------------------------------------------------------------------------------
-        _, cost = csdp_ap.solve(rs, vs, method='SP-based', partition_method='SP-Voronoi')
+        _, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-Voronoi')
         self.assertAlmostEquals(cost, 63.13778937426519, 2)
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition='SP-threshold' -> threshold_sd=1.5
         # --------------------------------------------------------------------------------------------------------------
-        _, cost = csdp_ap.solve(rs, vs, method='SP-based', partition_method='SP-threshold')
+        _, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold')
         self.assertAlmostEquals(cost, 55.132556063790524, 2)
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition='SP-threshold' -> threshold_sd=1.6
         # --------------------------------------------------------------------------------------------------------------
-        _, cost = csdp_ap.solve(rs, vs, method='SP-based', partition_method='SP-threshold', threshold_sd=1.6)
+        _, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold', threshold_sd=1.6)
         self.assertAlmostEquals(cost, 51.19801933262737, 2)
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition='SP-threshold' -> threshold_sd=1.7
         # --------------------------------------------------------------------------------------------------------------
-        _, cost = csdp_ap.solve(rs, vs, method='SP-based', partition_method='SP-threshold', threshold_sd=1.7)
+        _, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold', threshold_sd=1.7)
         self.assertAlmostEquals(cost, 51.19801933262737, 2)
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition='SP-threshold' -> threshold_sd=1.8
         # --------------------------------------------------------------------------------------------------------------
-        _, cost = csdp_ap.solve(rs, vs, method='SP-based', partition_method='SP-threshold', threshold_sd=1.8)
+        _, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold', threshold_sd=1.8)
         self.assertAlmostEquals(cost, 51.19801933262737, 2)
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition='SP-threshold' -> threshold_sd=1.9
         # --------------------------------------------------------------------------------------------------------------
-        _, cost = csdp_ap.solve(rs, vs, method='SP-based', partition_method='SP-threshold', threshold_sd=1.9)
+        _, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold', threshold_sd=1.9)
         self.assertAlmostEquals(cost, 53.99520740933061, 2)
         # --------------------------------------------------------------------------------------------------------------
         # SP-based -> Partition='SP-threshold' -> threshold_sd=2.0
         # --------------------------------------------------------------------------------------------------------------
-        _, cost = csdp_ap.solve(rs, vs, method='SP-based', partition_method='SP-threshold', threshold_sd=2.0)
+        _, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold', threshold_sd=2.0)
         self.assertAlmostEquals(cost, 56.4207354108783, 2)

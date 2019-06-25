@@ -51,6 +51,7 @@ class NetworkXGraphHelper:
 
         # Spectral layout looks better for grid graphs.
         self.pos = nx.spectral_layout(self.__graph_x)
+        # self.pos = nx.kamada_kawai_layout(self.__graph_x)
 
     '''
     '''
