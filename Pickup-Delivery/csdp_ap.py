@@ -1096,6 +1096,7 @@ class PartialPath:
     # Graph distances may be updated by an instance which in turn may benefit others.
     _graph = Digraph()
     _shops_dict = dict()  # Shop with corresponding group ID.
+    _custs_dict = dict()
     _shops_by_group_id = dict()  # Group ID with corresponding shops.
     _customers_by_group_id = dict()  # Group ID with corresponding customers.
     _shops_set = set()
@@ -1125,37 +1126,44 @@ class PartialPath:
         :return:
         """
         PartialPath._graph = graph
-        PartialPath._shops_dict = shops_dict
+        # PartialPath._shops_dict = shops_dict
         PartialPath._origin = origin
         PartialPath._destination = destination
         PartialPath._threshold = threshold
 
+        PartialPath._groups_set = set(shops_dict.values()).intersection(customers_dict.values())
+        PartialPath._shops_dict = \
+            {shop: g_id for shop, g_id in shops_dict.iteritems() if g_id in PartialPath._groups_set}
+        PartialPath._custs_dict = \
+            {cust: g_id for cust, g_id in customers_dict.iteritems() if g_id in PartialPath._groups_set}
+
+        PartialPath._shops_set = set(PartialPath._shops_dict.keys())
+        PartialPath._customers_set = set(PartialPath._custs_dict.keys())
+
         # Populate auxiliary shops and customers dictionaries indexed by group ID.
         PartialPath._shops_by_group_id = dict()
-        PartialPath._customers_by_group_id = dict()
-        for shop, group_id in shops_dict.iteritems():
+        # for shop, group_id in shops_dict.iteritems():
+        for shop, group_id in PartialPath._shops_dict.iteritems():
             try:
                 PartialPath._shops_by_group_id[group_id].add(shop)
             except KeyError:
                 PartialPath._shops_by_group_id[group_id] = {shop}
+        #
+        PartialPath._customers_by_group_id = dict()
         for customer, group_id in customers_dict.iteritems():
+            if group_id not in PartialPath._groups_set:
+                continue
             try:
                 PartialPath._customers_by_group_id[group_id].add(customer)
             except KeyError:
                 PartialPath._customers_by_group_id[group_id] = {customer}
-
-        # Populate shops, customers and groups sets for faster search.
-        PartialPath._shops_set = set(shops_dict.keys())
-        PartialPath._customers_set = set(customers_dict.keys())
-        PartialPath._groups_set = \
-            set(PartialPath._shops_by_group_id.keys()).intersection(PartialPath._customers_by_group_id.keys())
 
         # Create the initial paths. There is more than one tree in the branch and bound optimization process since the
         # pickup points are mutually exclusive within each group. Therefore, there are as many trees as the sum over all
         # shops where, for each shop, the number of trees is the number of combinations of shops from different groups.
         initial_paths = []
         # The initial paths all start from the origin and go to a shop.
-        for shop, group_id in shops_dict.iteritems():
+        for shop, group_id in PartialPath._shops_dict.iteritems():
             # For each shop, the shops from the other groups are retrieved as we need the combinations of them.
             other_group_ids = PartialPath._groups_set.difference([group_id])
             other_groups = [PartialPath._shops_by_group_id[gi] for gi in other_group_ids]
@@ -1164,7 +1172,7 @@ class PartialPath:
             # Create the initial paths as such. Each path starts with the origin. The next vertex in the path is the
             # current shop.
             for comb_shops in combs_shops:
-                path = PartialPath([PartialPath._origin], 0, comb_shops, customers_dict.keys())
+                path = PartialPath([PartialPath._origin], 0, comb_shops, PartialPath._custs_dict.keys())
                 path._append_vertex(shop)
                 initial_paths.append(path)
         return initial_paths
