@@ -170,6 +170,10 @@ class Digraph(dict):
                     v_w = tuple(sorted([v, w]))
                 else:
                     v_w = (v, w)
+                if self.is_undirected():
+                    my_v_w = tuple(sorted([v, w]))
+                else:
+                    my_v_w = (v, w)
                 weight = source_graph.get_edges()[v_w]
                 capacity = 0
                 if source_graph.is_capacitated():
@@ -177,9 +181,9 @@ class Digraph(dict):
                 if source_graph.is_node_weighted():
                     nodes_weights = (source_graph[v][0], source_graph[w][0])
                     nodes_info = (source_graph[v][2], source_graph[w][2])
-                    self.append_edge_2(v_w, weight, capacity, nodes_weights=nodes_weights, nodes_info=nodes_info)
+                    self.append_edge_2(my_v_w, weight, capacity, nodes_weights=nodes_weights, nodes_info=nodes_info)
                 else:
-                    self.append_edge_2(v_w, weight, capacity)
+                    self.append_edge_2(my_v_w, weight, capacity)
 
     def append_from_graph(self, source_graph):
         source_weighted = source_graph.is_node_weighted()
@@ -274,19 +278,29 @@ class Digraph(dict):
         #
         return new_graph
 
-    def calculate_costs(self, excluded_nodes=None, compute_node_cost=False):
-        cost = 0
-        node_cost = 0
-        for v in self:
-            if self.node_weighted:
-                if compute_node_cost:
-                    if excluded_nodes is None or v not in excluded_nodes:
-                        node_cost += self[v][0]
-                cost += sum(self[v][1].values())
-            else:
-                cost += sum(self[v].values())
-        cost = cost / 2. + node_cost  # Divided by two since it is digraph.
-        return cost, node_cost
+    def compute_total_weights(self, excluded_nodes=None, compute_node_cost=False):
+        vertices = set()
+        total_weight_edges = 0
+        for (v, w), edge_weight in self.__edges.iteritems():
+            vertices.update([v, w])
+            total_weight_edges += edge_weight
+        vertices = vertices.intersection(excluded_nodes if excluded_nodes else [])
+        total_weight_nodes = 0
+        if compute_node_cost and self.is_node_weighted():
+            for v in vertices:
+                total_weight_nodes += self[v][0]
+        # cost = 0
+        # node_cost = 0
+        # for v in self:
+        #     if self.node_weighted:
+        #         if compute_node_cost:
+        #             if excluded_nodes is None or v not in excluded_nodes:
+        #                 node_cost += self[v][0]
+        #         cost += sum(self[v][1].values())
+        #     else:
+        #         cost += sum(self[v].values())
+        # cost = cost / 2. + node_cost  # Divided by two since it is digraph.
+        return total_weight_edges, total_weight_nodes
 
     def extract_node_induced_subgraph(self, nodes):
         subgraph = Digraph()
@@ -463,7 +477,7 @@ class Digraph(dict):
         costs = []
         for terminals in powerset_n_terminals:
             st = mst_alg.steiner_tree(terminals)
-            cost, _ = st.calculate_costs(terminals)
+            cost, _ = st.compute_total_weights(terminals)
             costs.append(cost)
         if len(costs) > 0:
             ecc = max(costs)

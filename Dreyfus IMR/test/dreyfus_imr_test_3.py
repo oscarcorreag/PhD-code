@@ -28,7 +28,7 @@ if __name__ == '__main__':
     dr = DreyfusIMR(suitability_graph, terminals, contract_graph=contract_graph, within_convex_hull=within_convex_hull)
     steiner_tree = dr.steiner_tree(consider_terminals=consider_terminals)
 
-    cost, node_cost = steiner_tree.calculate_costs(terminals)
+    cost, node_cost = steiner_tree.compute_total_weights(terminals)
 
     print(steiner_tree)
     print(cost, node_cost)

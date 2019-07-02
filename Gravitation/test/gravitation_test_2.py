@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     term_poi = [t for t in terminals]
     term_poi.append(poi)
-    cost, node_cost = steiner_tree.calculate_costs(term_poi)
+    cost, node_cost = steiner_tree.compute_total_weights(term_poi)
 
     ngh = NetworkXGraphHelper(suitability_graph)
     ngh.draw_graph(nodes_1=terminals,

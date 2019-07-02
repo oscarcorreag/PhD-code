@@ -55,7 +55,7 @@ class Charikar:
         return T
 
     def d(self, T):
-        cost, _ = T.calculate_costs(self.__root_term)
+        cost, _ = T.compute_total_weights(self.__root_term)
         k = len(set(T.keys()).intersection(self.__terminals))
         density = sys.maxint
         if k > 0:

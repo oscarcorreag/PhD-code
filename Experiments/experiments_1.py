@@ -53,7 +53,7 @@ if __name__ == '__main__':
                         steiner_tree, _ = alg.steiner_tree()
                         line.append(time.clock() - start_time)
 
-                        cost, node_cost = steiner_tree.calculate_costs(terminals)
+                        cost, node_cost = steiner_tree.compute_total_weights(terminals)
                         line.append(cost - node_cost)
 
                         steiner_tree.__class__ = SuitabilityDigraph

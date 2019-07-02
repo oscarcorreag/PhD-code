@@ -12,7 +12,7 @@ if __name__ == '__main__':
     rs = RaywardSmith(graph, terminals)
     # steiner_tree, cost, best_nodes = rs.steiner_tree()
     rs_st = rs.steiner_tree()
-    rs_cost, node_cost = rs_st.calculate_costs(terminals)
+    rs_cost, node_cost = rs_st.compute_total_weights(terminals)
 
     ngh = NetworkXGraphHelper(graph)
     ngh.draw_graph(special_nodes=[(terminals, None, None)],

@@ -22,7 +22,7 @@ if __name__ == '__main__':
     p = Prim(node_weighted)
     spanning_tree = p.spanning_tree()
 
-    cost, node_cost = spanning_tree.calculate_costs()
+    cost, node_cost = spanning_tree.compute_total_weights()
 
     ngh = NetworkXGraphHelper(node_weighted)
     ngh.draw_graph(subgraphs_2=[spanning_tree],

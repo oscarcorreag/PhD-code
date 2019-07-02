@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
     kr = KleinRavi(node_weighted, terminals)
     kr_st = kr.steiner_tree()
-    kr_cost, node_cost = kr_st.calculate_costs(terminals)
+    kr_cost, node_cost = kr_st.compute_total_weights(terminals)
 
     ngh = NetworkXGraphHelper(node_weighted)
     ngh.draw_graph(special_nodes=[(terminals, "#0000FF", None)],

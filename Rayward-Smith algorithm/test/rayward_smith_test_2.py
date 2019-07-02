@@ -37,7 +37,7 @@ if __name__ == '__main__':
     steiner_tree = suitability_graph.build_subgraph_from_metric_closure(st)
     elapsed_time = time.clock() - start_time
 
-    cost, node_cost = steiner_tree.calculate_costs(terminals)
+    cost, node_cost = steiner_tree.compute_total_weights(terminals)
 
     ngh = NetworkXGraphHelper(suitability_graph)
     ngh.draw_graph(nodes_2=terminals,

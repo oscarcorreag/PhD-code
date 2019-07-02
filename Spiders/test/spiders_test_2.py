@@ -16,6 +16,6 @@ if __name__ == '__main__':
     s = Spiders(suitability_graph, terminals[1:], terminals[0], contract_graph=False)
     s_st, meeting_nodes = s.steiner_tree()
 
-    cost, node_cost = s_st.calculate_costs(terminals)
+    cost, node_cost = s_st.compute_total_weights(terminals)
 
     print(cost, node_cost)

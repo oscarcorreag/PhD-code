@@ -136,7 +136,7 @@ class DreyfusIMRV2:
                                     dr = DreyfusIMR(self.__graph.contracted_regions[j][0], terminals=[n1, n2, n3],
                                                     contract_graph=False)
                                     st = dr.steiner_tree()
-                                    d1, _ = st.calculate_costs()
+                                    d1, _ = st.compute_total_weights()
                                     # # Use the medoid to compute the internal distance.
                                     # if self.__use_medoid:
                                     #     medoid = self.__graph.contracted_regions[j][4]
@@ -209,7 +209,7 @@ class DreyfusIMRV2:
                         n3 = dropped_edges[e_n_3]
                         dr = DreyfusIMR(self.__graph.contracted_regions[j][0], terminals=[n1, n2, n3], contract_graph=False)
                         st = dr.steiner_tree()
-                        d1, _ = st.calculate_costs()
+                        d1, _ = st.compute_total_weights()
                         # Use the medoid to compute the internal distance.
                         # if self.__use_medoid:
                         #     medoid = self.__graph.contracted_regions[j][4]

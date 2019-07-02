@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
     term_poi = [t for t in terminals]
     term_poi.append(poi)
-    cost, node_cost = c_st.calculate_costs(term_poi)
+    cost, node_cost = c_st.compute_total_weights(term_poi)
 
     # legend = [str(counter + 1) + ". imp->" + str(mn[0]) + " for: " + str(mn[1]) for counter, mn in
     #           enumerate(meeting_nodes)]
