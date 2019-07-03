@@ -17,6 +17,7 @@ def generate_graph(results, generator, cost_type="distance", capacitated=False):
         node_id = r[1]
         type_ = r[3]
         stype = r[4]
+        poi_name = r[5]
         lat = float(r[6])
         lon = float(r[7])
         sa1_code = r[8]
@@ -31,7 +32,8 @@ def generate_graph(results, generator, cost_type="distance", capacitated=False):
                 if type_ == "poi":
                     pois.add(node_id)
                 graph[node_id] = (generator.weights["WARNING"][0], {}, {'lat': lat, 'lon': lon, 'sa1': sa1_code,
-                                                                        'sa2': sa2_code, 'subtype': stype})
+                                                                        'sa2': sa2_code, 'subtype': stype,
+                                                                        'name': poi_name})
         if prev_way_id == way_id:
             prev_lat = graph[prev_node_id][2]['lat']
             prev_lon = graph[prev_node_id][2]['lon']
