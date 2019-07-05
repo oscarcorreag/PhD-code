@@ -898,6 +898,8 @@ class Digraph(dict):
         else:
             adj_nodes = self[node][1]
         for w, dist in adj_nodes.iteritems():
+            if w == node:
+                continue
             if self.is_undirected():
                 node_w = tuple(sorted([node, w]))
                 new_node_w = tuple(sorted([new_node, w]))
