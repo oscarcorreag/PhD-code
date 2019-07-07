@@ -1,4 +1,4 @@
-import numpy as np
+import operator
 
 from osmmanager import OsmManager
 from suitability import SuitableNodeWeightGenerator
@@ -34,20 +34,27 @@ if __name__ == '__main__':
     #
     results = []
     sample = 0
-    initial_seed = 500
+    initial_seed = 0
     for region, info in regions.iteritems():
         while sample < num_samples:
             #
             rnd = RandomState(initial_seed)
             initial_seed += 1
             # Compute bbox coordinates.
-            min_lon = np.random.uniform(info[0][0], info[0][2] - delta)
-            min_lat = np.random.uniform(info[0][1], info[0][3] - delta)
+            min_lon = rnd.uniform(info[0][0], info[0][2] - delta)
+            min_lat = rnd.uniform(info[0][1], info[0][3] - delta)
             max_lon = min_lon + delta
             max_lat = min_lat + delta
             # Generate network sample.
             graph, _, pois, _, _ = osm.generate_graph_for_bbox(min_lon, min_lat, max_lon, max_lat, generator,
                                                                hotspots=False, poi_names=info[1])
+            #
+            components = graph.get_components()
+            if len(components) > 1:
+                sizes = {component: len(nodes) for component, nodes in components.iteritems()}
+                nodes = components[max(sizes.iteritems(), key=operator.itemgetter(1))[0]]
+                graph = graph.extract_node_induced_subgraph(nodes)
+                pois = set(graph.keys()).intersection(pois)
             #
             csdp_ap = CsdpAp(graph)
             #
@@ -68,7 +75,7 @@ if __name__ == '__main__':
             num_retailers = len(stores_per_ret.keys())
             num_customers = num_req_per_retailer * num_retailers
             free = set(graph.keys()).difference(pois)
-            customers = np.random.choice(a=list(free), size=num_customers, replace=False)
+            customers = rnd.choice(a=list(free), size=num_customers, replace=False)
             rs = list()
             for i, retailer in enumerate(stores_per_ret):
                 first_cust_ret = i * num_req_per_retailer
@@ -78,7 +85,7 @@ if __name__ == '__main__':
             #
             free = set(graph.keys()).difference(customers)
             num_drivers = num_drv_per_retailer * num_retailers
-            d_starts_ends = np.random.choice(a=list(free), size=num_drivers * 2, replace=False)
+            d_starts_ends = rnd.choice(a=list(free), size=num_drivers * 2, replace=False)
             ds = [((d_starts_ends[i], 1, 300), (d_starts_ends[i + num_drivers], 1, 300)) for i in range(num_drivers)]
             _, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold')
             print cost

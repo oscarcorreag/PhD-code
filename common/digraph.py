@@ -303,7 +303,8 @@ class Digraph(dict):
         return total_weight_edges, total_weight_nodes
 
     def extract_node_induced_subgraph(self, nodes):
-        subgraph = Digraph()
+        subgraph = Digraph(node_weighted=self.is_node_weighted(), undirected=self.is_undirected(),
+                           capacitated=self.is_capacitated())
         if self.node_weighted:
             for n in nodes:
                 adj = {w: edge_weight for w, edge_weight in self[n][1].iteritems() if w in nodes}
@@ -938,3 +939,30 @@ class Digraph(dict):
                 path = self.paths[(v, w)]
             expanded_path.extend(path[1:])
         return expanded_path
+
+    def get_components(self):
+        membership = {node: 0 for node in self}
+        component = 0
+        queue = list()
+        for node in self:
+            if membership[node] == 0:
+                component += 1
+                membership[node] = component
+                queue.insert(0, node)
+                while queue:
+                    v = queue.pop()
+                    if not self.node_weighted:
+                        adj_nodes = self[v]
+                    else:
+                        adj_nodes = self[v][1]
+                    for w in adj_nodes:
+                        if membership[w] == 0:
+                            membership[w] = component
+                            queue.insert(0, w)
+        components = dict()
+        for node, component in membership.iteritems():
+            try:
+                components[component].append(node)
+            except KeyError:
+                components[component] = [node]
+        return components
