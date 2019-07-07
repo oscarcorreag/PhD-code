@@ -53,7 +53,7 @@ if __name__ == '__main__':
         print min_lon, min_lat, max_lon, max_lat
         center_lat = (min_lat + max_lat) / 2
         center_lon = (min_lon + max_lon) / 2
-        gmap = gmplot.GoogleMapPlotter(center_lat, center_lon, 13, apikey='AIzaSyApAatZz85dsgZSWQD_L59EmeBt5enPPDE')
+        gmap = gmplot.GoogleMapPlotter(center_lat, center_lon, 13, apikey='')
         #
         stores_customers = dict()
         # STORES
