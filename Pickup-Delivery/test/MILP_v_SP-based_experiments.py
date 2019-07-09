@@ -9,44 +9,41 @@ from csdp_ap import CsdpAp
 from digraph import Digraph
 
 
-def compute_dedicated(routes_):
-    dedicated_ = 0
-    for route in routes_:
-        s = route[0]
-        e = route[-1]
-        if s == e:
-            dedicated_ += 1
-    return dedicated_
-
-
 def compute_route_cost(route, graph_):
     route_graph = Digraph(undirected=False)
     route_graph.append_from_path(route, graph_)
     return route_graph.compute_total_weights()[0]
 
 
-def compute_avg_cost_routes(routes_, graph_):
-    total_cost = 0
+def compute_stats_per_driver_type(routes_, graph_):
+    no_ad_hoc = 0
+    no_dedicated = 0
+    total_ad_hoc = 0
+    total_dedicated = 0
     for route in routes_:
-        route_cost = compute_route_cost(route, graph_)
-        total_cost += route_cost
-    return total_cost / len(routes)
-
-
-def compute_avg_cost_routes_per_driver_type(routes_, graph_):
-    avgs_ = {'ad hoc': 0, 'dedicated': 0}
-    routes_ad_hoc = list()
-    routes_dedicated = list()
-    for route in routes_:
+        if len(route) == 0:
+            continue
         s = route[0]
         e = route[-1]
         if s == e:
-            routes_dedicated.append(route)
+            no_dedicated += 1
+            total_dedicated += compute_route_cost(route, graph_)
         else:
-            routes_ad_hoc.append(route)
-    avgs_['ad hoc'] = compute_avg_cost_routes(routes_ad_hoc, graph_)
-    avgs_['dedicated'] = compute_avg_cost_routes(routes_dedicated, graph_)
-    return avgs_
+            no_ad_hoc += 1
+            total_ad_hoc += compute_route_cost(route, graph_)
+    stats_ = {
+        'ad hoc': {
+            'no': no_ad_hoc,
+            'total': total_ad_hoc,
+            'avg': (total_ad_hoc / no_ad_hoc) if no_ad_hoc > 0 else 0
+        },
+        'dedicated': {
+            'no': no_dedicated,
+            'total': total_dedicated,
+            'avg': (total_dedicated / no_dedicated) if no_dedicated > 0 else 0
+        }
+    }
+    return stats_
 
 
 if __name__ == '__main__':
@@ -69,7 +66,7 @@ if __name__ == '__main__':
         # ),
     }
     #
-    delta_meters = 10000.0
+    delta_meters = 3000.0
     delta = delta_meters / 111111
     num_samples = 10
     num_req_per_retailer = 5
@@ -136,12 +133,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds)
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['MILP', 0, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
 
@@ -150,12 +147,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-Voronoi')
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-Voronoi', 0, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -163,12 +160,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based')
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-fraction', 0.5, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -176,12 +173,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', fraction_sd=.4)
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-fraction', 0.4, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -189,12 +186,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', fraction_sd=.3)
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-fraction', 0.3, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -202,12 +199,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', fraction_sd=.2)
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-fraction', 0.2, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -215,12 +212,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', fraction_sd=.1)
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-fraction', 0.1, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -228,12 +225,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold')
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-threshold', 1.5, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -241,12 +238,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold', threshold_sd=1.6)
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-threshold', 1.6, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -254,12 +251,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold', threshold_sd=1.7)
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-threshold', 1.7, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -267,12 +264,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold', threshold_sd=1.8)
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-threshold', 1.8, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -280,12 +277,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold', threshold_sd=1.9)
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-threshold', 1.9, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -293,12 +290,12 @@ if __name__ == '__main__':
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold', threshold_sd=2.0)
-            dedicated = compute_dedicated(routes)
-            avgs = compute_avg_cost_routes_per_driver_type(routes, graph)
             et = time.clock() - st
+            stats = compute_stats_per_driver_type(routes, graph)
 
             line = ['SP-threshold', 2.0, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
-                    num_drv_per_retailer, sample, et, cost, dedicated, avgs['ad hoc'], avgs['dedicated']]
+                    num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg']]
             print line
             results.append(line)
             #
