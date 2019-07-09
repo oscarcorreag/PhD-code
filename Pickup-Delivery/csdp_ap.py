@@ -1029,32 +1029,52 @@ class CsdpAp:
     def _build_routes_milp(self):
         routes = list()
         #
-        routes_by_driver_1 = dict()
+        predecesors = dict()
         for (i, j, (s_v, e_v)), variable in self.x.iteritems():
             if variable.solution_value():
                 try:
-                    routes_by_driver_1[(s_v, e_v)][i] = self.B[i, (s_v, e_v)].solution_value()
+                    predecesors[(s_v, e_v)][j] = i
                 except KeyError:
-                    routes_by_driver_1[(s_v, e_v)] = {i: self.B[i, (s_v, e_v)].solution_value()}
-                try:
-                    routes_by_driver_1[(s_v, e_v)][j] = self.B[j, (s_v, e_v)].solution_value()
-                except KeyError:
-                    routes_by_driver_1[(s_v, e_v)] = {j: self.B[j, (s_v, e_v)].solution_value()}
-        #
-        routes_by_driver_2 = dict()
-        for driver, subroute in routes_by_driver_1.iteritems():
-            routes_by_driver_2[driver] = list()
-            sorted_subroute = sorted(subroute.items(), key=operator.itemgetter(1))
-            for var_val in sorted_subroute:
-                vertex = var_val[0]
+                    predecesors[(s_v, e_v)] = {j: i}
+        contracted = list()
+        for (s_v, e_v), p in predecesors.iteritems():
+            s_v_ = s_v if s_v not in self._shop_by_F else self._shop_by_F[s_v]
+            e_v_ = e_v if e_v not in self._shop_by_F else self._shop_by_F[e_v]
+            route = [e_v_]
+            while True:
+                vertex = p[route[-1]]
                 if vertex in self._shop_by_F:
                     vertex = self._shop_by_F[vertex]
-                routes_by_driver_2[driver].append(vertex)
-            # print sorted_subroute
-        for route in routes_by_driver_2.values():
+                route.append(vertex)
+                if route[-1] == s_v_:
+                    break
+            route.reverse()
+            contracted.append(route)
+        for route in contracted:
             routes.append(self._graph.expand_contracted_path(route))
-        # self._graph.compute_dist_paths([i], [j], recompute=True)
-        # routes.append(self._graph.paths[tuple(sorted([i, j]))])
+        # routes_by_driver_1 = dict()
+        # for (i, j, (s_v, e_v)), variable in self.x.iteritems():
+        #     if variable.solution_value():
+        #         try:
+        #             routes_by_driver_1[(s_v, e_v)][i] = self.B[i, (s_v, e_v)].solution_value()
+        #         except KeyError:
+        #             routes_by_driver_1[(s_v, e_v)] = {i: self.B[i, (s_v, e_v)].solution_value()}
+        #         try:
+        #             routes_by_driver_1[(s_v, e_v)][j] = self.B[j, (s_v, e_v)].solution_value()
+        #         except KeyError:
+        #             routes_by_driver_1[(s_v, e_v)] = {j: self.B[j, (s_v, e_v)].solution_value()}
+        # #
+        # routes_by_driver_2 = dict()
+        # for driver, subroute in routes_by_driver_1.iteritems():
+        #     routes_by_driver_2[driver] = list()
+        #     sorted_subroute = sorted(subroute.items(), key=operator.itemgetter(1))
+        #     for var_val in sorted_subroute:
+        #         vertex = var_val[0]
+        #         if vertex in self._shop_by_F:
+        #             vertex = self._shop_by_F[vertex]
+        #         routes_by_driver_2[driver].append(vertex)
+        # for route in routes_by_driver_2.values():
+        #     routes.append(self._graph.expand_contracted_path(route))
         return routes
 
     def print_milp_constraints(self):
