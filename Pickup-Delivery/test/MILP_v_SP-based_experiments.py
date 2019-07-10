@@ -10,9 +10,15 @@ from digraph import Digraph
 
 
 def compute_route_cost(route, graph_):
-    route_graph = Digraph(undirected=False)
-    route_graph.append_from_path(route, graph_)
-    return route_graph.compute_total_weights()[0]
+    cost_ = 0
+    for i in range(len(route) - 1):
+        v = route[i]
+        w = route[i + 1]
+        cost_ += graph_.get_edges()[tuple(sorted([v, w]))]
+    return cost_
+    # route_graph = Digraph(undirected=False)
+    # route_graph.append_from_path(route, graph_)
+    # return route_graph.compute_total_weights()[0]
 
 
 def compute_stats_per_driver_type(routes_, graph_):
@@ -68,7 +74,7 @@ if __name__ == '__main__':
     #
     delta_meters = 3000.0
     delta = delta_meters / 111111
-    num_samples = 10
+    num_samples = 100
     num_req_per_retailer = 5
     num_drv_per_retailer = 2
     #
@@ -132,7 +138,10 @@ if __name__ == '__main__':
             # MILP
             # ----------------------------------------------------------------------------------------------------------
             st = time.clock()
-            routes, cost = csdp_ap.solve(rs, ds)
+            try:
+                routes, cost = csdp_ap.solve(rs, ds)
+            except:
+                continue
             et = time.clock() - st
             stats = compute_stats_per_driver_type(routes, graph)
 

@@ -1,5 +1,3 @@
-import operator
-
 from digraph import Digraph
 from ortools.linear_solver import pywraplp
 from utils import id_generator
@@ -1029,25 +1027,27 @@ class CsdpAp:
     def _build_routes_milp(self):
         routes = list()
         #
-        predecesors = dict()
+        predecessors_by_driver = dict()
         for (i, j, (s_v, e_v)), variable in self.x.iteritems():
             if variable.solution_value():
-                try:
-                    predecesors[(s_v, e_v)][j] = i
-                except KeyError:
-                    predecesors[(s_v, e_v)] = {j: i}
+                if (s_v, e_v) not in predecessors_by_driver:
+                    predecessors_by_driver[(s_v, e_v)] = {j: [i]}
+                elif j not in predecessors_by_driver[(s_v, e_v)]:
+                    predecessors_by_driver[(s_v, e_v)].update({j: [i]})
+                else:
+                    predecessors_by_driver[(s_v, e_v)][j].append(i)
         contracted = list()
-        for (s_v, e_v), p in predecesors.iteritems():
-            s_v_ = s_v if s_v not in self._shop_by_F else self._shop_by_F[s_v]
-            e_v_ = e_v if e_v not in self._shop_by_F else self._shop_by_F[e_v]
-            route = [e_v_]
-            while True:
-                vertex = p[route[-1]]
-                if vertex in self._shop_by_F:
-                    vertex = self._shop_by_F[vertex]
-                route.append(vertex)
-                if route[-1] == s_v_:
-                    break
+        for (s_v, e_v), predecessors in predecessors_by_driver.iteritems():
+            route = [e_v]
+            while route[-1] != s_v:
+                ps = predecessors[route[-1]]
+                i = 0
+                if len(ps) > 1:
+                    while route[-1] not in predecessors[ps[i]]:
+                        i += 1
+                route.append(ps[i])
+                del ps[i]
+            route = [v if v not in self._shop_by_F else self._shop_by_F[v] for v in route]
             route.reverse()
             contracted.append(route)
         for route in contracted:
