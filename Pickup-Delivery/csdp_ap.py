@@ -211,29 +211,39 @@ class CsdpAp:
         A_.extend(self.A5)
         for i, j in A_:
             for s_v, e_v in self._ad_hoc_drivers:
+                if self._solver.LookupVariable("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v)):
+                    raise RuntimeError
                 self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v))
         for i, j in self.A3:
             for s_v, e_v in self._dedicated_drivers:
                 shop = self._shop_by_F[s_v]
                 group_shop = self._shops_dict[shop]
                 if i == shop and self._customers_dict[j] == group_shop:
+                    if self._solver.LookupVariable("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v)):
+                        raise RuntimeError
                     self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v))
         for i, j in self.A5:
             for s_v, e_v in self._dedicated_drivers:
                 shop = self._shop_by_F[s_v]
                 group_shop = self._shops_dict[shop]
                 if self._customers_dict[i] == group_shop and self._customers_dict[j] == group_shop:
+                    if self._solver.LookupVariable("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v)):
+                        raise RuntimeError
                     self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v))
         # These variables are defined over a subset of A6. Defining a x(i, j, k) for which j != k^- does not make sense.
         for i, j in self.A6:
             for (s_v, _, _), (e_v, _, _) in self._drivers:
                 if j == e_v:
+                    if self._solver.LookupVariable("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v)):
+                        raise RuntimeError
                     self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v))
         # These variables are defined over a subset of A7. Defining a x(i, j, k) for which i != k^+ or j != k^- does not
         # make sense. However, validating i and j is not needed as arcs {(i, j) : i = k^+ and j != k^-} are not created.
         for i, j in self.A7:
             for (s_v, _, _), (e_v, _, _) in self._drivers:
                 if i == s_v and j == e_v:
+                    if self._solver.LookupVariable("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v)):
+                        raise RuntimeError
                     self.x[(i, j, (s_v, e_v))] = self._solver.BoolVar("x(%s, %s, (%s, %s))" % (i, j, s_v, e_v))
         # --------------------------------------------------------------------------------------------------------------
         # Time variables at which vehicles start servicing at vertices.
@@ -971,6 +981,9 @@ class CsdpAp:
                         # route = partial_path.transform_to_actual_path()
                         route = self._graph.expand_contracted_path(partial_path.path)
                         cost = partial_path.dist
+                    else:
+                        route = self._graph.paths[start_end]
+                        cost = self._graph.dist[start_end]
         else:
             raise NotImplementedError
         return route, cost
