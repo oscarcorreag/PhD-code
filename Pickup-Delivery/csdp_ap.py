@@ -252,23 +252,33 @@ class CsdpAp:
         for i in self.N:
             # for (s_v, _, _), (e_v, _, _) in self._drivers:
             for s_v, e_v in self._ad_hoc_drivers:
+                if self._solver.LookupVariable('B(%s, (%s, %s))' % (i, s_v, e_v)):
+                    raise RuntimeError
                 self.B[(i, (s_v, e_v))] = \
                     self._solver.NumVar(0.0, self._solver.infinity(), 'B(%s, (%s, %s))' % (i, s_v, e_v))
                 # self.B[(i, k)] = self._solver.NumVar(self._V_tws[i][0], self._V_tws[i][1], 'B(%s, %s)' % (i, k))
         for s_v, e_v in self._dedicated_drivers:
             shop = self._shop_by_F[s_v]
             group_id = self._shops_dict[shop]
+            if self._solver.LookupVariable('B(%s, (%s, %s))' % (shop, s_v, e_v)):
+                raise RuntimeError
             self.B[(shop, (s_v, e_v))] = \
                 self._solver.NumVar(0.0, self._solver.infinity(), 'B(%s, (%s, %s))' % (shop, s_v, e_v))
             for customer in self._customers_by_group_id[group_id]:
+                if self._solver.LookupVariable('B(%s, (%s, %s))' % (customer, s_v, e_v)):
+                    raise RuntimeError
                 self.B[(customer, (s_v, e_v))] = \
                     self._solver.NumVar(0.0, self._solver.infinity(), 'B(%s, (%s, %s))' % (customer, s_v, e_v))
 
         for (s_v, _, _), (e_v, _, _) in self._drivers:
+            if self._solver.LookupVariable('B(%s, (%s, %s))' % (s_v, s_v, e_v)):
+                raise RuntimeError
             self.B[(s_v, (s_v, e_v))] = \
                 self._solver.NumVar(0.0, self._solver.infinity(), 'B(%s, (%s, %s))' % (s_v, s_v, e_v))
             # self.B[(start_v, k)] = self._solver.NumVar(self._V_tws[start_v][0], self._V_tws[start_v][1],
             #                                            'B(%s, %s)' % (start_v, k))
+            if self._solver.LookupVariable('B(%s, (%s, %s))' % (e_v, s_v, e_v)):
+                raise RuntimeError
             self.B[(e_v, (s_v, e_v))] = \
                 self._solver.NumVar(0.0, self._solver.infinity(), 'B(%s, (%s, %s))' % (e_v, s_v, e_v))
             # self.B[(end_v, k)] = self._solver.NumVar(self._V_tws[end_v][0], self._V_tws[end_v][1],
@@ -787,13 +797,15 @@ class CsdpAp:
             if len(dist) != 1:
                 raise (RuntimeError, "SP-based: There must be at least one nearest shop able to serve each customer.")
             for nearest, d in dist.iteritems():
-                if (nearest, nearest) not in partitions:
-                    partitions[(nearest, nearest)] = {'shops': {nearest}, 'customers': {non_visited_customer}}
+                s_v, e_v = self._Fs_by_shop[nearest]
+                if (s_v, e_v) not in partitions:
+                    partitions[(s_v, e_v)] = {'shops': {nearest}, 'customers': {non_visited_customer}}
                 else:
-                    partitions[(nearest, nearest)]['customers'].add(non_visited_customer)
+                    partitions[(s_v, e_v)]['customers'].add(non_visited_customer)
         # Solve the partitions created for the dedicated fleet.
         for partition in partitions.iteritems():
             path, c = self._solve_partition(partition)
+            path = [v if v not in self._shop_by_F else self._shop_by_F[v] for v in path]
             routes.append(path)
             cost += c
         return routes, cost
@@ -886,8 +898,6 @@ class CsdpAp:
         return partitions
 
     def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5):
-        route = list()
-        cost = 0
         # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
         # one driver only.
         if method == 'BB':
@@ -978,7 +988,6 @@ class CsdpAp:
                             for child in offspring:
                                 priority_queue[child] = child.dist_lb
                     if partial_path is not None:
-                        # route = partial_path.transform_to_actual_path()
                         route = self._graph.expand_contracted_path(partial_path.path)
                         cost = partial_path.dist
                     else:
