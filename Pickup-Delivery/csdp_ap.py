@@ -775,17 +775,20 @@ class CsdpAp:
         partitions = \
             self._compute_partitions(method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd)
         # Solve each partition
+        served_customers = set()
         for partition in partitions.iteritems():
-            path, c = self._solve_partition(partition,
-                                            method=solve_partition_method,
-                                            partition_method=partition_method,
-                                            threshold_sd=threshold_sd)
+            path, c, sc = self._solve_partition(partition,
+                                                method=solve_partition_method,
+                                                partition_method=partition_method,
+                                                threshold_sd=threshold_sd)
             routes.append(path)
             cost += c
+            served_customers.update(sc)
 
         # Who were the non-visited customers?
-        visited = {v for route in routes for v in route}
-        non_visited = self._customers.difference(visited)
+        # visited = {v for route in routes for v in route}
+        # non_visited = self._customers.difference(visited)
+        non_visited = self._customers.difference(served_customers)
         # These customers are going to be served by their nearest shop. When a dedicated vehicle starting from a shop
         # has to serve more than one customer, this becomes a new partition of the CSDP-AP problem.
         partitions = dict()
@@ -804,7 +807,7 @@ class CsdpAp:
                     partitions[(s_v, e_v)]['customers'].add(non_visited_customer)
         # Solve the partitions created for the dedicated fleet.
         for partition in partitions.iteritems():
-            path, c = self._solve_partition(partition)
+            path, c, _ = self._solve_partition(partition)
             path = [v if v not in self._shop_by_F else self._shop_by_F[v] for v in path]
             routes.append(path)
             cost += c
@@ -898,6 +901,7 @@ class CsdpAp:
         return partitions
 
     def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5):
+        served_customers = set()
         # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
         # one driver only.
         if method == 'BB':
@@ -923,6 +927,7 @@ class CsdpAp:
                             break
             # If there are no shops nor customers, the driver follows her original route.
             if not shops_dict or not customers_dict:
+                # print start_end
                 route = self._graph.paths[start_end]
                 cost = self._graph.dist[start_end]
             else:
@@ -952,6 +957,7 @@ class CsdpAp:
                 # If the priority dictionary is empty, it means that there weren't customers within the threshold. Thus,
                 # the driver follows her original route.
                 if len(priority_queue) == 0:
+                    # print start_end
                     route = self._graph.paths[start_end]
                     cost = self._graph.dist[start_end]
                 else:
@@ -988,14 +994,17 @@ class CsdpAp:
                             for child in offspring:
                                 priority_queue[child] = child.dist_lb
                     if partial_path is not None:
+                        # print partial_path.path
+                        served_customers = set(self._customers_dict.keys()).intersection(partial_path.path)
                         route = self._graph.expand_contracted_path(partial_path.path)
                         cost = partial_path.dist
                     else:
+                        # print start_end
                         route = self._graph.paths[start_end]
                         cost = self._graph.dist[start_end]
         else:
             raise NotImplementedError
-        return route, cost
+        return route, cost, served_customers
 
     def _compute_regions(self, path, dist, fraction_sd=.5, excluded_customers=None):
         customers = set(self._customers)
@@ -1073,30 +1082,8 @@ class CsdpAp:
             route.reverse()
             contracted.append(route)
         for route in contracted:
+            # print route
             routes.append(self._graph.expand_contracted_path(route))
-        # routes_by_driver_1 = dict()
-        # for (i, j, (s_v, e_v)), variable in self.x.iteritems():
-        #     if variable.solution_value():
-        #         try:
-        #             routes_by_driver_1[(s_v, e_v)][i] = self.B[i, (s_v, e_v)].solution_value()
-        #         except KeyError:
-        #             routes_by_driver_1[(s_v, e_v)] = {i: self.B[i, (s_v, e_v)].solution_value()}
-        #         try:
-        #             routes_by_driver_1[(s_v, e_v)][j] = self.B[j, (s_v, e_v)].solution_value()
-        #         except KeyError:
-        #             routes_by_driver_1[(s_v, e_v)] = {j: self.B[j, (s_v, e_v)].solution_value()}
-        # #
-        # routes_by_driver_2 = dict()
-        # for driver, subroute in routes_by_driver_1.iteritems():
-        #     routes_by_driver_2[driver] = list()
-        #     sorted_subroute = sorted(subroute.items(), key=operator.itemgetter(1))
-        #     for var_val in sorted_subroute:
-        #         vertex = var_val[0]
-        #         if vertex in self._shop_by_F:
-        #             vertex = self._shop_by_F[vertex]
-        #         routes_by_driver_2[driver].append(vertex)
-        # for route in routes_by_driver_2.values():
-        #     routes.append(self._graph.expand_contracted_path(route))
         return routes
 
     def print_milp_constraints(self):

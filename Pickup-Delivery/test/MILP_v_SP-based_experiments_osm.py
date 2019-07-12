@@ -123,7 +123,7 @@ if __name__ == '__main__':
     #
     results = []
     sample = 0
-    seed = 686
+    seed = 10557
     for region, info in regions.iteritems():
         while sample < num_samples:
             #
@@ -220,12 +220,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/MILP.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['MILP', 0, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -240,12 +243,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-Voronoi.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-Voronoi', 0, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -260,12 +266,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-fraction-05.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-fraction', 0.5, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -280,12 +289,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-fraction-04.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-fraction', 0.4, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -300,12 +312,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-fraction-03.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-fraction', 0.3, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -320,12 +335,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-fraction-02.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-fraction', 0.2, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -340,12 +358,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-fraction-01.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-fraction', 0.1, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -360,12 +381,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/MILP-15.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['MILP-threshold', 1.5, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -380,12 +404,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-threshold-15.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-threshold', 1.5, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -400,12 +427,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/MILP-16.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['MILP-threshold', 1.6, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -420,12 +450,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-threshold-16.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-threshold', 1.6, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -440,12 +473,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/MILP-17.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['MILP-threshold', 1.7, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -460,12 +496,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-threshold-17.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-threshold', 1.7, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -480,12 +519,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/MILP-18.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['MILP-threshold', 1.8, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -500,12 +542,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-threshold-18.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-threshold', 1.8, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -520,12 +565,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/MILP-19.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['MILP-threshold', 1.9, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -540,12 +588,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-threshold-19.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-threshold', 1.9, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -560,12 +611,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/MILP-20.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['MILP-threshold', 2.0, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -580,12 +634,15 @@ if __name__ == '__main__':
             et = time.clock() - st
             #
             routes_map = get_routes_map(routes, graph)
+            gmap.paths = []
             for i, (lats, lons) in enumerate(routes_map):
                 gmap.plot(lats, lons, element_colors[i % len(element_colors)])
             gmap.draw("maps/SP-threshold-20.html")
             #
             stats = compute_stats_per_driver_type(routes, graph)
 
+            for r in routes:
+                results.append(r)
             line = ['SP-threshold', 2.0, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
