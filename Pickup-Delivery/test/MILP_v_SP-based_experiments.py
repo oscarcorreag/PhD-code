@@ -31,6 +31,7 @@ def compute_stats_per_driver_type(routes_, graph_):
     total_dedicated = 0
     total_sd = 0
     costs_ad_hoc = list()
+    total_detour = 0
     for route in routes_:
         s = route[0]
         e = route[-1]
@@ -44,6 +45,7 @@ def compute_stats_per_driver_type(routes_, graph_):
             sd = graph_.dist[tuple(sorted([s, e]))]
             total_sd += sd
             costs_ad_hoc.append(cost_)
+            total_detour += cost_ / sd
     costs_ad_hoc = [c / total_sd for c in costs_ad_hoc]
     weighted_avg_detour = sum(costs_ad_hoc)
     stats_ = {
@@ -51,7 +53,8 @@ def compute_stats_per_driver_type(routes_, graph_):
             'no': no_ad_hoc,
             'total': total_ad_hoc,
             'avg': (total_ad_hoc / no_ad_hoc) if no_ad_hoc > 0 else 0,
-            'avg detour': weighted_avg_detour,
+            'avg detour': (total_detour / no_ad_hoc) if no_ad_hoc > 0 else 0,
+            'w avg detour': weighted_avg_detour,
         },
         'dedicated': {
             'no': no_dedicated,
@@ -84,13 +87,13 @@ if __name__ == '__main__':
     #
     delta_meters = 3000.0
     delta = delta_meters / 111111
-    num_samples = 50
+    num_samples = 10
     num_req_per_retailer = 4
     num_drv_per_retailer = 2
     #
     results = []
     sample = 0
-    seed = 10434
+    seed = 0
     for region, info in regions.iteritems():
         while sample < num_samples:
             #
@@ -158,7 +161,7 @@ if __name__ == '__main__':
             line = ['MILP', 0, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -172,7 +175,7 @@ if __name__ == '__main__':
             line = ['SP-Voronoi', 0, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -186,7 +189,7 @@ if __name__ == '__main__':
             line = ['SP-fraction', 0.5, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -200,7 +203,7 @@ if __name__ == '__main__':
             line = ['SP-fraction', 0.4, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -214,7 +217,7 @@ if __name__ == '__main__':
             line = ['SP-fraction', 0.3, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -228,7 +231,7 @@ if __name__ == '__main__':
             line = ['SP-fraction', 0.2, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -242,7 +245,7 @@ if __name__ == '__main__':
             line = ['SP-fraction', 0.1, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -256,7 +259,7 @@ if __name__ == '__main__':
             line = ['MILP-threshold', 1.5, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -270,7 +273,7 @@ if __name__ == '__main__':
             line = ['SP-threshold', 1.5, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -284,7 +287,7 @@ if __name__ == '__main__':
             line = ['MILP-threshold', 1.6, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -298,7 +301,7 @@ if __name__ == '__main__':
             line = ['SP-threshold', 1.6, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -312,7 +315,7 @@ if __name__ == '__main__':
             line = ['MILP-threshold', 1.7, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -326,7 +329,7 @@ if __name__ == '__main__':
             line = ['SP-threshold', 1.7, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -340,7 +343,7 @@ if __name__ == '__main__':
             line = ['MILP-threshold', 1.8, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -354,7 +357,7 @@ if __name__ == '__main__':
             line = ['SP-threshold', 1.8, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -368,7 +371,7 @@ if __name__ == '__main__':
             line = ['MILP-threshold', 1.9, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -382,7 +385,7 @@ if __name__ == '__main__':
             line = ['SP-threshold', 1.9, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -396,7 +399,7 @@ if __name__ == '__main__':
             line = ['MILP-threshold', 2.0, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             # ----------------------------------------------------------------------------------------------------------
@@ -410,7 +413,7 @@ if __name__ == '__main__':
             line = ['SP-threshold', 2.0, seed, region, N, delta_meters, num_pois, num_retailers, num_req_per_retailer,
                     num_drv_per_retailer, sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                    stats['ad hoc']['avg detour']]
+                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
             print line
             results.append(line)
             #
