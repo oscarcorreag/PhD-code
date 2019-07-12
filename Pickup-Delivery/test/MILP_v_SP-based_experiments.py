@@ -13,11 +13,9 @@ def compute_route_cost(route, graph_):
     for i_ in range(len(route) - 1):
         v = route[i_]
         w = route[i_ + 1]
-        cost_ += graph_.get_edges()[tuple(sorted([v, w]))]
+        if v != w:
+            cost_ += graph_.get_edges()[tuple(sorted([v, w]))]
     return cost_
-    # route_graph = Digraph(undirected=False)
-    # route_graph.append_from_path(route, graph_)
-    # return route_graph.compute_total_weights()[0]
 
 
 def compute_stats_per_driver_type(routes_, graph_):
@@ -34,8 +32,6 @@ def compute_stats_per_driver_type(routes_, graph_):
     total_sd = 0
     costs_ad_hoc = list()
     for route in routes_:
-        # if len(route) == 0:
-        #     continue
         s = route[0]
         e = route[-1]
         if s == e:
@@ -94,7 +90,7 @@ if __name__ == '__main__':
     #
     results = []
     sample = 0
-    seed = 23
+    seed = 684
     for region, info in regions.iteritems():
         while sample < num_samples:
             #

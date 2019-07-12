@@ -787,13 +787,15 @@ class CsdpAp:
             if len(dist) != 1:
                 raise (RuntimeError, "SP-based: There must be at least one nearest shop able to serve each customer.")
             for nearest, d in dist.iteritems():
-                if (nearest, nearest) not in partitions:
-                    partitions[(nearest, nearest)] = {'shops': {nearest}, 'customers': {non_visited_customer}}
+                s_v, e_v = self._Fs_by_shop[nearest]
+                if (s_v, e_v) not in partitions:
+                    partitions[(s_v, e_v)] = {'shops': {nearest}, 'customers': {non_visited_customer}}
                 else:
-                    partitions[(nearest, nearest)]['customers'].add(non_visited_customer)
+                    partitions[(s_v, e_v)]['customers'].add(non_visited_customer)
         # Solve the partitions created for the dedicated fleet.
         for partition in partitions.iteritems():
             path, c = self._solve_partition(partition)
+            path = [v if v not in self._shop_by_F else self._shop_by_F[v] for v in path]
             routes.append(path)
             cost += c
         return routes, cost
@@ -886,8 +888,6 @@ class CsdpAp:
         return partitions
 
     def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5):
-        route = list()
-        cost = 0
         # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
         # one driver only.
         if method == 'BB':
@@ -978,7 +978,6 @@ class CsdpAp:
                             for child in offspring:
                                 priority_queue[child] = child.dist_lb
                     if partial_path is not None:
-                        # route = partial_path.transform_to_actual_path()
                         route = self._graph.expand_contracted_path(partial_path.path)
                         cost = partial_path.dist
                     else:
