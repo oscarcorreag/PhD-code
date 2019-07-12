@@ -88,7 +88,7 @@ if __name__ == '__main__':
     num_req_per_retailer = 4
     num_drv_per_retailer = 2
     #
-    results = [] 
+    results = []
     sample = 0
     seed = 10434
     for region, info in regions.iteritems():
