@@ -252,23 +252,33 @@ class CsdpAp:
         for i in self.N:
             # for (s_v, _, _), (e_v, _, _) in self._drivers:
             for s_v, e_v in self._ad_hoc_drivers:
+                if self._solver.LookupVariable('B(%s, (%s, %s))' % (i, s_v, e_v)):
+                    raise RuntimeError
                 self.B[(i, (s_v, e_v))] = \
                     self._solver.NumVar(0.0, self._solver.infinity(), 'B(%s, (%s, %s))' % (i, s_v, e_v))
                 # self.B[(i, k)] = self._solver.NumVar(self._V_tws[i][0], self._V_tws[i][1], 'B(%s, %s)' % (i, k))
         for s_v, e_v in self._dedicated_drivers:
             shop = self._shop_by_F[s_v]
             group_id = self._shops_dict[shop]
+            if self._solver.LookupVariable('B(%s, (%s, %s))' % (shop, s_v, e_v)):
+                raise RuntimeError
             self.B[(shop, (s_v, e_v))] = \
                 self._solver.NumVar(0.0, self._solver.infinity(), 'B(%s, (%s, %s))' % (shop, s_v, e_v))
             for customer in self._customers_by_group_id[group_id]:
+                if self._solver.LookupVariable('B(%s, (%s, %s))' % (customer, s_v, e_v)):
+                    raise RuntimeError
                 self.B[(customer, (s_v, e_v))] = \
                     self._solver.NumVar(0.0, self._solver.infinity(), 'B(%s, (%s, %s))' % (customer, s_v, e_v))
 
         for (s_v, _, _), (e_v, _, _) in self._drivers:
+            if self._solver.LookupVariable('B(%s, (%s, %s))' % (s_v, s_v, e_v)):
+                raise RuntimeError
             self.B[(s_v, (s_v, e_v))] = \
                 self._solver.NumVar(0.0, self._solver.infinity(), 'B(%s, (%s, %s))' % (s_v, s_v, e_v))
             # self.B[(start_v, k)] = self._solver.NumVar(self._V_tws[start_v][0], self._V_tws[start_v][1],
             #                                            'B(%s, %s)' % (start_v, k))
+            if self._solver.LookupVariable('B(%s, (%s, %s))' % (e_v, s_v, e_v)):
+                raise RuntimeError
             self.B[(e_v, (s_v, e_v))] = \
                 self._solver.NumVar(0.0, self._solver.infinity(), 'B(%s, (%s, %s))' % (e_v, s_v, e_v))
             # self.B[(end_v, k)] = self._solver.NumVar(self._V_tws[end_v][0], self._V_tws[end_v][1],
