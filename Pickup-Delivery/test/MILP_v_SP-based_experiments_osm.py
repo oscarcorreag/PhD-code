@@ -115,11 +115,11 @@ if __name__ == '__main__':
         # ),
     }
     #
-    delta_meters = 3000.0
+    delta_meters = 10000.0
     delta = delta_meters / 111111
     num_samples = 1
-    num_req_per_retailer = 4
-    num_drv_per_retailer = 2
+    num_req_per_retailer = 20
+    num_drv_per_retailer = 10
     #
     results = []
     sample = 0
