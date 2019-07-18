@@ -5,7 +5,7 @@ import sys
 import numpy as np
 
 from priodict import PriorityDictionary
-from utils import comb_v, id_generator
+from utils import comb, comb_v, id_generator
 
 
 class Digraph(dict):
@@ -21,93 +21,6 @@ class Digraph(dict):
         self.paths = dict()
         self.pairs_dist_paths = set()
         self.issues_dist_paths = set()
-
-    def is_node_weighted(self):
-        return self.node_weighted
-
-    def is_undirected(self):
-        return self.undirected
-
-    def is_capacitated(self):
-        return self.capacitated
-
-    def drop_node_weights(self):
-        if self.node_weighted:
-            for v in self:
-                self[v] = self[v][1]
-
-    def update_node_weights(self, weights):
-        if self.node_weighted:
-            for v, weight in weights.iteritems():
-                l_value = list(self[v])
-                l_value[0] = weight
-                self[v] = tuple(l_value)
-
-    def update_edge_weights(self, weights):
-        od_to_recompute = set()
-        for (v, w), weight in weights.iteritems():
-            # Check whether the edge is present.
-            if self.undirected:
-                v_w = tuple(sorted([v, w]))
-            else:
-                v_w = (v, w)
-            if v_w not in self.get_edges():
-                continue
-            # Update the adjacency lists.
-            if self.node_weighted:
-                self[v][1][w] = weight
-                if self.undirected:
-                    self[w][1][v] = weight
-            else:
-                self[v][w] = weight
-                if self.undirected:
-                    self[w][v] = weight
-            # Update the edge.
-            self.get_edges()[v_w] = weight
-            # Update list of O-D pairs that are to be recomputed.
-            if v_w in self.__edges_in_sp:
-                od_to_recompute.update(self.__edges_in_sp[v_w])
-        # Recompute shortest distances|paths.
-        if len(od_to_recompute) > 0:
-            self.compute_dist_paths(pairs=od_to_recompute, compute_paths=len(self.paths) > 0, recompute=True,
-                                    track_edges=True)
-
-    def perturb_edge_weights(self):
-        perturbed = set()
-        od_to_recompute = set(self.pairs_dist_paths)
-        for v, val in self.iteritems():
-            if self.node_weighted:
-                for w in val[1]:
-                    if (v, w) in perturbed:
-                        continue
-                    if np.random.ranf() < 0.5:
-                        weight = self[v][1][w] + np.random.ranf() / 100
-                    else:
-                        weight = self[v][1][w] - np.random.ranf() / 100
-                    self[v][1][w] = weight
-                    if self.undirected:
-                        self[w][1][v] = weight
-                        perturbed.add((w, v))
-                        self.get_edges()[tuple(sorted([v, w]))] = weight
-                    else:
-                        self.get_edges()[(v, w)] = weight
-            else:
-                for w in val:
-                    if (v, w) in perturbed:
-                        continue
-                    if np.random.ranf() < 0.5:
-                        weight = self[v][w] + np.random.ranf() / 100
-                    else:
-                        weight = self[v][w] - np.random.ranf() / 100
-                    self[v][w] = weight
-                    if self.undirected:
-                        self[w][v] = weight
-                        perturbed.add((w, v))
-                        self.get_edges()[tuple(sorted([v, w]))] = weight
-                    else:
-                        self.get_edges()[(v, w)] = weight
-        # Recompute shortest distances|paths.
-        self.compute_dist_paths(pairs=od_to_recompute, compute_paths=len(self.paths) > 0, recompute=True)
 
     def append_edge_1(self, edge, source_graph):  # This DOES NOT recompute shortest distances|paths.
         path = [edge[0], edge[1]]
@@ -135,14 +48,14 @@ class Digraph(dict):
         # If not, create that node with the relevant information provided.
         else:
             if self.node_weighted:
-                self[v] = (nodes_weights[0], {w: weight}, nodes_info[0])
+                self[v] = (nodes_weights[0], {w: weight}, nodes_info[0].copy())
             else:
                 self[v] = {w: weight}
         # To reach a consistent state, check whether the second node exists.
         # If not, create it.
         if w not in self:
             if self.node_weighted:
-                self[w] = (nodes_weights[1], {}, nodes_info[1])
+                self[w] = (nodes_weights[1], {}, nodes_info[1].copy())
             else:
                 self[w] = {}
         # (B) Now, let us worry about the collateral information, i.e., edges and capacities.
@@ -156,34 +69,6 @@ class Digraph(dict):
                 self[w][1][v] = weight
             else:
                 self[w][v] = weight
-
-    def append_from_path(self, path, source_graph):
-        source_weighted = source_graph.is_node_weighted()
-        # If this graph is node-weighted, the source graph MUST be node-weighted.
-        if self.node_weighted and not source_weighted:
-            raise (ValueError, "Graph: Can't append a source graph which is not node-weighted.")
-        for i in range(len(path)):
-            if i + 1 < len(path):
-                v = path[i]
-                w = path[i + 1]
-                if source_graph.is_undirected():
-                    v_w = tuple(sorted([v, w]))
-                else:
-                    v_w = (v, w)
-                if self.is_undirected():
-                    my_v_w = tuple(sorted([v, w]))
-                else:
-                    my_v_w = (v, w)
-                weight = source_graph.get_edges()[v_w]
-                capacity = 0
-                if source_graph.is_capacitated():
-                    capacity = source_graph.get_capacities()[v_w]
-                if source_graph.is_node_weighted():
-                    nodes_weights = (source_graph[v][0], source_graph[w][0])
-                    nodes_info = (source_graph[v][2], source_graph[w][2])
-                    self.append_edge_2(my_v_w, weight, capacity, nodes_weights=nodes_weights, nodes_info=nodes_info)
-                else:
-                    self.append_edge_2(my_v_w, weight, capacity)
 
     def append_from_graph(self, source_graph):
         source_weighted = source_graph.is_node_weighted()
@@ -258,159 +143,110 @@ class Digraph(dict):
                     if self.capacitated:
                         self.get_capacities()[edge] = source_capacities[edge]
 
-    def copy(self):
-        new_graph = Digraph()
-        for v, val in self.iteritems():
-            if self.node_weighted:
-                new_graph[v] = (val[0], val[1].copy(), val[2].copy())
-            else:
-                new_graph[v] = val.copy()
-        #
-        new_graph.node_weighted = self.node_weighted
-        new_graph.undirected = self.undirected
-        new_graph.capacitated = self.capacitated
-        new_graph.__edges = self.get_edges().copy()
-        new_graph.set_capacities(self.get_capacities())
-        new_graph.dist = self.dist.copy()
-        new_graph.paths = self.paths.copy()
-        new_graph.pairs_dist_paths = self.pairs_dist_paths.copy()
-        new_graph.issues_dist_paths = self.issues_dist_paths.copy()
-        #
-        return new_graph
-
-    def compute_total_weights(self, excluded_nodes=None, compute_node_cost=False):
-        vertices = set()
-        total_weight_edges = 0
-        for (v, w), edge_weight in self.__edges.iteritems():
-            vertices.update([v, w])
-            total_weight_edges += edge_weight
-        vertices = vertices.intersection(excluded_nodes if excluded_nodes else [])
-        total_weight_nodes = 0
-        if compute_node_cost and self.is_node_weighted():
-            for v in vertices:
-                total_weight_nodes += self[v][0]
-        # cost = 0
-        # node_cost = 0
-        # for v in self:
-        #     if self.node_weighted:
-        #         if compute_node_cost:
-        #             if excluded_nodes is None or v not in excluded_nodes:
-        #                 node_cost += self[v][0]
-        #         cost += sum(self[v][1].values())
-        #     else:
-        #         cost += sum(self[v].values())
-        # cost = cost / 2. + node_cost  # Divided by two since it is digraph.
-        return total_weight_edges, total_weight_nodes
-
-    def extract_node_induced_subgraph(self, nodes):
-        subgraph = Digraph(node_weighted=self.is_node_weighted(), undirected=self.is_undirected(),
-                           capacitated=self.is_capacitated())
-        if self.node_weighted:
-            for n in nodes:
-                adj = {w: edge_weight for w, edge_weight in self[n][1].iteritems() if w in nodes}
-                subgraph[n] = (self[n][0], adj, self[n][2].copy())
-        else:
-            for n in nodes:
-                subgraph[n] = {w: edge_weight for w, edge_weight in self[n].iteritems() if w in nodes}
-        return subgraph
+    def append_from_path(self, path, source_graph):
+        source_weighted = source_graph.is_node_weighted()
+        # If this graph is node-weighted, the source graph MUST be node-weighted.
+        if self.node_weighted and not source_weighted:
+            raise (ValueError, "Graph: Can't append a source graph which is not node-weighted.")
+        for i in range(len(path)):
+            if i + 1 < len(path):
+                v = path[i]
+                w = path[i + 1]
+                if v == w:
+                    continue
+                if source_graph.is_undirected():
+                    v_w = tuple(sorted([v, w]))
+                else:
+                    v_w = (v, w)
+                if self.is_undirected():
+                    my_v_w = tuple(sorted([v, w]))
+                else:
+                    my_v_w = (v, w)
+                weight = source_graph.get_edges()[v_w]
+                capacity = 0
+                if source_graph.is_capacitated():
+                    capacity = source_graph.get_capacities()[v_w]
+                if source_graph.is_node_weighted():
+                    nodes_weights = (source_graph[v][0], source_graph[w][0])
+                    nodes_info = (source_graph[v][2], source_graph[w][2])
+                    self.append_edge_2(my_v_w, weight, capacity, nodes_weights=nodes_weights, nodes_info=nodes_info)
+                else:
+                    self.append_edge_2(my_v_w, weight, capacity)
 
     def build_metric_closure(self, nodes, excluded_edges=None):
-        metric_closure = Digraph()
-        if excluded_edges is None:
-            excluded_edges = set()
-        for i in range(len(nodes) - 1):
-            nodes_ = []
-            for w in nodes[i + 1:]:
-                if tuple(sorted([nodes[i], w])) in excluded_edges:
-                    continue
-                nodes_.append(w)
-            dist, _ = self.__dijkstra(nodes[i], nodes_)
-            neighbourhood = {}
-            for n in nodes_:
-                try:
-                    neighbourhood[n] = dist[n]
-                except KeyError:
-                    neighbourhood[n] = sys.maxint
-            if nodes[i] in metric_closure:
-                temp = list(metric_closure[nodes[i]])
-                temp[1].update(neighbourhood)
+        metric_closure = Digraph(node_weighted=self.is_node_weighted())
+        excluded_ = set()
+        if excluded_edges is not None:
+            excluded_ = set(excluded_edges)
+        pairs = comb(nodes, 2)
+        edges = [(v, w) for v, w in pairs if (v, w) not in excluded_ and (w, v) not in excluded_]
+        self.compute_dist_paths(pairs=edges, compute_paths=False)
+        for v, w in edges:
+            if self.is_undirected():
+                v_w = tuple(sorted([v, w]))
             else:
-                metric_closure[nodes[i]] = (self[nodes[i]][0], neighbourhood, self[nodes[i]][2].copy())
-            for n, edge_weight in neighbourhood.iteritems():
-                if n in metric_closure:
-                    temp = list(metric_closure[n])
-                    temp[1][nodes[i]] = edge_weight
-                else:
-                    metric_closure[n] = (self[n][0], {nodes[i]: edge_weight}, self[n][2].copy())
+                v_w = (v, w)
+            if self.is_node_weighted():
+                metric_closure.append_edge_2(v_w, weight=self.dist[v_w], nodes_weights=(self[v][0], self[w][0]),
+                                             nodes_info=(self[v][2], self[w][2]))
+            else:
+                metric_closure.append_edge_2(v_w, weight=self.dist[v_w])
         return metric_closure
+        # metric_closure = Digraph()
+        # if excluded_edges is None:
+        #     excluded_edges = set()
+        # for i in range(len(nodes) - 1):
+        #     nodes_ = []
+        #     for w in nodes[i + 1:]:
+        #         if tuple(sorted([nodes[i], w])) in excluded_edges:
+        #             continue
+        #         nodes_.append(w)
+        #     dist, _ = self.__dijkstra(nodes[i], nodes_)
+        #     neighbourhood = {}
+        #     for n in nodes_:
+        #         try:
+        #             neighbourhood[n] = dist[n]
+        #         except KeyError:
+        #             neighbourhood[n] = sys.maxint
+        #     if nodes[i] in metric_closure:
+        #         temp = list(metric_closure[nodes[i]])
+        #         temp[1].update(neighbourhood)
+        #     else:
+        #         metric_closure[nodes[i]] = (self[nodes[i]][0], neighbourhood, self[nodes[i]][2].copy())
+        #     for n, edge_weight in neighbourhood.iteritems():
+        #         if n in metric_closure:
+        #             temp = list(metric_closure[n])
+        #             temp[1][nodes[i]] = edge_weight
+        #         else:
+        #             metric_closure[n] = (self[n][0], {nodes[i]: edge_weight}, self[n][2].copy())
+        # return metric_closure
 
-    def get_edges(self):
-        if len(self.__edges) != 0:
-            return self.__edges
-        # Generate edges from scratch only in the case of an undirected graph.
-        if self.undirected:
-            if self.node_weighted:
-                for n in self:
-                    for w, edge_weight in self[n][1].iteritems():
-                        edge = tuple(sorted([n, w]))
-                        if edge not in self.__edges:
-                            self.__edges[edge] = edge_weight
+    def clone_node(self, node):
+        new_node = id_generator()
+        # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
+        if not self.node_weighted:
+            adj_nodes = self[node]
+        else:
+            adj_nodes = self[node][1]
+        for w, dist in adj_nodes.iteritems():
+            if w == node:
+                continue
+            if self.is_undirected():
+                node_w = tuple(sorted([node, w]))
+                new_node_w = tuple(sorted([new_node, w]))
             else:
-                for n in self:
-                    for w, edge_weight in self[n].iteritems():
-                        edge = tuple(sorted([n, w]))
-                        if edge not in self.__edges:
-                            self.__edges[edge] = edge_weight
-        return self.__edges
-
-    def get_capacities(self):
-        # if self.__capacitated:
-        #     missing = set(self.get_edges().keys()).difference(self.__capacities.keys())
-        #     if len(missing) != 0:
-        #         raise (RuntimeError, "Digraph: Capacities have not been set for all edges!")
-        return self.__capacities
-
-    def set_capacities(self, capacities, replace=False):
-        non_existent = set(capacities.keys()).difference(self.get_edges().keys())
-        if len(non_existent) != 0:
-            raise (RuntimeError, "Digraph: Edges corresponding to capacities do not exist!")
-        if replace:
-            self.__capacities = dict(capacities)
-        else:
-            self.__capacities.update(capacities)
-
-    def get_dist_paths(self, origins, destinations, method='dijkstra'):
-        if len(self.pairs_dist_paths) == 0:
-            self.compute_dist_paths(origins=origins, destinations=destinations, method=method)
-        return self.dist, self.paths
-
-    def set_dist_path(self, origin, destination, dist, path=None):
-        if self.undirected:
-            v_w = tuple(sorted([origin, destination]))
-        else:
-            v_w = (origin, destination)
-        try:
-            self.dist[v_w] = dist
-            if path:
-                self.paths[v_w] = path
-            self.pairs_dist_paths.add(v_w)
-        except KeyError:
-            self.dist[v_w] = sys.maxint
-            if path:
-                self.paths[v_w] = []
-            self.issues_dist_paths.add(v_w)
-
-    def compute_missing_pairs_dist_paths(self, pairs, compute_paths=True):
-        if self.undirected:
-            pairs_dict = {tuple(sorted([o, d])): (o, d) for (o, d) in pairs}
-        else:
-            pairs_dict = {(o, d): (o, d) for (o, d) in pairs}
-        missing = set(pairs_dict.keys()).difference(self.pairs_dist_paths)
-        if compute_paths:
-            for pair in pairs_dict.keys():
-                if pair not in self.paths:
-                    missing.add(pair)
-        return [pairs_dict[p] for p in missing]
+                node_w = (node, w)
+                new_node_w = (new_node, w)
+            capacity = 0
+            if self.is_capacitated():
+                capacity = self.get_capacities()[node_w]
+            if not self.node_weighted:
+                self.append_edge_2(new_node_w, dist, capacity)
+            else:
+                nodes_weights = (self[node][0], self[w][0])
+                nodes_info = (self[node][2], self[w][2])
+                self.append_edge_2(new_node_w, dist, capacity, nodes_weights=nodes_weights, nodes_info=nodes_info)
+        return new_node
 
     def compute_dist_paths(self, origins=None, destinations=None, pairs=None, end_mode='all', compute_paths=True,
                            track_edges=False, recompute=False, method='dijkstra'):
@@ -472,118 +308,236 @@ class Digraph(dict):
             raise (RuntimeError, "Digraph: No other method but Dijkstra has been implemented!")
         return len(pairs_)  # number of computed pairs.
 
-    def steiner_n_stats(self, n, v, mst_alg):
-        ecc = inc = 0
-        powerset_n_terminals = comb_v(self.keys(), n, v)
-        costs = []
-        for terminals in powerset_n_terminals:
-            st = mst_alg.steiner_tree(terminals)
-            cost, _ = st.compute_total_weights(terminals)
-            costs.append(cost)
-        if len(costs) > 0:
-            ecc = max(costs)
-            inc = min(costs)
-        return ecc, inc
-
-    def get_voronoi_medoids_cells(self, medoids, nodes):
-        """
-        Compute Voronoi cells for a set of nodes and medoids as two dictionaries: (1) nodes by medoids, (2) medoids by
-        node.
-
-        :param medoids:
-        :param nodes:
-        :return:
-        """
-        cells = {m: [] for m in medoids}    # Medoids are the keys and the nodes are the elements of the cell.
-        generator_by_node = dict()          # Nodes are the keys and the value is its corresponding closest medoid.
-        self.compute_dist_paths(origins=nodes, destinations=medoids, compute_paths=False)
-        # Each node from the set [nodes] is assigned to its closest medoid.
-        for n in nodes:
-            dists = dict()
-            for m in medoids:
-                if self.undirected:
-                    n_m = tuple(sorted([n, m]))
+    def compute_euler_tour(self, origin):
+        graph = self.copy()
+        tour = [origin]
+        while True:
+            v = tour[-1]
+            if self.is_node_weighted():
+                adj_nodes = graph[v][1]
+            else:
+                adj_nodes = graph[v]
+            i = 0
+            if len(adj_nodes) > 1:
+                if self.is_node_weighted():
+                    while tour[-1] not in graph[adj_nodes.keys()[i]][1]:
+                        i += 1
                 else:
-                    n_m = (n, m)
-                dists[m] = self.dist[n_m]
-            medoid = min(dists.iteritems(), key=operator.itemgetter(1))[0]
-            cells[medoid].append(n)
-            generator_by_node[n] = medoid
-        return cells, generator_by_node
+                    while tour[-1] not in graph[adj_nodes.keys()[i]]:
+                        i += 1
+            tour.append(adj_nodes.keys()[i])
+            del adj_nodes[tour[-1]]
+            if tour[-1] == origin:
+                break
+        return tour
 
-    def get_voronoi_paths_cells(self, paths, nodes=None):
-        """
-        Compute the Voronoi cells based on the paths as generators. If a path is one vertex, this reduces to compute the
-        Voronoi cells with a medoid as generator.
-
-        :param paths: list
-            Paths as generators.
-        :param nodes: Iterable
-            Nodes to be included in the cells.
-        :return:
-        """
-        cells = dict()              # Paths are the keys and the nodes are the elements of the cell.
-        generator_by_node = dict()  # Nodes are the keys and the value is its corresponding closest path.
-        # When None is indicated, the graph nodes are the default.
-        if nodes is None:
-            nodes_ = set(self.keys())
+    def compute_missing_pairs_dist_paths(self, pairs, compute_paths=True):
+        if self.undirected:
+            pairs_dict = {tuple(sorted([o, d])): (o, d) for (o, d) in pairs}
         else:
-            nodes_ = set(nodes)
-        # A priority queue is created. It will help retrieve the next farthest node to any shortest path.
-        priority_dict = PriorityDictionary()
-        # Paths are traversed in no specific order.
-        # TODO: Perhaps a smarter way of traversing, e.g., based on distance, may be needed.
-        for p in paths:
-            if len(p) == 0:
-                continue
-            origin = p[0]
-            destination = p[-1]
-            # Cells are initialized.
-            # A cell is identified by the path's origin and destination.
-            cells[(origin, destination)] = list()
-            for node in p:
-                # Check whether the node is of interest.
-                # In that case, since the node is part of the path, the distance is zero and the generator is such path.
-                if node in nodes_:
-                    priority_dict[node] = 0
-                    generator_by_node[node] = (origin, destination)
+            pairs_dict = {(o, d): (o, d) for (o, d) in pairs}
+        missing = set(pairs_dict.keys()).difference(self.pairs_dist_paths)
+        if compute_paths:
+            for pair in pairs_dict.keys():
+                if pair not in self.paths:
+                    missing.add(pair)
+        return [pairs_dict[p] for p in missing]
+
+    def compute_mst(self, method='prim'):
+        if method == 'prim':
+            mst = self.__prim()
+        else:
+            raise NotImplementedError
+        return mst
+
+    def compute_total_weights(self, excluded_nodes=None, compute_node_cost=False):
+        vertices = set()
+        total_weight_edges = 0
+        for (v, w), edge_weight in self.__edges.iteritems():
+            vertices.update([v, w])
+            total_weight_edges += edge_weight
+        vertices = vertices.intersection(excluded_nodes if excluded_nodes else [])
+        total_weight_nodes = 0
+        if compute_node_cost and self.is_node_weighted():
+            for v in vertices:
+                total_weight_nodes += self[v][0]
+        return total_weight_edges, total_weight_nodes
+
+    def copy(self):
+        new_graph = Digraph()
+        for v, val in self.iteritems():
+            if self.node_weighted:
+                new_graph[v] = (val[0], val[1].copy(), val[2].copy())
+            else:
+                new_graph[v] = val.copy()
         #
-        distances = dict()
-        for node in priority_dict:
-            origin, destination = generator_by_node[node]
-            # The closest path has been found for the current node.
-            cells[(origin, destination)].append(node)
-            # Store the associated shortest distance.
-            distances[node] = priority_dict[node]
+        new_graph.node_weighted = self.node_weighted
+        new_graph.undirected = self.undirected
+        new_graph.capacitated = self.capacitated
+        new_graph.__edges = self.get_edges().copy()
+        new_graph.set_capacities(self.get_capacities())
+        new_graph.dist = self.dist.copy()
+        new_graph.paths = self.paths.copy()
+        new_graph.pairs_dist_paths = self.pairs_dist_paths.copy()
+        new_graph.issues_dist_paths = self.issues_dist_paths.copy()
+        #
+        return new_graph
+
+    def drop_node_weights(self):
+        if self.node_weighted:
+            for v in self:
+                self[v] = self[v][1]
+
+    def expand_contracted_path(self, contracted_path):
+        if len(contracted_path) == 0:
+            return list()
+        pairs = list()
+        for i in range(len(contracted_path) - 1):
+            v = contracted_path[i]
+            w = contracted_path[i + 1]
+            pairs.append((v, w))
+        self.compute_dist_paths(pairs=pairs)
+        expanded_path = [contracted_path[0]]
+        for i in range(len(contracted_path) - 1):
+            v = contracted_path[i]
+            w = contracted_path[i + 1]
+            if self.is_undirected():
+                path = self.paths[tuple(sorted([v, w]))]
+                if w == path[0]:
+                    path.reverse()
+            else:
+                path = self.paths[(v, w)]
+            expanded_path.extend(path[1:])
+        return expanded_path
+
+    def explore_upto(self, starting, upper_bound):
+
+        distances = {}  # dictionary of final distances
+        priority_dict = PriorityDictionary()  # est.dist. of non-final vert.
+        priority_dict[starting] = 0
+
+        for v in priority_dict:
+            if priority_dict[v] > upper_bound:
+                break
+            distances[v] = priority_dict[v]
+
             # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
             if not self.node_weighted:
-                adj_nodes = self[node]
+                adj_nodes = self[v]
             else:
-                adj_nodes = self[node][1]
+                adj_nodes = self[v][1]
+
             # Traverse the adjacency list.
             for w, dist in adj_nodes.iteritems():
-                vw_length = distances[node] + dist
-                # In case w is of interest and has not been visited before...
-                if w in nodes_ and w not in distances:
-                    # If w's distance is improved, this distance and generator are updated.
-                    if w not in priority_dict or vw_length < priority_dict[w]:
-                        priority_dict[w] = vw_length
-                        generator_by_node[w] = (origin, destination)
+                vw_length = distances[v] + dist
+                # In case v-w shortest distance has already been computed.
+                if w in distances:
+                    if vw_length < distances[w]:
+                        raise (ValueError, "Explore upto: found better path to already-final vertex")
+                # In case w has not been visited before or the current computed distance is better than the one computed
+                # before.
+                elif w not in priority_dict or vw_length < priority_dict[w]:
+                    priority_dict[w] = vw_length
+        return distances
 
-        return cells, generator_by_node
+    def extract_node_induced_subgraph(self, nodes):
+        subgraph = Digraph(node_weighted=self.is_node_weighted(),
+                           undirected=self.is_undirected(),
+                           capacitated=self.is_capacitated())
+        if self.is_node_weighted():
+            for v in nodes:
+                for w, edge_weight in self[v][1].iteritems():
+                    if w in nodes:
+                        if self.is_undirected():
+                            v_w = tuple(sorted([v, w]))
+                        else:
+                            v_w = (v, w)
+                        #
+                        capacity = 0
+                        if self.is_capacitated():
+                            capacity = self.get_capacities()[v_w]
+                        subgraph.append_edge_2((v, w), weight=edge_weight, capacity=capacity,
+                                               nodes_weights=(self[v][0], self[w][0]),
+                                               nodes_info=(self[v][2], self[w][2]))
+        else:
+            for v in nodes:
+                for w, edge_weight in self[v].iteritems():
+                    if w in nodes:
+                        if self.is_undirected():
+                            v_w = tuple(sorted([v, w]))
+                        else:
+                            v_w = (v, w)
+                        #
+                        capacity = 0
+                        if self.is_capacitated():
+                            capacity = self.get_capacities()[v_w]
+                        subgraph.append_edge_2((v, w), weight=edge_weight, capacity=capacity)
+        #
+        isolated = set(nodes).difference(subgraph.keys())
+        for v in isolated:
+            if self.is_node_weighted():
+                subgraph[v] = (self[v][0], {}, self[v][2].copy())
+            else:
+                subgraph[v] = {}
+        return subgraph
 
-    def get_medoid(self, nodes):
-        self.compute_dist_paths(origins=nodes, destinations=nodes, compute_paths=False)
-        sums = dict()
-        for v in nodes:
-            sum_ = 0
-            for w in nodes:
-                if self.undirected:
-                    sum_ += self.dist[tuple(sorted([v, w]))]
-                else:
-                    sum_ += self.dist[(v, w)]
-            sums[v] = sum_
-        return min(sums.iteritems(), key=operator.itemgetter(1))[0]
+    def get_capacities(self):
+        # if self.__capacitated:
+        #     missing = set(self.get_edges().keys()).difference(self.__capacities.keys())
+        #     if len(missing) != 0:
+        #         raise (RuntimeError, "Digraph: Capacities have not been set for all edges!")
+        return self.__capacities
+
+    def get_components(self):
+        membership = {node: 0 for node in self}
+        component = 0
+        queue = list()
+        for node in self:
+            if membership[node] == 0:
+                component += 1
+                membership[node] = component
+                queue.insert(0, node)
+                while queue:
+                    v = queue.pop()
+                    if not self.node_weighted:
+                        adj_nodes = self[v]
+                    else:
+                        adj_nodes = self[v][1]
+                    for w in adj_nodes:
+                        if membership[w] == 0:
+                            membership[w] = component
+                            queue.insert(0, w)
+        components = dict()
+        for node, component in membership.iteritems():
+            try:
+                components[component].append(node)
+            except KeyError:
+                components[component] = [node]
+        return components
+
+    def get_dist_paths(self, origins, destinations, method='dijkstra'):
+        if len(self.pairs_dist_paths) == 0:
+            self.compute_dist_paths(origins=origins, destinations=destinations, method=method)
+        return self.dist, self.paths
+
+    def get_edges(self):
+        if len(self.__edges) != 0:
+            return self.__edges
+        # Generate edges from scratch only in the case of an undirected graph.
+        if self.undirected:
+            if self.node_weighted:
+                for n in self:
+                    for w, edge_weight in self[n][1].iteritems():
+                        edge = tuple(sorted([n, w]))
+                        if edge not in self.__edges:
+                            self.__edges[edge] = edge_weight
+            else:
+                for n in self:
+                    for w, edge_weight in self[n].iteritems():
+                        edge = tuple(sorted([n, w]))
+                        if edge not in self.__edges:
+                            self.__edges[edge] = edge_weight
+        return self.__edges
 
     def get_k_closest_destinations(self, n, k, destinations=None):
 
@@ -636,20 +590,268 @@ class Digraph(dict):
                     predecessors[w] = v
         return distances, paths
 
-    def __track_edges(self, path):
-        origin = path[0]
-        destination = path[-1]
-        for i in range(len(path) - 1):
-            x = path[i]
-            y = path[i + 1]
-            if self.undirected:
-                x_y = tuple(sorted([x, y]))
+    def get_medoid(self, nodes):
+        self.compute_dist_paths(origins=nodes, destinations=nodes, compute_paths=False)
+        sums = dict()
+        for v in nodes:
+            sum_ = 0
+            for w in nodes:
+                if self.undirected:
+                    sum_ += self.dist[tuple(sorted([v, w]))]
+                else:
+                    sum_ += self.dist[(v, w)]
+            sums[v] = sum_
+        return min(sums.iteritems(), key=operator.itemgetter(1))[0]
+
+    def get_voronoi_medoids_cells(self, medoids, nodes):
+        """
+        Compute Voronoi cells for a set of nodes and medoids as two dictionaries: (1) nodes by medoids, (2) medoids by
+        node.
+
+        :param medoids:
+        :param nodes:
+        :return:
+        """
+        cells = {m: [] for m in medoids}  # Medoids are the keys and the nodes are the elements of the cell.
+        generator_by_node = dict()  # Nodes are the keys and the value is its corresponding closest medoid.
+        self.compute_dist_paths(origins=nodes, destinations=medoids, compute_paths=False)
+        # Each node from the set [nodes] is assigned to its closest medoid.
+        for n in nodes:
+            dists = dict()
+            for m in medoids:
+                if self.undirected:
+                    n_m = tuple(sorted([n, m]))
+                else:
+                    n_m = (n, m)
+                dists[m] = self.dist[n_m]
+            medoid = min(dists.iteritems(), key=operator.itemgetter(1))[0]
+            cells[medoid].append(n)
+            generator_by_node[n] = medoid
+        return cells, generator_by_node
+
+    def get_voronoi_paths_cells(self, paths, nodes=None):
+        """
+        Compute the Voronoi cells based on the paths as generators. If a path is one vertex, this reduces to compute the
+        Voronoi cells with a medoid as generator.
+
+        :param paths: list
+            Paths as generators.
+        :param nodes: Iterable
+            Nodes to be included in the cells.
+        :return:
+        """
+        cells = dict()  # Paths are the keys and the nodes are the elements of the cell.
+        generator_by_node = dict()  # Nodes are the keys and the value is its corresponding closest path.
+        # When None is indicated, the graph nodes are the default.
+        if nodes is None:
+            nodes_ = set(self.keys())
+        else:
+            nodes_ = set(nodes)
+        # A priority queue is created. It will help retrieve the next farthest node to any shortest path.
+        priority_dict = PriorityDictionary()
+        # Paths are traversed in no specific order.
+        # TODO: Perhaps a smarter way of traversing, e.g., based on distance, may be needed.
+        for p in paths:
+            if len(p) == 0:
+                continue
+            origin = p[0]
+            destination = p[-1]
+            # Cells are initialized.
+            # A cell is identified by the path's origin and destination.
+            cells[(origin, destination)] = list()
+            for node in p:
+                # Check whether the node is of interest.
+                # In that case, since the node is part of the path, the distance is zero and the generator is such path.
+                if node in nodes_:
+                    priority_dict[node] = 0
+                    generator_by_node[node] = (origin, destination)
+        #
+        distances = dict()
+        for node in priority_dict:
+            origin, destination = generator_by_node[node]
+            # The closest path has been found for the current node.
+            cells[(origin, destination)].append(node)
+            # Store the associated shortest distance.
+            distances[node] = priority_dict[node]
+            # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
+            if not self.node_weighted:
+                adj_nodes = self[node]
             else:
-                x_y = (x, y)
-            try:
-                self.__edges_in_sp[x_y].append((origin, destination))
-            except KeyError:
-                self.__edges_in_sp[x_y] = [(origin, destination)]
+                adj_nodes = self[node][1]
+            # Traverse the adjacency list.
+            for w, dist in adj_nodes.iteritems():
+                vw_length = distances[node] + dist
+                # In case w is of interest and has not been visited before...
+                if w in nodes_ and w not in distances:
+                    # If w's distance is improved, this distance and generator are updated.
+                    if w not in priority_dict or vw_length < priority_dict[w]:
+                        priority_dict[w] = vw_length
+                        generator_by_node[w] = (origin, destination)
+
+        return cells, generator_by_node
+
+    def is_capacitated(self):
+        return self.capacitated
+
+    def is_node_weighted(self):
+        return self.node_weighted
+
+    def is_undirected(self):
+        return self.undirected
+
+    def nodes_within_ellipse(self, focal_1, focal_2, constant):
+
+        ellipse = dict()
+
+        distances = {focal_1: {}, focal_2: {}}
+
+        priority_dict = PriorityDictionary()
+        priority_dict[(focal_1, focal_1)] = 0
+        priority_dict[(focal_2, focal_2)] = 0
+
+        # iterations = 0
+        for focal, v in priority_dict:
+
+            # iterations += 1
+
+            if priority_dict[(focal, v)] > constant:
+                break
+
+            distances[focal][v] = priority_dict[(focal, v)]
+
+            other_focal = focal_1 if focal == focal_2 else focal_2
+
+            if v in distances[other_focal]:
+                if distances[focal][v] + distances[other_focal][v] <= constant:
+                    ellipse[v] = {
+                        focal: distances[focal][v],
+                        other_focal: distances[other_focal][v]
+                    }
+
+            # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
+            if not self.node_weighted:
+                adj_nodes = self[v]
+            else:
+                adj_nodes = self[v][1]
+
+            for w, dist in adj_nodes.iteritems():
+                vw_length = distances[focal][v] + dist
+                if w not in distances[focal]:
+                    if (focal, w) not in priority_dict or vw_length < priority_dict[(focal, w)]:
+                        priority_dict[(focal, w)] = vw_length
+        # return ellipse, iterations
+        return ellipse
+
+    def perturb_edge_weights(self):
+        perturbed = set()
+        od_to_recompute = set(self.pairs_dist_paths)
+        for v, val in self.iteritems():
+            if self.node_weighted:
+                for w in val[1]:
+                    if (v, w) in perturbed:
+                        continue
+                    if np.random.ranf() < 0.5:
+                        weight = self[v][1][w] + np.random.ranf() / 100
+                    else:
+                        weight = self[v][1][w] - np.random.ranf() / 100
+                    self[v][1][w] = weight
+                    if self.undirected:
+                        self[w][1][v] = weight
+                        perturbed.add((w, v))
+                        self.get_edges()[tuple(sorted([v, w]))] = weight
+                    else:
+                        self.get_edges()[(v, w)] = weight
+            else:
+                for w in val:
+                    if (v, w) in perturbed:
+                        continue
+                    if np.random.ranf() < 0.5:
+                        weight = self[v][w] + np.random.ranf() / 100
+                    else:
+                        weight = self[v][w] - np.random.ranf() / 100
+                    self[v][w] = weight
+                    if self.undirected:
+                        self[w][v] = weight
+                        perturbed.add((w, v))
+                        self.get_edges()[tuple(sorted([v, w]))] = weight
+                    else:
+                        self.get_edges()[(v, w)] = weight
+        # Recompute shortest distances|paths.
+        self.compute_dist_paths(pairs=od_to_recompute, compute_paths=len(self.paths) > 0, recompute=True)
+
+    def set_capacities(self, capacities, replace=False):
+        non_existent = set(capacities.keys()).difference(self.get_edges().keys())
+        if len(non_existent) != 0:
+            raise (RuntimeError, "Digraph: Edges corresponding to capacities do not exist!")
+        if replace:
+            self.__capacities = dict(capacities)
+        else:
+            self.__capacities.update(capacities)
+
+    def set_dist_path(self, origin, destination, dist, path=None):
+        if self.undirected:
+            v_w = tuple(sorted([origin, destination]))
+        else:
+            v_w = (origin, destination)
+        try:
+            self.dist[v_w] = dist
+            if path:
+                self.paths[v_w] = path
+            self.pairs_dist_paths.add(v_w)
+        except KeyError:
+            self.dist[v_w] = sys.maxint
+            if path:
+                self.paths[v_w] = []
+            self.issues_dist_paths.add(v_w)
+
+    def steiner_n_stats(self, n, v, mst_alg):
+        ecc = inc = 0
+        powerset_n_terminals = comb_v(self.keys(), n, v)
+        costs = []
+        for terminals in powerset_n_terminals:
+            st = mst_alg.steiner_tree(terminals)
+            cost, _ = st.compute_total_weights(terminals)
+            costs.append(cost)
+        if len(costs) > 0:
+            ecc = max(costs)
+            inc = min(costs)
+        return ecc, inc
+
+    def update_node_weights(self, weights):
+        if self.node_weighted:
+            for v, weight in weights.iteritems():
+                l_value = list(self[v])
+                l_value[0] = weight
+                self[v] = tuple(l_value)
+
+    def update_edge_weights(self, weights):
+        od_to_recompute = set()
+        for (v, w), weight in weights.iteritems():
+            # Check whether the edge is present.
+            if self.undirected:
+                v_w = tuple(sorted([v, w]))
+            else:
+                v_w = (v, w)
+            if v_w not in self.get_edges():
+                continue
+            # Update the adjacency lists.
+            if self.node_weighted:
+                self[v][1][w] = weight
+                if self.undirected:
+                    self[w][1][v] = weight
+            else:
+                self[v][w] = weight
+                if self.undirected:
+                    self[w][v] = weight
+            # Update the edge.
+            self.get_edges()[v_w] = weight
+            # Update list of O-D pairs that are to be recomputed.
+            if v_w in self.__edges_in_sp:
+                od_to_recompute.update(self.__edges_in_sp[v_w])
+        # Recompute shortest distances|paths.
+        if len(od_to_recompute) > 0:
+            self.compute_dist_paths(pairs=od_to_recompute, compute_paths=len(self.paths) > 0, recompute=True,
+                                    track_edges=True)
 
     def __dijkstra(self, origin, destinations=None, consider_node_weights=False, end_mode='all', compute_paths=True,
                    track_edges=False):
@@ -818,151 +1020,64 @@ class Digraph(dict):
                     predecessors[end][w] = v
         return distance, path
 
-    def explore_upto(self, starting, upper_bound):
-
-        distances = {}  # dictionary of final distances
-        priority_dict = PriorityDictionary()  # est.dist. of non-final vert.
-        priority_dict[starting] = 0
-
-        for v in priority_dict:
-            if priority_dict[v] > upper_bound:
-                break
-            distances[v] = priority_dict[v]
-
-            # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
-            if not self.node_weighted:
-                adj_nodes = self[v]
-            else:
-                adj_nodes = self[v][1]
-
-            # Traverse the adjacency list.
-            for w, dist in adj_nodes.iteritems():
-                vw_length = distances[v] + dist
-                # In case v-w shortest distance has already been computed.
-                if w in distances:
-                    if vw_length < distances[w]:
-                        raise (ValueError, "Explore upto: found better path to already-final vertex")
-                # In case w has not been visited before or the current computed distance is better than the one computed
-                # before.
-                elif w not in priority_dict or vw_length < priority_dict[w]:
-                    priority_dict[w] = vw_length
-        return distances
-
-    def nodes_within_ellipse(self, focal_1, focal_2, constant):
-
-        ellipse = dict()
-
-        distances = {focal_1: {}, focal_2: {}}
-
-        priority_dict = PriorityDictionary()
-        priority_dict[(focal_1, focal_1)] = 0
-        priority_dict[(focal_2, focal_2)] = 0
-
-        # iterations = 0
-        for focal, v in priority_dict:
-
-            # iterations += 1
-
-            if priority_dict[(focal, v)] > constant:
-                break
-
-            distances[focal][v] = priority_dict[(focal, v)]
-
-            other_focal = focal_1 if focal == focal_2 else focal_2
-
-            if v in distances[other_focal]:
-                if distances[focal][v] + distances[other_focal][v] <= constant:
-                    ellipse[v] = {
-                        focal: distances[focal][v],
-                        other_focal: distances[other_focal][v]
-                    }
-
-            # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
-            if not self.node_weighted:
-                adj_nodes = self[v]
-            else:
-                adj_nodes = self[v][1]
-
-            for w, dist in adj_nodes.iteritems():
-                vw_length = distances[focal][v] + dist
-                if w not in distances[focal]:
-                    if (focal, w) not in priority_dict or vw_length < priority_dict[(focal, w)]:
-                        priority_dict[(focal, w)] = vw_length
-        # return ellipse, iterations
-        return ellipse
-
-    def clone_node(self, node):
-        new_node = id_generator()
-        # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
-        if not self.node_weighted:
-            adj_nodes = self[node]
-        else:
-            adj_nodes = self[node][1]
-        for w, dist in adj_nodes.iteritems():
-            if w == node:
+    def __prim(self):
+        #
+        spanning_tree = Digraph(node_weighted=self.is_node_weighted(),
+                                undirected=self.is_undirected(),
+                                capacitated=self.is_capacitated())
+        #
+        marked_nodes = set()
+        edges_to = {}
+        priority_queue = PriorityDictionary()
+        #
+        distances_to = {n: sys.maxint for n in self}
+        for n in self:
+            if n in marked_nodes:
                 continue
+            distances_to[n] = 0
+            priority_queue[n] = distances_to[n]
+            for v in priority_queue:
+                marked_nodes.add(v)
+                if not self.is_node_weighted():
+                    adj_nodes = self[v]
+                else:
+                    adj_nodes = self[v][1]
+                for w, edge_cost in adj_nodes.iteritems():
+                    if w in marked_nodes:
+                        continue
+                    if edge_cost < distances_to[w]:
+                        distances_to[w] = edge_cost
+                        edges_to[w] = (v, w)
+                        priority_queue[w] = distances_to[w]
+        #
+        for _, (v, w) in edges_to.iteritems():
+            #
             if self.is_undirected():
-                node_w = tuple(sorted([node, w]))
-                new_node_w = tuple(sorted([new_node, w]))
+                v_w = tuple(sorted([v, w]))
             else:
-                node_w = (node, w)
-                new_node_w = (new_node, w)
+                v_w = (v, w)
+            #
             capacity = 0
             if self.is_capacitated():
-                capacity = self.get_capacities()[node_w]
-            if not self.node_weighted:
-                self.append_edge_2(new_node_w, dist, capacity)
+                capacity = self.get_capacities()[v_w]
+            if self.is_node_weighted():
+                spanning_tree.append_edge_2((v, w), weight=self.get_edges()[v_w], capacity=capacity,
+                                            nodes_weights=(self[v][0], self[w][0]), nodes_info=(self[v][2], self[w][2]))
             else:
-                nodes_weights = (self[node][0], self[w][0])
-                nodes_info = (self[node][2], self[w][2])
-                self.append_edge_2(new_node_w, dist, capacity, nodes_weights=nodes_weights, nodes_info=nodes_info)
-        return new_node
+                spanning_tree.append_edge_2((v, w), capacity=capacity, weight=self.get_edges()[v_w])
+        return spanning_tree
 
-    def expand_contracted_path(self, contracted_path):
-        if len(contracted_path) == 0:
-            return list()
-        pairs = list()
-        for i in range(len(contracted_path) - 1):
-            v = contracted_path[i]
-            w = contracted_path[i + 1]
-            pairs.append((v, w))
-        self.compute_dist_paths(pairs=pairs)
-        expanded_path = [contracted_path[0]]
-        for i in range(len(contracted_path) - 1):
-            v = contracted_path[i]
-            w = contracted_path[i + 1]
-            if self.is_undirected():
-                path = self.paths[tuple(sorted([v, w]))]
-                if w == path[0]:
-                    path.reverse()
+    def __track_edges(self, path):
+        origin = path[0]
+        destination = path[-1]
+        for i in range(len(path) - 1):
+            x = path[i]
+            y = path[i + 1]
+            if self.undirected:
+                x_y = tuple(sorted([x, y]))
             else:
-                path = self.paths[(v, w)]
-            expanded_path.extend(path[1:])
-        return expanded_path
-
-    def get_components(self):
-        membership = {node: 0 for node in self}
-        component = 0
-        queue = list()
-        for node in self:
-            if membership[node] == 0:
-                component += 1
-                membership[node] = component
-                queue.insert(0, node)
-                while queue:
-                    v = queue.pop()
-                    if not self.node_weighted:
-                        adj_nodes = self[v]
-                    else:
-                        adj_nodes = self[v][1]
-                    for w in adj_nodes:
-                        if membership[w] == 0:
-                            membership[w] = component
-                            queue.insert(0, w)
-        components = dict()
-        for node, component in membership.iteritems():
+                x_y = (x, y)
             try:
-                components[component].append(node)
+                self.__edges_in_sp[x_y].append((origin, destination))
             except KeyError:
-                components[component] = [node]
-        return components
+                self.__edges_in_sp[x_y] = [(origin, destination)]

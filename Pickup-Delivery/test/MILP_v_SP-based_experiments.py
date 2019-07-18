@@ -1,7 +1,6 @@
 import operator
 import time
 import csv
-import cProfile
 
 from osmmanager import OsmManager
 from suitability import SuitableNodeWeightGenerator

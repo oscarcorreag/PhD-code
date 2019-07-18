@@ -1,6 +1,5 @@
 from unittest import TestCase
 from grid_digraph_generator import GridDigraphGenerator
-from networkx_graph_helper import NetworkXGraphHelper
 
 
 class TestDigraph(TestCase):
@@ -8,6 +7,15 @@ class TestDigraph(TestCase):
     def setUp(self):
         generator = GridDigraphGenerator()
         self.graph = generator.generate(5, 5, edge_weighted=False)
+
+    def test_clone_node(self):
+        new_node = self.graph.clone_node(12)
+        self.assertDictEqual(self.graph[12], self.graph[new_node])
+
+    def test_get_k_closest_destinations(self):
+        dist, paths = self.graph.get_k_closest_destinations(12, 3, [0, 1, 2, 3, 4])
+        self.assertDictEqual(dist, {1: 3, 2: 2, 3: 3})
+        self.assertDictEqual(paths, {1: [12, 7, 2, 1], 2: [12, 7, 2], 3: [12, 7, 2, 3]})
 
     def test_get_voronoi_paths_cells(self):
         # --------------------------------------------------------------------------------------------------------------
@@ -110,11 +118,37 @@ class TestDigraph(TestCase):
                                  18: {11: 3, 13: 1}
                              })
 
-    def test_get_k_closest_destinations(self):
-        dist, paths = self.graph.get_k_closest_destinations(12, 3, [0, 1, 2, 3, 4])
-        self.assertDictEqual(dist, {1: 3, 2: 2, 3: 3})
-        self.assertDictEqual(paths, {1: [12, 7, 2, 1], 2: [12, 7, 2], 3: [12, 7, 2, 3]})
+    def test_compute_mst(self):
+        mst = self.graph.compute_mst()
+        self.assertDictEqual(mst,
+                             {0: {1: 1, 5: 1}, 1: {0: 1, 2: 1, 6: 1}, 2: {1: 1, 3: 1, 7: 1}, 3: {8: 1, 2: 1, 4: 1},
+                              4: {9: 1, 3: 1}, 5: {0: 1, 10: 1}, 6: {1: 1, 11: 1}, 7: {2: 1, 12: 1}, 8: {3: 1, 13: 1},
+                              9: {4: 1, 14: 1}, 10: {5: 1, 15: 1}, 11: {16: 1, 6: 1}, 12: {17: 1, 7: 1},
+                              13: {8: 1, 18: 1}, 14: {9: 1, 19: 1}, 15: {10: 1, 20: 1}, 16: {11: 1, 21: 1},
+                              17: {12: 1, 22: 1}, 18: {13: 1, 23: 1}, 19: {24: 1, 14: 1}, 20: {15: 1}, 21: {16: 1},
+                              22: {17: 1}, 23: {18: 1}, 24: {19: 1}})
 
-    def test_clone_node(self):
-        new_node = self.graph.clone_node(12)
-        self.assertDictEqual(self.graph[12], self.graph[new_node])
+    def test_extract_node_induced_subgraph(self):
+        nodes = [6, 11, 12, 13, 24]
+        subgraph = self.graph.extract_node_induced_subgraph(nodes)
+        self.assertDictEqual(subgraph,
+                             {24: {}, 11: {12: 1, 6: 1}, 12: {11: 1, 13: 1}, 13: {12: 1}, 6: {11: 1}})
+
+    def test_build_metric_closure(self):
+        nodes = [0, 4, 12, 20, 24]
+        subgraph = self.graph.build_metric_closure(nodes)
+        self.assertDictEqual(subgraph,
+                             {0: {24: 8, 12: 4, 4: 4, 20: 4}, 12: {0: 4, 20: 4, 4: 4, 24: 4},
+                              4: {0: 4, 20: 8, 12: 4, 24: 4}, 20: {0: 4, 12: 4, 4: 8, 24: 4},
+                              24: {0: 8, 12: 4, 4: 4, 20: 4}})
+        excluded_edges = [(24, 12)]
+        subgraph = self.graph.build_metric_closure(nodes, excluded_edges=excluded_edges)
+        self.assertDictEqual(subgraph,
+                             {0: {24: 8, 12: 4, 4: 4, 20: 4}, 12: {0: 4, 20: 4, 4: 4}, 4: {0: 4, 20: 8, 12: 4, 24: 4},
+                              20: {0: 4, 12: 4, 4: 8, 24: 4}, 24: {0: 8, 20: 4, 4: 4}})
+
+    def test_compute_euler_tour(self):
+        mst = self.graph.compute_mst()
+        euler_tour = mst.compute_euler_tour(24)
+        print euler_tour
+        self.fail()

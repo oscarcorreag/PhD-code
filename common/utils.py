@@ -16,13 +16,14 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits, seed=None
 
 def comb(l, n):
     res = []
+    l_ = list(l)
     if n == 1:
-        for e in l:
+        for e in l_:
             res.append([e])
     else:
-        for i in range(len(l) - n + 1):
-            for e in comb(l[i + 1:], n - 1):
-                t = [l[i]]
+        for i in range(len(l_) - n + 1):
+            for e in comb(l_[i + 1:], n - 1):
+                t = [l_[i]]
                 t.extend(e)
                 res.append(t)
     return res

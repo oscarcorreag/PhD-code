@@ -640,7 +640,7 @@ class CsdpAp:
         objective.SetMinimization()
 
     def solve(self, requests, drivers, method='MILP', verbose=False, partition_method='SP-fraction', fraction_sd=.5,
-              threshold_sd=1.5, solve_partition_method='BB'):
+              threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='BB'):
 
         self._requests = requests
         self._drivers = list(drivers)
@@ -653,8 +653,11 @@ class CsdpAp:
             return self._solve_milp(method, threshold_sd, verbose)
 
         if method == 'SP-based':
-            return self._sp_based(partition_method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd,
-                                  solve_partition_method=solve_partition_method)
+            return self._sp_based(partition_method=partition_method,
+                                  fraction_sd=fraction_sd,
+                                  threshold_sd=threshold_sd,
+                                  solve_partition_method=solve_partition_method,
+                                  solve_unserved_method=solve_unserved_method)
 
     def _define_milp(self, method='MILP', threshold_sd=1.5):
         self._define_vars()
@@ -769,7 +772,8 @@ class CsdpAp:
             self._shop_by_F[end_v] = shop
             self._Fs_by_shop[shop] = (start_v, end_v)
 
-    def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB'):
+    def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB',
+                  solve_unserved_method='BB'):
         routes = list()
         cost = 0
         partitions = \
@@ -785,32 +789,41 @@ class CsdpAp:
             cost += c
             served_customers.update(sc)
 
-        # # Who were the non-visited customers?
-        # # visited = {v for route in routes for v in route}
-        # # non_visited = self._customers.difference(visited)
-        # non_visited = self._customers.difference(served_customers)
-        # # These customers are going to be served by their nearest shop. When a dedicated vehicle starting from a shop
-        # # has to serve more than one customer, this becomes a new partition of the CSDP-AP problem.
-        # partitions = dict()
-        # for non_visited_customer in non_visited:
-        #     customer_group = self._customers_dict[non_visited_customer]
-        #     # Which shops can serve the current non-visited customer?
-        #     shops_customer = self._shops_by_group_id[customer_group]
-        #     dist, _ = self._graph.get_k_closest_destinations(non_visited_customer, 1, shops_customer)
-        #     if len(dist) != 1:
-        #         raise (RuntimeError, "SP-based: There must be at least one nearest shop able to serve each customer.")
-        #     for nearest, d in dist.iteritems():
-        #         s_v, e_v = self._Fs_by_shop[nearest]
-        #         if (s_v, e_v) not in partitions:
-        #             partitions[(s_v, e_v)] = {'shops': {nearest}, 'customers': {non_visited_customer}}
-        #         else:
-        #             partitions[(s_v, e_v)]['customers'].add(non_visited_customer)
-        # # Solve the partitions created for the dedicated fleet.
-        # for partition in partitions.iteritems():
-        #     path, c, _ = self._solve_partition(partition)
-        #     path = [v if v not in self._shop_by_F else self._shop_by_F[v] for v in path]
-        #     routes.append(path)
-        #     cost += c
+        # Who were the non-visited customers?
+        non_visited = self._customers.difference(served_customers)
+        # These customers are going to be served by their nearest shop. When a dedicated vehicle starting from a
+        # shop has to serve more than one customer, this becomes a new partition of the CSDP-AP problem.
+        partitions = dict()
+        for non_visited_customer in non_visited:
+            customer_group = self._customers_dict[non_visited_customer]
+            # Which shops can serve the current non-visited customer?
+            shops_customer = self._shops_by_group_id[customer_group]
+            dist, _ = self._graph.get_k_closest_destinations(non_visited_customer, 1, shops_customer)
+            if len(dist) != 1:
+                raise (RuntimeError, "SP-based: There must be at least one nearest shop to serve each customer.")
+            nearest = dist.keys()[0]
+            s_v, e_v = self._Fs_by_shop[nearest]
+            if (s_v, e_v) not in partitions:
+                partitions[(s_v, e_v)] = {'shops': {nearest}, 'customers': {non_visited_customer}}
+            else:
+                partitions[(s_v, e_v)]['customers'].add(non_visited_customer)
+        # Solve the partitions created for the dedicated fleet.
+        for partition in partitions.iteritems():
+            if solve_unserved_method == 'BB':
+                path, c, _ = self._solve_partition(partition)
+                path = [v if v not in self._shop_by_F else self._shop_by_F[v] for v in path]
+                routes.append(path)
+                cost += c
+            elif solve_unserved_method == 'double-tree':
+                (s_v, e_v), shops_customers = partition
+                vertices = shops_customers['shops'].union(shops_customers['customers'])
+                complete = self._graph.build_metric_closure(vertices)
+                mst = complete.compute_mst()
+                print mst
+            elif solve_unserved_method == 'Christofides':
+                raise NotImplementedError
+            else:
+                raise NotImplementedError
         return routes, cost
 
     def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
