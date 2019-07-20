@@ -1,8 +1,8 @@
 import sys
 
 from canditates_list import CandidatesList
-from digraph import dijkstra
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from graph import dijkstra
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from utils import haversine, comb
 
 
@@ -17,8 +17,8 @@ class LazySteinerTree:
         else:
             return
         # Set object variables.
-        self.__graph = SuitabilityDigraph()
-        self.__graph.append_from_graph(graph)
+        self.__graph = SuitabilityGraph()
+        self.__graph.append_graph(graph)
         self.__terminals = terminals
         self.__hot_spots = None
         self.__nodes = None
@@ -427,23 +427,23 @@ class LazySteinerTree:
             print(dist_to_poi, i, j, dd_type, d_type_1, d_type_2, d_type_3)
 
     def __build_steiner_tree(self, node, subset):
-        steiner_tree = SuitabilityDigraph()
+        steiner_tree = SuitabilityGraph()
         next_node = self.__s_d[node][subset][0][3]
         print(node, self.__s_d[node][subset])
         # pdb.set_trace()
         if next_node is not None:
             try:
-                steiner_tree.append_from_path(self.__paths[tuple(sorted([node, next_node]))], self.__graph)
+                steiner_tree.append_path(self.__paths[tuple(sorted([node, next_node]))], self.__graph)
             except KeyError:
                 _, paths = dijkstra(self.__graph, node, [next_node])
-                steiner_tree.append_from_path(paths[next_node], self.__graph)
+                steiner_tree.append_path(paths[next_node], self.__graph)
         (set_e, set_f) = self.__s_d[node][subset][0][4]
-        steiner_branch_e = SuitabilityDigraph()
+        steiner_branch_e = SuitabilityGraph()
         if set_e is not None and set_e != [next_node]:
             steiner_branch_e = self.__build_steiner_tree(next_node, set_e)
-        steiner_branch_f = SuitabilityDigraph()
+        steiner_branch_f = SuitabilityGraph()
         if set_f is not None and set_f != [next_node] and len(set_f) > 0:
             steiner_branch_f = self.__build_steiner_tree(next_node, set_f)
-        steiner_tree.append_from_graph(steiner_branch_e)
-        steiner_tree.append_from_graph(steiner_branch_f)
+        steiner_tree.append_graph(steiner_branch_e)
+        steiner_tree.append_graph(steiner_branch_f)
         return steiner_tree

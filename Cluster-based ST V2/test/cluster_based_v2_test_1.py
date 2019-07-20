@@ -1,7 +1,7 @@
 import time
 
 from grid_digraph_generator import GridDigraphGenerator
-from suitability import SuitableNodeWeightGenerator, SuitabilityDigraph
+from suitability import SuitableNodeWeightGenerator, SuitabilityGraph
 from cluster_based_v2 import ClusterBasedV2
 from networkx_graph_helper import NetworkXGraphHelper
 
@@ -23,8 +23,8 @@ if __name__ == '__main__':
 
     terminals = [678, 359, 123, 456, 463, 897]
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(node_weighted)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(node_weighted)
 
     suitability_graph.extend_suitable_regions(seed, generator)
     suitability_graph.extend_suitable_regions(seed, generator)

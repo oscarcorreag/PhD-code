@@ -1,13 +1,13 @@
 import sys
-from digraph import Digraph
+from graph import Graph
 from vst_rs import VST_RS
 
 
 class BPRBased:
     def __init__(self, graph):
         # Init some instance variables.
-        self.__graph = Digraph(capacitated=True)
-        self.__graph.append_from_graph(graph)
+        self.__graph = Graph(capacitated=True)
+        self.__graph.append_graph(graph)
         self.__edges = self.__graph.get_edges()
         self.__capacities = self.__graph.get_capacities()
         self.congestion = {e: 0 for e in self.__edges}

@@ -2,7 +2,7 @@ import operator
 import sys
 import utils
 
-from digraph import Digraph
+from graph import Graph
 
 
 # from networkx_graph_helper import NetworkxGraphHelper
@@ -34,7 +34,7 @@ class KleinRavi:
         # For every terminal create a subtree which has such terminal as the only node. Each subtree is digraph.
         for s in terminals:
             # self.__subtrees[s] = {s: []}
-            subtree = Digraph()
+            subtree = Graph()
             subtree[s] = (self.__graph[s][0], {})
             self.__subtrees[s] = subtree
         self.__calculate_distances_paths_to_subtrees()
@@ -171,13 +171,13 @@ class KleinRavi:
         # Init the new subtree with the nodes of the first nearest subtree.
         new_subtree = self.__subtrees[subtree_0].copy()
         # Append the nodes of the second nearest subtree to the new subtree.
-        new_subtree.append_from_graph(self.__subtrees[subtree_1])
+        new_subtree.append_graph(self.__subtrees[subtree_1])
         # Get the paths from the node to the first two nearest subtrees.
         path_0 = self.__dist_paths_node_subtree[node][1][subtree_0]
         path_1 = self.__dist_paths_node_subtree[node][1][subtree_1]
         # Append these paths to the new subtree.
         for path in [path_0, path_1]:
-            new_subtree.append_from_path(path, self.__graph)
+            new_subtree.append_path(path, self.__graph)
         # Remove the first two nearest subtrees from the list of subtrees.
         del self.__subtrees[subtree_0]
         del self.__subtrees[subtree_1]

@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 
-from digraph import Digraph
+from graph import Graph
 from utils import id_generator, haversine
 
 
@@ -43,9 +43,9 @@ class SuitableNodeWeightGenerator:
             return self.weights['FORGET_IT'][0]
 
 
-class SuitabilityDigraph(Digraph):
+class SuitabilityGraph(Graph):
     def __init__(self, **kwargs):
-        super(SuitabilityDigraph, self).__init__(node_weighted=True, **kwargs)
+        super(SuitabilityGraph, self).__init__(node_weighted=True, **kwargs)
         self.contracted_regions = {}
         self.auxiliary_nodes = set()
 
@@ -80,7 +80,7 @@ class SuitabilityDigraph(Digraph):
         nodes_in_regions = []
         for v in self:
             if v not in nodes_in_regions and v not in excluded_nodes:
-                region = self.__add_node_to_suitable_region(v, SuitabilityDigraph(), generator, excluded_nodes)
+                region = self.__add_node_to_suitable_region(v, SuitabilityGraph(), generator, excluded_nodes)
                 if len(region.keys()) > 1:
                     # if len(region.keys()) > 0:
                     nodes_in_regions.extend(region.keys())
@@ -270,11 +270,11 @@ class SuitabilityDigraph(Digraph):
         nodes = set(self.get_suitable_nodes(generator))
         nodes.update(included_nodes)
         nodes = list(nodes)
-        metric_closure = super(SuitabilityDigraph, self).build_metric_closure(nodes, excluded_edges)
+        metric_closure = super(SuitabilityGraph, self).build_metric_closure(nodes, excluded_edges)
         return metric_closure
 
     def build_subgraph_from_metric_closure(self, metric_closure):
-        subgraph = SuitabilityDigraph()
+        subgraph = SuitabilityGraph()
         visited_edges = set()
         node_weighted = metric_closure.is_node_weighted()
         if node_weighted:
@@ -285,7 +285,7 @@ class SuitabilityDigraph(Digraph):
                         ends.append(w)
                 _, paths = self.__dijkstra(v, ends)
                 for p in [paths[n] for n in ends]:
-                    subgraph.append_from_path(p, self)
+                    subgraph.append_path(p, self)
         else:
             for v in metric_closure:
                 ends = []
@@ -294,7 +294,7 @@ class SuitabilityDigraph(Digraph):
                         ends.append(w)
                 _, paths = self.__dijkstra(v, ends)
                 for p in [paths[n] for n in ends]:
-                    subgraph.append_from_path(p, self)
+                    subgraph.append_path(p, self)
         return subgraph
 
     def get_dist_paths_between_regions(self, generator, method='dijkstra', exc_wcr=None, inc_wcp=None,
@@ -355,8 +355,8 @@ class SuitabilityDigraph(Digraph):
         return dist, paths, regions
 
     def copy(self):
-        new_graph = super(SuitabilityDigraph, self).copy()
-        new_graph.__class__ = SuitabilityDigraph
+        new_graph = super(SuitabilityGraph, self).copy()
+        new_graph.__class__ = SuitabilityGraph
         new_graph.contracted_regions = self.contracted_regions.copy()
         return new_graph
 

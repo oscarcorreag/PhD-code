@@ -14,7 +14,7 @@ from rs.exceptions import SessionPlansTransactionException
 
 
 def build_graph_from_model(session_id):
-    graph = suitability.SuitabilityDigraph(capacitated=True)
+    graph = suitability.SuitabilityGraph(capacitated=True)
     generator = suitability.SuitableNodeWeightGenerator()
     default_node_weight = generator.weights["FORGET_IT"]
     hotspot_weight = generator.weights["VERY_SUITABLE"]

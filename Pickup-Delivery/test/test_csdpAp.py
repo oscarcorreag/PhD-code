@@ -1,6 +1,6 @@
 from unittest import TestCase
 from grid_digraph_generator import GridDigraphGenerator
-from digraph import Digraph
+from graph import Graph
 from csdp_ap import CsdpAp, sample
 
 
@@ -139,8 +139,8 @@ class TestCsdpAp(TestCase):
         self.assert_individual_costs_threshold(2.0, routes)
 
     def compute_route_cost(self, route):
-        route_graph = Digraph(undirected=False)
-        route_graph.append_from_path(route, self.graph)
+        route_graph = Graph(undirected=False)
+        route_graph.append_path(route, self.graph)
         return route_graph.compute_total_weights()[0]
 
     def assert_total_cost_from_individual_routes(self, cost, routes):

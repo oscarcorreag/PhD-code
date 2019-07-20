@@ -8,9 +8,9 @@ from priodict import PriorityDictionary
 from utils import comb, comb_v, id_generator
 
 
-class Digraph(dict):
+class Graph(dict):
     def __init__(self, node_weighted=False, undirected=True, capacitated=False, **kwargs):
-        super(Digraph, self).__init__(**kwargs)
+        super(Graph, self).__init__(**kwargs)
         self.node_weighted = node_weighted
         self.undirected = undirected
         self.capacitated = capacitated
@@ -24,7 +24,7 @@ class Digraph(dict):
 
     def append_edge_1(self, edge, source_graph):  # This DOES NOT recompute shortest distances|paths.
         path = [edge[0], edge[1]]
-        self.append_from_path(path, source_graph)
+        self.append_path(path, source_graph)
 
     def append_edge_2(self, edge, weight=1, capacity=0, nodes_weights=(0, 0), nodes_info=({}, {}), check_exists=True):
         v = edge[0]
@@ -70,7 +70,7 @@ class Digraph(dict):
             else:
                 self[w][v] = weight
 
-    def append_from_graph(self, source_graph):
+    def append_graph(self, source_graph):
         source_weighted = source_graph.is_node_weighted()
         # If this graph is node-weighted, the source graph MUST be node-weighted.
         if self.node_weighted and not source_weighted:
@@ -143,7 +143,7 @@ class Digraph(dict):
                     if self.capacitated:
                         self.get_capacities()[edge] = source_capacities[edge]
 
-    def append_from_path(self, path, source_graph):
+    def append_path(self, path, source_graph):
         source_weighted = source_graph.is_node_weighted()
         # If this graph is node-weighted, the source graph MUST be node-weighted.
         if self.node_weighted and not source_weighted:
@@ -174,7 +174,7 @@ class Digraph(dict):
                     self.append_edge_2(my_v_w, weight, capacity)
 
     def build_metric_closure(self, nodes, excluded_edges=None):
-        metric_closure = Digraph(node_weighted=self.is_node_weighted())
+        metric_closure = Graph(node_weighted=self.is_node_weighted())
         excluded_ = set()
         if excluded_edges is not None:
             excluded_ = set(excluded_edges)
@@ -309,6 +309,7 @@ class Digraph(dict):
         return len(pairs_)  # number of computed pairs.
 
     def compute_euler_tour(self, origin):
+        # TODO: Test on general graphs. Currently tested on tree graphs only.
         graph = self.copy()
         tour = [origin]
         while True:
@@ -320,15 +321,21 @@ class Digraph(dict):
             i = 0
             if len(adj_nodes) > 1:
                 if self.is_node_weighted():
-                    while tour[-1] not in graph[adj_nodes.keys()[i]][1]:
+                    while v not in graph[adj_nodes.keys()[i]][1]:
                         i += 1
                 else:
-                    while tour[-1] not in graph[adj_nodes.keys()[i]]:
+                    while v not in graph[adj_nodes.keys()[i]]:
                         i += 1
-            tour.append(adj_nodes.keys()[i])
-            del adj_nodes[tour[-1]]
-            if tour[-1] == origin:
-                break
+            w = adj_nodes.keys()[i]
+            tour.append(w)
+            del adj_nodes[w]
+            if w == origin:
+                if self.is_node_weighted():
+                    if not graph[origin][1]:
+                        break
+                else:
+                    if not graph[origin]:
+                        break
         return tour
 
     def compute_missing_pairs_dist_paths(self, pairs, compute_paths=True):
@@ -350,7 +357,19 @@ class Digraph(dict):
             raise NotImplementedError
         return mst
 
-    def compute_total_weights(self, excluded_nodes=None, compute_node_cost=False):
+    def compute_path_weight(self, path):
+        total_weight = 0
+        for i in range(len(path) - 1):
+            v = path[i]
+            w = path[i + 1]
+            if v != w:
+                if self.is_undirected():
+                    total_weight += self.get_edges()[tuple(sorted([v, w]))]
+                else:
+                    total_weight += self.get_edges()[(v, w)]
+        return total_weight
+
+    def compute_total_weights(self, excluded_nodes=None, compute_node_weight=False):
         vertices = set()
         total_weight_edges = 0
         for (v, w), edge_weight in self.__edges.iteritems():
@@ -358,13 +377,13 @@ class Digraph(dict):
             total_weight_edges += edge_weight
         vertices = vertices.intersection(excluded_nodes if excluded_nodes else [])
         total_weight_nodes = 0
-        if compute_node_cost and self.is_node_weighted():
+        if compute_node_weight and self.is_node_weighted():
             for v in vertices:
                 total_weight_nodes += self[v][0]
         return total_weight_edges, total_weight_nodes
 
     def copy(self):
-        new_graph = Digraph()
+        new_graph = Graph()
         for v, val in self.iteritems():
             if self.node_weighted:
                 new_graph[v] = (val[0], val[1].copy(), val[2].copy())
@@ -382,6 +401,34 @@ class Digraph(dict):
         new_graph.issues_dist_paths = self.issues_dist_paths.copy()
         #
         return new_graph
+
+    def complete_both_directions(self):
+        to_be_created = dict()  # To store which edges must be created.
+        # Each new edge needs its weight and capacity. Node weights and their info are not needed as the nodes do exist.
+        if self.is_undirected():
+            for (v, w), edge_weight in self.get_edges().iteritems():
+                to_be_created[(w, v)] = (edge_weight, 0)
+                if self.is_capacitated():
+                    to_be_created[(w, v)] = (edge_weight, self.get_capacities()[(v, w)])
+        else:
+            if self.is_node_weighted():
+                for v in self:
+                    for w, edge_weight in self[v][1].iteritems():
+                        if (w, v) not in self.get_edges():
+                            to_be_created[(w, v)] = (edge_weight, 0)
+                            if self.is_capacitated():
+                                to_be_created[(w, v)] = (edge_weight, self.get_capacities()[(v, w)])
+            else:
+                for v in self:
+                    for w, edge_weight in self[v].iteritems():
+                        if (w, v) not in self.get_edges():
+                            to_be_created[(w, v)] = (edge_weight, 0)
+                            if self.is_capacitated():
+                                to_be_created[(w, v)] = (edge_weight, self.get_capacities()[(v, w)])
+        # Create edges. BUT before, the graph must be updated to DIRECTED.
+        self.undirected = False
+        for edge, (edge_weight, capacity) in to_be_created.iteritems():
+            self.append_edge_2(edge, weight=edge_weight, capacity=capacity)
 
     def drop_node_weights(self):
         if self.node_weighted:
@@ -441,9 +488,9 @@ class Digraph(dict):
         return distances
 
     def extract_node_induced_subgraph(self, nodes):
-        subgraph = Digraph(node_weighted=self.is_node_weighted(),
-                           undirected=self.is_undirected(),
-                           capacitated=self.is_capacitated())
+        subgraph = Graph(node_weighted=self.is_node_weighted(),
+                         undirected=self.is_undirected(),
+                         capacitated=self.is_capacitated())
         if self.is_node_weighted():
             for v in nodes:
                 for w, edge_weight in self[v][1].iteritems():
@@ -523,20 +570,8 @@ class Digraph(dict):
     def get_edges(self):
         if len(self.__edges) != 0:
             return self.__edges
-        # Generate edges from scratch only in the case of an undirected graph.
-        if self.undirected:
-            if self.node_weighted:
-                for n in self:
-                    for w, edge_weight in self[n][1].iteritems():
-                        edge = tuple(sorted([n, w]))
-                        if edge not in self.__edges:
-                            self.__edges[edge] = edge_weight
-            else:
-                for n in self:
-                    for w, edge_weight in self[n].iteritems():
-                        edge = tuple(sorted([n, w]))
-                        if edge not in self.__edges:
-                            self.__edges[edge] = edge_weight
+        # Generate edges from scratch.
+        self.populate_edges()
         return self.__edges
 
     def get_k_closest_destinations(self, n, k, destinations=None):
@@ -779,6 +814,30 @@ class Digraph(dict):
         # Recompute shortest distances|paths.
         self.compute_dist_paths(pairs=od_to_recompute, compute_paths=len(self.paths) > 0, recompute=True)
 
+    def populate_edges(self):
+        if self.is_undirected():
+            if self.is_node_weighted():
+                for v in self:
+                    for w, edge_weight in self[v][1].iteritems():
+                        edge = tuple(sorted([v, w]))
+                        if edge not in self.__edges:
+                            self.__edges[edge] = edge_weight
+            else:
+                for v in self:
+                    for w, edge_weight in self[v].iteritems():
+                        edge = tuple(sorted([v, w]))
+                        if edge not in self.__edges:
+                            self.__edges[edge] = edge_weight
+        else:
+            if self.is_node_weighted():
+                for v in self:
+                    for w, edge_weight in self[v][1].iteritems():
+                        self.__edges[(v, w)] = edge_weight
+            else:
+                for v in self:
+                    for w, edge_weight in self[v].iteritems():
+                        self.__edges[(v, w)] = edge_weight
+
     def set_capacities(self, capacities, replace=False):
         non_existent = set(capacities.keys()).difference(self.get_edges().keys())
         if len(non_existent) != 0:
@@ -804,12 +863,12 @@ class Digraph(dict):
                 self.paths[v_w] = []
             self.issues_dist_paths.add(v_w)
 
-    def steiner_n_stats(self, n, v, mst_alg):
+    def steiner_n_stats(self, n, v, steiner_tree_alg):
         ecc = inc = 0
         powerset_n_terminals = comb_v(self.keys(), n, v)
         costs = []
         for terminals in powerset_n_terminals:
-            st = mst_alg.steiner_tree(terminals)
+            st = steiner_tree_alg.steiner_tree(terminals)
             cost, _ = st.compute_total_weights(terminals)
             costs.append(cost)
         if len(costs) > 0:
@@ -1022,9 +1081,9 @@ class Digraph(dict):
 
     def __prim(self):
         #
-        spanning_tree = Digraph(node_weighted=self.is_node_weighted(),
-                                undirected=self.is_undirected(),
-                                capacitated=self.is_capacitated())
+        spanning_tree = Graph(node_weighted=self.is_node_weighted(),
+                              undirected=self.is_undirected(),
+                              capacitated=self.is_capacitated())
         #
         marked_nodes = set()
         edges_to = {}
@@ -1042,11 +1101,11 @@ class Digraph(dict):
                     adj_nodes = self[v]
                 else:
                     adj_nodes = self[v][1]
-                for w, edge_cost in adj_nodes.iteritems():
+                for w, edge_weight in adj_nodes.iteritems():
                     if w in marked_nodes:
                         continue
-                    if edge_cost < distances_to[w]:
-                        distances_to[w] = edge_cost
+                    if edge_weight < distances_to[w]:
+                        distances_to[w] = edge_weight
                         edges_to[w] = (v, w)
                         priority_queue[w] = distances_to[w]
         #

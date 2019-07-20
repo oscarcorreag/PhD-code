@@ -1,6 +1,6 @@
 import operator
 from dreyfus import Dreyfus
-from digraph import Digraph
+from graph import Graph
 from helper import assign_users_to_pois
 
 
@@ -34,7 +34,7 @@ class DreyfusBasedWOC:
         return groups
 
     def steiner_forest(self, users, pois, z, method="Voronoi", seed=0):
-        steiner_forest = Digraph()
+        steiner_forest = Graph()
         requests = assign_users_to_pois(self.__graph, users, pois, method, seed)
         groups = self.__divide_requests_into_groups(requests, z)
         d = Dreyfus(self.__graph)
@@ -43,7 +43,7 @@ class DreyfusBasedWOC:
             terminals = [p]
             terminals.extend(group)
             steiner_tree, cost_ = d.steiner_tree(terminals)
-            steiner_forest.append_from_graph(steiner_tree)
+            steiner_forest.append_graph(steiner_tree)
             cost += cost_
             self.__update_congestion(steiner_tree)
         return steiner_forest, cost

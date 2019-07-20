@@ -2,9 +2,9 @@ import time
 
 from grid_digraph_generator import GridDigraphGenerator
 from networkx_graph_helper import NetworkXGraphHelper
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from convex_hull import ConvexHull
-from digraph import dijkstra
+from graph import dijkstra
 
 if __name__ == '__main__':
 
@@ -27,8 +27,8 @@ if __name__ == '__main__':
     # terminals = [25, 85, 33, 67]
     # poi = 55
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(graph)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(graph)
 
     # suitability_graph.contract_suitable_regions(generator)
     suitable_nodes = suitability_graph.get_suitable_nodes(generator)

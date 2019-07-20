@@ -2,7 +2,7 @@ import sys
 import operator
 import numpy as np
 
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 
 
 class VoronoiBased:
@@ -56,7 +56,7 @@ class VoronoiBased:
         for sp in range(len(self.__pois), self.__num_medoids_ub + 1):
         # for sp in [3]:
             cost = 0
-            forest = SuitabilityDigraph()
+            forest = SuitabilityGraph()
             # Compute as many S-Voronoi cells as [sp]
             s_cells = self.__get_s_cells(sp)
             for s, c in s_cells.iteritems():
@@ -67,15 +67,15 @@ class VoronoiBased:
                     k2 = tuple(sorted([t, s]))
                     if self.__graph.dist[k1] < self.__graph.dist[k2] or len(term_s_cell) == 1:
                         self.__graph.compute_dist_paths(origins=[t], destinations=[poi], recompute=True)
-                        forest.append_from_path(self.__graph.paths[tuple(sorted([t, poi]))], self.__graph)
+                        forest.append_path(self.__graph.paths[tuple(sorted([t, poi]))], self.__graph)
                         cost += self.__graph.dist[k1]
                     else:
                         self.__graph.compute_dist_paths(origins=[t], destinations=[s], recompute=True)
-                        forest.append_from_path(self.__graph.paths[tuple(sorted([t, s]))], self.__graph)
+                        forest.append_path(self.__graph.paths[tuple(sorted([t, s]))], self.__graph)
                         cost += self.__graph.dist[k2]
                 k = tuple(sorted([s, poi]))
                 self.__graph.compute_dist_paths(origins=[s], destinations=[poi], recompute=True)
-                forest.append_from_path(self.__graph.paths[tuple(sorted([s, poi]))], self.__graph)
+                forest.append_path(self.__graph.paths[tuple(sorted([s, poi]))], self.__graph)
                 cost += self.__graph.dist[k]
             # self.__prune_steiner_forest(forest)
             # cost, _ = forest.calculate_costs()

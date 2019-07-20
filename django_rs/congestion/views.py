@@ -8,14 +8,14 @@ from django.template.loader import render_to_string
 
 from osmmanager import OsmManager
 from suitability import SuitableNodeWeightGenerator
-from suitability import SuitabilityDigraph
+from suitability import SuitabilityGraph
 from vst_rs import VST_RS
 from link_performance import bpr
 
 
 def get_suitability_graph_from_session(request):
     graph = request.session['graph']
-    suitability_graph = SuitabilityDigraph()
+    suitability_graph = SuitabilityGraph()
     for node_id, (node_weight, adj_dict, data) in graph.iteritems():
         new_adj_dict = {int(neighbour): edge_cost for neighbour, edge_cost in adj_dict.iteritems()}
         suitability_graph[int(node_id)] = (node_weight, new_adj_dict, data)

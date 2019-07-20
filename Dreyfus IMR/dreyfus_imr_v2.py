@@ -1,8 +1,8 @@
 import sys
 import pdb
 
-from digraph import dijkstra
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from graph import dijkstra
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from utils import comb
 from dreyfus_imr import DreyfusIMR
 
@@ -30,13 +30,13 @@ class DreyfusIMRV2:
             if contracted_graph is not None:
                 self.__graph = contracted_graph.copy()
             else:
-                self.__graph = SuitabilityDigraph()
-                self.__graph.append_from_graph(graph)
+                self.__graph = SuitabilityGraph()
+                self.__graph.append_graph(graph)
                 self.__graph.contract_suitable_regions(generator, excluded_nodes=terminals,
                                                        get_centroid_medoid=use_medoid)
         else:
-            self.__graph = SuitabilityDigraph()
-            self.__graph.append_from_graph(graph)
+            self.__graph = SuitabilityGraph()
+            self.__graph.append_graph(graph)
         #
         if nodes is not None:
             self.__nodes = list(nodes)
@@ -258,23 +258,23 @@ class DreyfusIMRV2:
     '''
 
     def __build_steiner_tree_bactracking(self, node, subset):
-        steiner_tree = SuitabilityDigraph()
+        steiner_tree = SuitabilityGraph()
         next_node = self.__s_d[node][tuple(subset)][1]
         if self.__contract_graph:
             print(node, self.__s_d[node][tuple(subset)])
         # pdb.set_trace()
         if next_node is not None:
-            steiner_tree.append_from_path(self.__paths[tuple(sorted([node, next_node]))], self.__graph)
+            steiner_tree.append_path(self.__paths[tuple(sorted([node, next_node]))], self.__graph)
         (best_e, best_f) = self.__s_d[node][tuple(subset)][2]
         # pdb.set_trace()
-        steiner_branch_e = SuitabilityDigraph()
+        steiner_branch_e = SuitabilityGraph()
         if best_e is not None and best_e != [next_node]:
             steiner_branch_e = self.__build_steiner_tree_bactracking(next_node, best_e)
-        steiner_branch_f = SuitabilityDigraph()
+        steiner_branch_f = SuitabilityGraph()
         if best_f is not None and best_f != [next_node] and len(best_f) > 0:
             steiner_branch_f = self.__build_steiner_tree_bactracking(next_node, best_f)
-        steiner_tree.append_from_graph(steiner_branch_e)
-        steiner_tree.append_from_graph(steiner_branch_f)
+        steiner_tree.append_graph(steiner_branch_e)
+        steiner_tree.append_graph(steiner_branch_f)
         return steiner_tree
 
     '''
@@ -330,9 +330,9 @@ class DreyfusIMRV2:
         for r in to_drop:
             del steiner_tree[r]
         for p in paths:
-            steiner_tree.append_from_path(p, self.__original_graph)
+            steiner_tree.append_path(p, self.__original_graph)
         for st in trees:
-            steiner_tree.append_from_graph(st)
+            steiner_tree.append_graph(st)
         # pdb.set_trace()
 
         # for r in steiner_tree:
@@ -359,7 +359,7 @@ class DreyfusIMRV2:
 
 
     def enclosing_region(self):
-        enclosing = SuitabilityDigraph()
+        enclosing = SuitabilityGraph()
         paths = []
         paths.append(self.__paths[tuple(sorted([323287670, 2392803740]))])
         paths.append(self.__paths[tuple(sorted([2392803740, 127578100]))])
@@ -367,5 +367,5 @@ class DreyfusIMRV2:
         paths.append(self.__paths[tuple(sorted([3109398450, 342909685]))])
         paths.append(self.__paths[tuple(sorted([342909685, 323287670]))])
         for path in paths:
-            enclosing.append_from_path(path, self.__original_graph)
+            enclosing.append_path(path, self.__original_graph)
         return enclosing

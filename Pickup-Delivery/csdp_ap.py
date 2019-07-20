@@ -1,4 +1,4 @@
-from digraph import Digraph
+from graph import Graph
 from ortools.linear_solver import pywraplp
 from utils import id_generator
 from itertools import product
@@ -74,8 +74,8 @@ def check_constraints(constraints):
 class CsdpAp:
     def __init__(self, graph):
         # self._graph = Digraph(undirected=False)
-        self._graph = Digraph()
-        self._graph.append_from_graph(graph)
+        self._graph = Graph()
+        self._graph.append_graph(graph)
         self._working_graph = None
 
         self._drivers = list()
@@ -171,7 +171,7 @@ class CsdpAp:
             self.A7.append((i, j))
 
     def _build_working_graph(self):
-        self._working_graph = Digraph(undirected=False)
+        self._working_graph = Graph(undirected=False)
         # Build arc sets.
         self._define_arc_subsets()
         # Build joint set of arcs and from it append edges to the working graph.
@@ -815,11 +815,21 @@ class CsdpAp:
                 routes.append(path)
                 cost += c
             elif solve_unserved_method == 'double-tree':
-                (s_v, e_v), shops_customers = partition
+                (_, _), shops_customers = partition
                 vertices = shops_customers['shops'].union(shops_customers['customers'])
                 complete = self._graph.build_metric_closure(vertices)
                 mst = complete.compute_mst()
-                print mst
+                shop = min(shops_customers['shops'])
+                euler_tour = mst.compute_euler_tour(shop)
+                contracted = list()
+                for v in euler_tour:
+                    if v not in contracted:
+                        contracted.append(v)
+                contracted.append(shop)  # Closing the loop.
+                route = self._graph.expand_contracted_path(contracted)
+                c = self._graph.compute_path_weight(route)
+                routes.append(route)
+                cost += c
             elif solve_unserved_method == 'Christofides':
                 raise NotImplementedError
             else:
@@ -1136,7 +1146,7 @@ class PartialPath:
     """
 
     # Graph distances may be updated by an instance which in turn may benefit others.
-    _graph = Digraph()
+    _graph = Graph()
     _shops_dict = dict()  # Shop with corresponding group ID.
     _custs_dict = dict()
     _shops_by_group_id = dict()  # Group ID with corresponding shops.

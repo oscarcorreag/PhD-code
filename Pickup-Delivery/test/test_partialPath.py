@@ -1,5 +1,5 @@
 from unittest import TestCase
-from digraph import Digraph
+from graph import Graph
 from csdp_ap import PartialPath
 
 
@@ -7,7 +7,7 @@ class TestPartialPath(TestCase):
 
     def setUp(self):
         # self.graph = Digraph(undirected=False)
-        self.graph = Digraph()
+        self.graph = Graph()
 
         self.graph.append_edge_2(('A', 'o'), weight=1.5)
         self.graph.append_edge_2(('A', 'H'), weight=4)

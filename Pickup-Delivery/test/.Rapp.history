@@ -1,0 +1,12 @@
+setwd("/Users/oscar/Documents/phd/PhD-code/Pickup-Delivery/test/")
+exp <- read.csv("files/csdp_ap_13Jul2019_174730.csv")
+exp
+exp <- read.csv("files/csdp_ap_13Jul2019_174730.csv", header=False)
+exp <- read.csv("files/csdp_ap_13Jul2019_174730.csv", header=false)
+exp <- read.csv("files/csdp_ap_13Jul2019_174730.csv", header=F)
+exp
+exp <- read.csv("files/csdp_ap_13Jul2019_174730.csv", header=FALSE)
+library(data.table)
+exp_dt <- as.data.table(exp)
+summary(exp_dt)
+desc(exp_dt)

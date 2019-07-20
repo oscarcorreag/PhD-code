@@ -2,7 +2,7 @@ import time
 import numpy as np
 
 from grid_digraph_generator import GridDigraphGenerator
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from networkx_graph_helper import NetworkXGraphHelper
 from vst_rs import VST_RS
 
@@ -20,8 +20,8 @@ if __name__ == '__main__':
                                 node_weight_generator=generator,
                                 seed=seed)
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(node_weighted)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(node_weighted)
 
     # suitability_graph.extend_suitable_regions(seed, generator)
 

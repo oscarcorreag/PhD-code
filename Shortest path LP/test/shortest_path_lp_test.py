@@ -1,7 +1,7 @@
 from shortest_path_lp import shortest_path_primal
 from shortest_path_lp import shortest_path_dual
 from grid_digraph_generator import GridDigraphGenerator
-from digraph import Digraph
+from graph import Graph
 from networkx_graph_helper import NetworkXGraphHelper
 
 if __name__ == '__main__':
@@ -24,8 +24,8 @@ if __name__ == '__main__':
     distances, paths = shortest_path_primal(graph, terminals[0])
 
     ngh = NetworkXGraphHelper(graph)
-    graph_path = Digraph()
-    graph_path.append_from_path(paths[terminals[1]], graph)
+    graph_path = Graph()
+    graph_path.append_path(paths[terminals[1]], graph)
     ngh.draw_graph(nodes_2=terminals,
                    subgraphs_2=[graph_path],
                    title_2="Primal: " + str(distances[terminals[1]]) + ", Dual: " + str(distances_dual[terminals[1]]))

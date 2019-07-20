@@ -2,7 +2,7 @@ from unittest import TestCase
 from grid_digraph_generator import GridDigraphGenerator
 
 
-class TestDigraph(TestCase):
+class TestGraph(TestCase):
 
     def setUp(self):
         generator = GridDigraphGenerator()
@@ -149,6 +149,28 @@ class TestDigraph(TestCase):
 
     def test_compute_euler_tour(self):
         mst = self.graph.compute_mst()
+        mst.complete_both_directions()
         euler_tour = mst.compute_euler_tour(24)
-        print euler_tour
-        self.fail()
+        self.assertListEqual(euler_tour,
+                             [24, 19, 14, 9, 4, 3, 8, 13, 18, 23, 18, 13, 8, 3, 2, 1, 0, 5, 10, 15, 20, 15, 10, 5, 0, 1,
+                              6, 11, 16, 21, 16, 11, 6, 1, 2, 7, 12, 17, 22, 17, 12, 7, 2, 3, 4, 9, 14, 19, 24]
+                             )
+
+    def test_complete_both_directions(self):
+        mst = self.graph.compute_mst()
+        self.assertDictEqual(mst.get_edges(),
+                             {(11, 16): 1, (8, 13): 1, (15, 20): 1, (16, 21): 1, (10, 15): 1, (1, 6): 1, (1, 2): 1,
+                              (4, 9): 1, (7, 12): 1, (12, 17): 1, (2, 7): 1, (9, 14): 1, (6, 11): 1, (19, 24): 1,
+                              (17, 22): 1, (0, 1): 1, (5, 10): 1, (3, 4): 1, (0, 5): 1, (3, 8): 1, (18, 23): 1,
+                              (13, 18): 1, (2, 3): 1, (14, 19): 1}
+                             )
+        mst.complete_both_directions()
+        self.assertDictEqual(mst.get_edges(),
+                             {(11, 16): 1, (8, 13): 1, (21, 16): 1, (15, 20): 1, (16, 21): 1, (18, 13): 1, (2, 1): 1,
+                              (10, 15): 1, (3, 2): 1, (1, 6): 1, (9, 4): 1, (24, 19): 1, (14, 9): 1, (7, 2): 1,
+                              (1, 2): 1, (4, 9): 1, (19, 14): 1, (7, 12): 1, (12, 17): 1, (5, 0): 1, (22, 17): 1,
+                              (2, 7): 1, (16, 11): 1, (9, 14): 1, (17, 12): 1, (6, 11): 1, (12, 7): 1, (10, 5): 1,
+                              (15, 10): 1, (19, 24): 1, (17, 22): 1, (13, 8): 1, (1, 0): 1, (0, 1): 1, (8, 3): 1,
+                              (5, 10): 1, (3, 4): 1, (6, 1): 1, (0, 5): 1, (3, 8): 1, (18, 23): 1, (13, 18): 1,
+                              (23, 18): 1, (4, 3): 1, (2, 3): 1, (20, 15): 1, (14, 19): 1, (11, 6): 1}
+                             )

@@ -5,7 +5,7 @@ import csv
 import sys
 
 from grid_digraph_generator import GridDigraphGenerator
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from spiders import Spiders
 from dreyfus_imr import DreyfusIMR
 from utils import id_generator
@@ -33,8 +33,8 @@ if __name__ == '__main__':
                                                         node_weight_generator=generator,
                                                         seed=seed)
 
-                suitability_graph = SuitabilityDigraph()
-                suitability_graph.append_from_graph(graph)
+                suitability_graph = SuitabilityGraph()
+                suitability_graph.append_graph(graph)
 
                 total_num_suitable_nodes = len(suitability_graph.get_suitable_nodes(generator))
 
@@ -56,7 +56,7 @@ if __name__ == '__main__':
                         cost, node_cost = steiner_tree.compute_total_weights(terminals)
                         line.append(cost - node_cost)
 
-                        steiner_tree.__class__ = SuitabilityDigraph
+                        steiner_tree.__class__ = SuitabilityGraph
                         line.append(len(steiner_tree.get_suitable_nodes(generator,
                                                                         excluded_nodes=terminals)))
                         line.append(len(steiner_tree.get_suitable_nodes(generator,

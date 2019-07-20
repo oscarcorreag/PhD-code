@@ -1,7 +1,7 @@
 import time
 
 from grid_digraph_generator import GridDigraphGenerator
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from rayward_smith import RaywardSmith
 from networkx_graph_helper import NetworkXGraphHelper
 
@@ -22,8 +22,8 @@ if __name__ == '__main__':
 
     terminals = [288, 315, 231, 312, 111, 609, 645, 434, 654, 469, 186]
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(node_weighted)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(node_weighted)
 
     suitability_graph.extend_suitable_regions(seed, generator)
     suitability_graph.extend_suitable_regions(seed, generator)

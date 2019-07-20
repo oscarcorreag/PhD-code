@@ -2,8 +2,8 @@ import sys
 import pdb
 
 from utils import haversine, comb
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
-from digraph import dijkstra
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
+from graph import dijkstra
 
 
 class LazySteinerTreeV2:
@@ -17,8 +17,8 @@ class LazySteinerTreeV2:
         else:
             return
         # Set object variables.
-        self.__graph = SuitabilityDigraph()
-        self.__graph.append_from_graph(graph)
+        self.__graph = SuitabilityGraph()
+        self.__graph.append_graph(graph)
         self.__terminals = terminals
         self.__hot_spots = None
         self.__nodes = None

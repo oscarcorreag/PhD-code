@@ -1,9 +1,9 @@
-from digraph import Digraph
+from graph import Graph
 from sta import STA
 
 
 if __name__ == '__main__':
-    graph = Digraph(capacitated=True)
+    graph = Graph(capacitated=True)
     graph.append_edge_2((0, 1), weight=.56, capacity=1000)
     graph.append_edge_2((0, 2), weight=1, capacity=1000)
     graph.append_edge_2((1, 2), weight=.56, capacity=1000)

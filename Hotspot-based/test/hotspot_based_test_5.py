@@ -2,7 +2,7 @@ import time
 
 from grid_digraph_generator import GridDigraphGenerator
 from hotspot_based import HotspotBased
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from networkx_graph_helper import NetworkXGraphHelper
 
 
@@ -16,8 +16,8 @@ if __name__ == '__main__':
     gh = GridDigraphGenerator()
     graph = gh.generate(m, n, edge_weighted=False, node_weighted=True, node_weight_generator=generator, seed=seed)
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(graph)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(graph)
 
     terminals = [88, 66, 77, 5, 33, 53, 71]
     pois = [65, 12]

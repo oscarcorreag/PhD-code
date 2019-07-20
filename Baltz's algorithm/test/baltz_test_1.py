@@ -3,7 +3,7 @@ import time
 from baltz import Baltz
 from grid_digraph_generator import GridDigraphGenerator
 from networkx_graph_helper import NetworkXGraphHelper
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 
 if __name__ == '__main__':
 
@@ -14,8 +14,8 @@ if __name__ == '__main__':
     gh = GridDigraphGenerator()
     graph = gh.generate(m, n, edge_weighted=False, node_weighted=True, node_weight_generator=generator)
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(graph)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(graph)
 
     weights = {v: generator.weights["VERY_SUITABLE"][0] for v in suitability_graph}
     suitability_graph.update_node_weights(weights)

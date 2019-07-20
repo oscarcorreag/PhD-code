@@ -1,4 +1,4 @@
-from digraph import dijkstra
+from graph import dijkstra
 
 
 class ConvexHull:

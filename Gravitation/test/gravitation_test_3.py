@@ -2,8 +2,8 @@ import operator
 
 from grid_digraph_generator import GridDigraphGenerator
 from networkx_graph_helper import NetworkXGraphHelper
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
-from digraph import dijkstra
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
+from graph import dijkstra
 
 
 def __calculate_mass_suitable_node(g, ts, p, dp, node):
@@ -86,8 +86,8 @@ if __name__ == '__main__':
                         node_weights=node_weights,
                         seed=seed)
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(graph)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(graph)
 
     terminals = [82, 182]
     poi = 173

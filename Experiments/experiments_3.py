@@ -4,7 +4,7 @@ import csv
 import sys
 
 from grid_digraph_generator import GridDigraphGenerator
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from statistics import get_statistics
 
 from vst_rs import VST_RS
@@ -38,8 +38,8 @@ if __name__ == '__main__':
                                                     node_weighted=True,
                                                     node_weight_generator=generator,
                                                     seed=seed)
-            suitability_graph = SuitabilityDigraph()
-            suitability_graph.append_from_graph(graph)
+            suitability_graph = SuitabilityGraph()
+            suitability_graph.append_graph(graph)
             hotspots = suitability_graph.get_suitable_nodes(generator)
 
             start_time = time.clock()
@@ -53,8 +53,8 @@ if __name__ == '__main__':
                 for num_terminals in nums_terminals:
                     new_terminals = set()
                     for sample in range(num_samples):
-                        graph_temp = SuitabilityDigraph()
-                        graph_temp.append_from_graph(suitability_graph)
+                        graph_temp = SuitabilityGraph()
+                        graph_temp.append_graph(suitability_graph)
                         graph_temp.dist = dict(suitability_graph.dist)
                         graph_temp.pairs_dist_paths = set(suitability_graph.pairs_dist_paths)
                         graph_temp.method_dist_paths = suitability_graph.method_dist_paths

@@ -1,5 +1,5 @@
 from grid_digraph_generator import GridDigraphGenerator
-from suitability import SuitableNodeWeightGenerator, SuitabilityDigraph
+from suitability import SuitableNodeWeightGenerator, SuitabilityGraph
 from networkx_graph_helper import NetworkXGraphHelper
 
 
@@ -24,8 +24,8 @@ if __name__ == '__main__':
     terminals_poi = list(terminals)
     terminals_poi.append(poi)
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(node_weighted)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(node_weighted)
     exclusive = suitability_graph.build_suitability_metric_closure(generator, terminals_poi)
 
     ngh = NetworkXGraphHelper(exclusive)

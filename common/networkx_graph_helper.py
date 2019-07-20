@@ -1,15 +1,15 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from digraph import Digraph
+from graph import Graph
 from numpy.random import RandomState
 
 
 class NetworkXGraphHelper:
     def __init__(self, graph):
 
-        self.__graph = Digraph()
-        self.__graph.append_from_graph(graph)
+        self.__graph = Graph()
+        self.__graph.append_graph(graph)
 
         self.element_colors = ['#000000',
                                '#0000FF',
@@ -140,8 +140,8 @@ class NetworkXGraphHelper:
         if random_colors:
             rnd.shuffle(ec)
         for ord_, path in enumerate(paths):
-            route = Digraph()
-            route.append_from_path(path, self.__graph)
+            route = Graph()
+            route.append_path(path, self.__graph)
             color = ec[ord_ % len(ec)]
             special_subgraphs.append((route, color))
         return special_subgraphs

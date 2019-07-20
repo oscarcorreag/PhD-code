@@ -1,7 +1,7 @@
 import time
 
 from grid_digraph_generator import GridDigraphGenerator
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from networkx_graph_helper import NetworkXGraphHelper
 from vst_rs import VST_RS
 
@@ -21,8 +21,8 @@ if __name__ == '__main__':
                                 # node_weights=node_weights,
                                 seed=seed)
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(node_weighted)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(node_weighted)
     # suitability_graph.compute_dist_paths()
 
     terminals = [88, 66, 77, 5, 33, 53, 71]

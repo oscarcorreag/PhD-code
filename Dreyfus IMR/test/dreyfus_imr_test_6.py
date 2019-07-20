@@ -2,7 +2,7 @@ import time
 
 from grid_digraph_generator import GridDigraphGenerator
 from networkx_graph_helper import NetworkXGraphHelper
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from dreyfus_imr import DreyfusIMR
 
 
@@ -28,8 +28,8 @@ if __name__ == '__main__':
 
     terminals = [200, 760, 763, 766, 499]
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(node_weighted)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(node_weighted)
 
     dr = DreyfusIMR(suitability_graph, terminals, contract_graph=False, within_convex_hull=False)
     start_time = time.clock()

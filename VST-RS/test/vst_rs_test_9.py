@@ -1,11 +1,11 @@
-from digraph import Digraph
+from graph import Graph
 from vst_rs import VST_RS
 from networkx_graph_helper import NetworkXGraphHelper
 from link_performance import bpr, bpr_log
 
 
 if __name__ == '__main__':
-    graph = Digraph(capacitated=True)
+    graph = Graph(capacitated=True)
     graph.append_edge_2((0, 1), weight=2, capacity=1)
     graph.append_edge_2((0, 3), weight=1, capacity=1)
     graph.append_edge_2((1, 2), weight=1, capacity=1)

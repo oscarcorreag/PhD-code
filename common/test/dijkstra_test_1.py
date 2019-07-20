@@ -1,6 +1,6 @@
 from grid_digraph_generator import GridDigraphGenerator
 from networkx_graph_helper import NetworkXGraphHelper
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 
 
 if __name__ == '__main__':
@@ -21,8 +21,8 @@ if __name__ == '__main__':
     terminals = [470, 388, 750, 1185, 1222, 739, 487, 850, 1299, 333]
     poi = 899
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(graph)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(graph)
 
     suitability_graph.extend_suitable_regions(seed, generator)
     suitability_graph.extend_suitable_regions(seed, generator)
@@ -40,9 +40,9 @@ if __name__ == '__main__':
     suitability_graph.compute_dist_paths(origins=[poi], destinations=terminals)
     paths = [suitability_graph.paths[tuple(sorted([t, poi]))] for t in terminals]
 
-    tree = SuitabilityDigraph()
+    tree = SuitabilityGraph()
     for p in paths:
-        tree.append_from_path(p, suitability_graph)
+        tree.append_path(p, suitability_graph)
 
     ngh = NetworkXGraphHelper(suitability_graph)
     ngh.draw_graph(special_nodes=[(terminals, None, None), ([poi], None, None)],

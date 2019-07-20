@@ -3,7 +3,7 @@ import numpy as np
 from grid_digraph_generator import GridDigraphGenerator
 from vst_rs import VST_RS
 from networkx_graph_helper import NetworkXGraphHelper
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 
 if __name__ == '__main__':
 
@@ -22,8 +22,8 @@ if __name__ == '__main__':
                         seed=seed)
 
     # Transform graph into a suitability-graph because algorithm needs to know which the suitable nodes are.
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(graph)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(graph)
 
     # # Compute shortest distances between every pair of nodes.
     # suitability_graph.compute_dist_paths(compute_paths=False)

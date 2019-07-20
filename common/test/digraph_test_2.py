@@ -1,5 +1,5 @@
 from grid_digraph_generator import GridDigraphGenerator
-from digraph import Digraph
+from graph import Graph
 
 
 if __name__ == '__main__':
@@ -10,7 +10,7 @@ if __name__ == '__main__':
     graph_1 = gh.generate(m, n, edge_weighted=False)
     graph_1.compute_dist_paths([5], [399], method='meet-in-the-middle')
     # Custom digraph
-    graph_2 = Digraph()
+    graph_2 = Graph()
     graph_2.append_edge_2((0, 1), weight=1)
     graph_2.append_edge_2((1, 2), weight=1)
     graph_2.append_edge_2((2, 3), weight=5)

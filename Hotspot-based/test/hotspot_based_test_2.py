@@ -2,7 +2,7 @@ import time
 
 from grid_digraph_generator import GridDigraphGenerator
 from networkx_graph_helper import NetworkXGraphHelper
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from hotspot_based import HotspotBased
 
 
@@ -39,8 +39,8 @@ if __name__ == '__main__':
     pois = [133]
     terminals = [220, 250, 190, 285, 461, 491]
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(node_weighted)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(node_weighted)
 
     hb = HotspotBased(suitability_graph, terminals, pois)
     start_time = time.clock()

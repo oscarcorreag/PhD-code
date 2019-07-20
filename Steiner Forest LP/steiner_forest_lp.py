@@ -1,6 +1,6 @@
 import operator
 from scipy.optimize import linprog
-from digraph import Digraph
+from graph import Graph
 
 
 class SteinerForestLP:
@@ -98,7 +98,7 @@ class SteinerForestLP:
         res = linprog(c=c, A_eq=A_eq, b_eq=b_eq, A_ub=A_ub, b_ub=b_ub, options={"maxiter": 1000000})
         print res
         # Build the Steiner forest.
-        steiner_forest = Digraph()
+        steiner_forest = Graph()
         for i in range(len(res['x'])):
             if res['x'][i] >= .499999:
                 if len(sorted_vars[i][0]) == 2:

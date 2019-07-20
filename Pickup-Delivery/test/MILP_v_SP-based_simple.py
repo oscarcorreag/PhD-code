@@ -1,7 +1,7 @@
 from grid_digraph_generator import GridDigraphGenerator
 from networkx_graph_helper import NetworkXGraphHelper
 from csdp_ap import CsdpAp
-from digraph import Digraph
+from graph import Graph
 
 
 def compute_route_cost(route, graph_):

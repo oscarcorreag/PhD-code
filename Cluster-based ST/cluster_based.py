@@ -1,4 +1,4 @@
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from dreyfus_imr import DreyfusIMR
 
 
@@ -15,8 +15,8 @@ class ClusterBased:
         #
         generator = SuitableNodeWeightGenerator()
         # Set object variables.
-        self.__graph = SuitabilityDigraph()
-        self.__graph.append_from_graph(graph)
+        self.__graph = SuitabilityGraph()
+        self.__graph.append_graph(graph)
         self.__terminals = terminals
         #
         # self.__regions = self.__graph.get_suitable_regions(generator, excluded_nodes=terminals,

@@ -1,6 +1,6 @@
 import sys
 
-from digraph import Digraph
+from graph import Graph
 from utils import comb
 
 
@@ -118,22 +118,22 @@ class Dreyfus:
     '''
 
     def __build_steiner_tree(self, node, subset):
-        steiner_tree = Digraph()
+        steiner_tree = Graph()
         next_node = self.__steiner_distances[node][tuple(subset)][1]
         cost = 0
         if next_node is not None:
             self.__graph.compute_dist_paths(origins=[node], destinations=[next_node], recompute=True)
             cost = self.__graph.dist[tuple(sorted([node, next_node]))]
-            steiner_tree.append_from_path(self.__graph.paths[tuple(sorted([node, next_node]))], self.__graph)
+            steiner_tree.append_path(self.__graph.paths[tuple(sorted([node, next_node]))], self.__graph)
         (best_e, best_f) = self.__steiner_distances[node][tuple(subset)][2]
-        branch_e = Digraph()
+        branch_e = Graph()
         c_1 = c_2 = 0
         if best_e is not None and best_e != [next_node]:
             branch_e, c_1 = self.__build_steiner_tree(next_node, best_e)
-        branch_f = Digraph()
+        branch_f = Graph()
         if best_f is not None and best_f != [next_node] and len(best_f) > 0:
             branch_f, c_2 = self.__build_steiner_tree(next_node, best_f)
-        steiner_tree.append_from_graph(branch_e)
-        steiner_tree.append_from_graph(branch_f)
+        steiner_tree.append_graph(branch_e)
+        steiner_tree.append_graph(branch_f)
         cost += c_1 + c_2
         return steiner_tree, cost

@@ -2,8 +2,8 @@ import operator
 import sys
 import utils
 
-from digraph import dijkstra
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from graph import dijkstra
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 
 
 # from networkx_graph_helper import NetworkXGraphHelper
@@ -33,12 +33,12 @@ class Spiders:
             if contracted_graph is not None:
                 self.__graph = contracted_graph.copy()
             else:
-                self.__graph = SuitabilityDigraph()
-                self.__graph.append_from_graph(graph)
+                self.__graph = SuitabilityGraph()
+                self.__graph.append_graph(graph)
                 self.__graph.contract_suitable_regions(generator, excluded_nodes=terminals_poi)
         else:
-            self.__graph = SuitabilityDigraph()
-            self.__graph.append_from_graph(graph)
+            self.__graph = SuitabilityGraph()
+            self.__graph.append_graph(graph)
 
         # Copy distances and paths dictionary since it will be changed.
         dist_paths = None
@@ -85,7 +85,7 @@ class Spiders:
         # For every terminal create a subtree which has such terminal as the only node. Each subtree is digraph.
         self.__subtrees = {}
         for s in terminals:
-            subtree = SuitabilityDigraph()
+            subtree = SuitabilityGraph()
             subtree[s] = (self.__graph[s][0], {})
             self.__subtrees[s] = subtree
 
@@ -257,13 +257,13 @@ class Spiders:
         # Init the new subtree with the nodes of the first nearest subtree.
         new_subtree = self.__subtrees[subtree_0].copy()
         # Append the nodes of the second nearest subtree to the new subtree.
-        new_subtree.append_from_graph(self.__subtrees[subtree_1])
+        new_subtree.append_graph(self.__subtrees[subtree_1])
         # Get the paths from the node to the first two nearest subtrees.
         path_0 = self.__dist_paths_node_subtree[node][1][subtree_0]
         path_1 = self.__dist_paths_node_subtree[node][1][subtree_1]
         # Append these paths to the new subtree.
         for path in [path_0, path_1]:
-            new_subtree.append_from_path(path, self.__graph)
+            new_subtree.append_path(path, self.__graph)
         # Remove the first two nearest subtrees from the list of subtrees.
         del self.__subtrees[subtree_0]
         del self.__subtrees[subtree_1]
@@ -284,7 +284,7 @@ class Spiders:
         # Get the path from the node to the subtree.
         path = self.__dist_paths_node_subtree[node][1][subtree]
         # Append this path to the new subtree.
-        new_subtree.append_from_path(path, self.__graph)
+        new_subtree.append_path(path, self.__graph)
         # Remove the subtree from the list of subtrees.
         del self.__subtrees[subtree]
         # Add the new subtree to the list of subtrees.
@@ -298,7 +298,7 @@ class Spiders:
         # Init the new subtree with the nodes of the subtree with the POI.
         new_subtree = self.__subtrees[subtree_with_poi].copy()
         # Append the nodes of the second subtree to the new subtree.
-        new_subtree.append_from_graph(self.__subtrees[subtree])
+        new_subtree.append_graph(self.__subtrees[subtree])
         # Find the path through the POI between these two subtrees.
         min_dist = sys.maxint
         nearest_n = None
@@ -314,7 +314,7 @@ class Spiders:
             raise (RuntimeError, "__merge_subtrees_through_poi: couldn't find the nearest point within the subtree.")
         path = self.__dist_paths_node_node[self.__poi][1][nearest_n]
         # Append this path to the new subtree.
-        new_subtree.append_from_path(path, self.__graph)
+        new_subtree.append_path(path, self.__graph)
         # Remove the two subtrees from the list of subtrees.
         del self.__subtrees[subtree_with_poi]
         del self.__subtrees[subtree]
@@ -358,9 +358,9 @@ class Spiders:
         for r in regions:
             del steiner_tree[r]
         for p in paths:
-            steiner_tree.append_from_path(p, self.__original_graph)
+            steiner_tree.append_path(p, self.__original_graph)
         for st in trees:
-            steiner_tree.append_from_graph(st)
+            steiner_tree.append_graph(st)
 
     # def __find_closest_node_to_poi_within_region(self, region_id):
     #     region = self.__graph.contracted_regions[region_id][0]

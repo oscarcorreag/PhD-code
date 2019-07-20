@@ -1,7 +1,7 @@
 import time
 
 from grid_digraph_generator import GridDigraphGenerator
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from networkx_graph_helper import NetworkXGraphHelper
 from dreyfus_max_stops import DreyfusMaxStops
 
@@ -26,8 +26,8 @@ if __name__ == '__main__':
     # terminals = [440, 439, 438, 407, 377, 348]
     # max_stops = {440: 1, 439: 1, 438: 1, 407: 1, 377: 1, 348: 1}
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(node_weighted)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(node_weighted)
 
     suitability_graph.extend_suitable_regions(seed, generator)
     suitability_graph.extend_suitable_regions(seed, generator)

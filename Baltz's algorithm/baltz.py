@@ -1,13 +1,13 @@
 import sys
-from suitability import SuitabilityDigraph
+from suitability import SuitabilityGraph
 from vst_rs import VST_RS
 
 
 class Baltz:
     def __init__(self, graph):
         # Init some instance variables.
-        self.__graph = SuitabilityDigraph()
-        self.__graph.append_from_graph(graph)
+        self.__graph = SuitabilityGraph()
+        self.__graph.append_graph(graph)
         self.__edges = graph.get_edges()
         self.__congestion = {}
 

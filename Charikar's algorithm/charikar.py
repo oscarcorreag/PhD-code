@@ -1,8 +1,8 @@
 import sys
 import operator
 
-from digraph import dijkstra
-from suitability import SuitableNodeWeightGenerator, SuitabilityDigraph
+from graph import dijkstra
+from suitability import SuitableNodeWeightGenerator, SuitabilityGraph
 
 class Charikar:
 
@@ -29,27 +29,27 @@ class Charikar:
         self.__dist, self.__paths = self.__graph.get_dist_paths(origins=temp, destinations=temp)
 
     def Ai(self, k, r, X, i):
-        T = SuitabilityDigraph()
+        T = SuitabilityGraph()
         while k > 0:
-            TBEST = SuitabilityDigraph()
+            TBEST = SuitabilityGraph()
             for kprime in range(1, k + 1):
                 for v in self.__nodes:
                     if i > 1:
                         Tprime = self.Ai(kprime, v, X, i - 1)
                         p = self.__paths[tuple(sorted([r, v]))]
-                        Tprime.append_from_path(p, self.__graph)
+                        Tprime.append_path(p, self.__graph)
                     else:
                         dists = {}
                         for t in self.__terminals:
                             dists[t] = self.__dist[tuple(sorted([v, t]))]
                         ord_term = sorted(dists.iteritems(), key=operator.itemgetter(1))
-                        Tprime = SuitabilityDigraph()
+                        Tprime = SuitabilityGraph()
                         for j in range(kprime):
                             p = self.__paths[tuple(sorted([v, ord_term[j][0]]))]
-                            Tprime.append_from_path(p, self.__graph)
+                            Tprime.append_path(p, self.__graph)
                     if self.d(TBEST) > self.d(Tprime):
                         TBEST = Tprime
-            T.append_from_graph(TBEST)
+            T.append_graph(TBEST)
             k -= len(set(TBEST.keys()).intersection(X))
             X = set(X).difference(TBEST.keys())
         return T

@@ -4,7 +4,7 @@ import csv
 import sys
 
 from grid_digraph_generator import GridDigraphGenerator
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from dijkstra import dijkstra
 from spiders import Spiders
 from gravitation import Gravitation
@@ -38,8 +38,8 @@ if __name__ == '__main__':
                                                         node_weight_generator=generator,
                                                         seed=seed)
 
-                suitability_graph = SuitabilityDigraph()
-                suitability_graph.append_from_graph(graph)
+                suitability_graph = SuitabilityGraph()
+                suitability_graph.append_graph(graph)
 
                 suitability_graph.extend_suitable_regions(seed, generator)
                 suitability_graph.extend_suitable_regions(seed, generator)

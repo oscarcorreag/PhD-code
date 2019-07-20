@@ -1,7 +1,8 @@
 library(data.table)
 library(ggplot2)
 
-setwd("C:/Users/oscarcg/Documents/phd/code/Pickup-Delivery/test/files/")
+#setwd("C:/Users/oscarcg/Documents/phd/code/Pickup-Delivery/test/files/")
+
 
 exp <- fread("experiments.csv")
 exp$Total.cust <- exp$Num.retailers * exp$Cust.ret

@@ -1,11 +1,11 @@
-from digraph import Digraph
+from graph import Graph
 from vst_rs import VST_RS
 from networkx_graph_helper import NetworkXGraphHelper
 from link_performance import bpr
 
 
 if __name__ == '__main__':
-    graph = Digraph(capacitated=True)
+    graph = Graph(capacitated=True)
     no_queries = 100
     # Meeting points: {0, 1}, POI: {2}
     # Edges between meeting points and POI.

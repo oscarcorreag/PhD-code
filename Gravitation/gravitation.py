@@ -1,8 +1,8 @@
 import sys
 import operator
 
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
-from digraph import dijkstra
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
+from graph import dijkstra
 from networkx_graph_helper import NetworkXGraphHelper
 
 
@@ -30,12 +30,12 @@ class Gravitation:
             if contracted_graph is not None:
                 self.__graph = contracted_graph.copy()
             else:
-                self.__graph = SuitabilityDigraph()
-                self.__graph.append_from_graph(graph)
+                self.__graph = SuitabilityGraph()
+                self.__graph.append_graph(graph)
                 self.__graph.contract_suitable_regions(generator, excluded_nodes=terminals_poi)
         else:
-            self.__graph = SuitabilityDigraph()
-            self.__graph.append_from_graph(graph)
+            self.__graph = SuitabilityGraph()
+            self.__graph.append_graph(graph)
 
         # #
         # ngh = NetworkXGraphHelper(self.__original_graph)
@@ -190,9 +190,9 @@ class Gravitation:
         for r in regions:
             del steiner_tree[r]
         for p in paths:
-            steiner_tree.append_from_path(p, self.__original_graph)
+            steiner_tree.append_path(p, self.__original_graph)
         for st in trees:
-            steiner_tree.append_from_graph(st)
+            steiner_tree.append_graph(st)
 
         # Fix the edge costs.
         for v in steiner_tree:
@@ -201,9 +201,9 @@ class Gravitation:
 
     @staticmethod
     def __merge_subtrees(subtrees):
-        result = SuitabilityDigraph()
+        result = SuitabilityGraph()
         for subtree in subtrees:
-            result.append_from_graph(subtree)
+            result.append_graph(subtree)
         return result
 
     def __prune_steiner_tree(self, steiner_tree):
@@ -226,7 +226,7 @@ class Gravitation:
         _, paths = dijkstra(self.__graph, self.__poi, self.__terminals)
         for t in self.__terminals:
             path = paths[t]
-            subtree = SuitabilityDigraph()
+            subtree = SuitabilityGraph()
             # j = 0
             # for i in range(len(path_to_poi)):
             #     if path_to_poi[i] in self.__graph.contracted_regions:
@@ -239,7 +239,7 @@ class Gravitation:
             #         subtree.append_from_path(path_endpoint_2, self.__original_graph)
             #         j = i + 1
             # subtree.append_from_path(path_to_poi[j:], self.__original_graph)
-            subtree.append_from_path(path, self.__graph)
+            subtree.append_path(path, self.__graph)
             subtrees.append(subtree)
 
         steiner_tree = self.__merge_subtrees(subtrees)

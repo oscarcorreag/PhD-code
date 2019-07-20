@@ -1,12 +1,12 @@
 import numpy as np
 
 from osmdbmanager import OsmDBManager
-from suitability import SuitabilityDigraph
+from suitability import SuitabilityGraph
 from utils import haversine
 
 
 def generate_graph(results, generator, cost_type="distance", capacitated=False):
-    graph = SuitabilityDigraph(capacitated=capacitated)
+    graph = SuitabilityGraph(capacitated=capacitated)
     #
     prev_way_id = None
     prev_node_id = None

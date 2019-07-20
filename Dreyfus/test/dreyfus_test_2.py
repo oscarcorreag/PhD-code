@@ -3,7 +3,7 @@ import time
 from grid_digraph_generator import GridDigraphGenerator
 from dreyfus import Dreyfus
 from prim import Prim
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from networkx_graph_helper import NetworkXGraphHelper
 
 if __name__ == '__main__':
@@ -23,8 +23,8 @@ if __name__ == '__main__':
     # terminals = [654, 288, 315, 231, 312, 111, 609, 645, 434, 469, 186]
     terminals = [12, 88, 66, 77, 5, 33]
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(node_weighted)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(node_weighted)
 
     suitability_graph.extend_suitable_regions(seed, generator)
     suitability_graph.extend_suitable_regions(seed, generator)

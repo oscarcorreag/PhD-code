@@ -8,7 +8,7 @@ import pp
 import pdb
 
 import priodict
-import digraph
+import graph
 import utils
 
 
@@ -232,7 +232,7 @@ class VST_RS:
             self.graph.compute_dist_paths(origins=cell, destinations=cell, compute_paths=False)
         #
         cost = num_trees = 0
-        steiner_forest = digraph.Digraph()
+        steiner_forest = graph.Graph()
         detours = {}
         occupancy_rates = []
         steiner_trees = []
@@ -253,7 +253,7 @@ class VST_RS:
                     forest, c, detours_, nt, ocr, sts = \
                         self.build_steiner_forest(subgroup, OptCost, OptPOI, J, bestDiv, bestSubgrouping)
                     steiner_trees.extend(sts)
-                    steiner_forest.append_from_graph(forest)
+                    steiner_forest.append_graph(forest)
                     cost += c
                     detours.update(detours_)
                     occupancy_rates.extend(ocr)
@@ -525,14 +525,14 @@ class VST_RS:
         cost = 0
         num_trees = 0
         steiner_trees = []
-        steiner_forest = digraph.Digraph()
+        steiner_forest = graph.Graph()
         t_cmb = tuple(sorted(cmb))
         detours = {t: 0 for t in t_cmb}
         occupancy_rates = []
         p = OptPOI[t_cmb]
         if p is not None:
             steiner_tree, cost = self.build_steiner_tree(p, cmb, J, bestDiv, detours)
-            steiner_forest.append_from_graph(steiner_tree)
+            steiner_forest.append_graph(steiner_tree)
             num_trees += 1
             steiner_trees.append((cmb, steiner_tree))
             # self.__update_load(steiner_tree)
@@ -546,7 +546,7 @@ class VST_RS:
                     if len(comb1) > 0:
                         forest_1, c_1, detours_1, nt_1, ocr_1, sts_1 = \
                             self.build_steiner_forest(comb1, OptCost, OptPOI, J, bestDiv, bestSubgrouping)
-                        steiner_forest.append_from_graph(forest_1)
+                        steiner_forest.append_graph(forest_1)
                         steiner_trees.extend(sts_1)
                         detours.update(detours_1)
                         occupancy_rates.extend(ocr_1)
@@ -554,7 +554,7 @@ class VST_RS:
                     if len(comb2) > 0:
                         forest_2, c_2, detours_2, nt_2, ocr_2, sts_2 = \
                             self.build_steiner_forest(comb2, OptCost, OptPOI, J, bestDiv, bestSubgrouping)
-                        steiner_forest.append_from_graph(forest_2)
+                        steiner_forest.append_graph(forest_2)
                         steiner_trees.extend(sts_2)
                         detours.update(detours_2)
                         occupancy_rates.extend(ocr_2)
@@ -563,7 +563,7 @@ class VST_RS:
         return steiner_forest, cost, detours, num_trees, occupancy_rates, steiner_trees
 
     def build_steiner_tree(self, node, cmb, J, bestDiv, detours):
-        steiner_tree = digraph.Digraph()
+        steiner_tree = graph.Graph()
         t_cmb = tuple(sorted(cmb))
         m = J[t_cmb][node]
         self.graph.compute_dist_paths(origins=[node], destinations=[m], recompute=True)
@@ -576,19 +576,19 @@ class VST_RS:
                 detours[t] += cost
         #
         path = self.graph.paths[tuple(sorted([node, m]))]
-        steiner_tree.append_from_path(path, self.graph)
+        steiner_tree.append_path(path, self.graph)
         self.update_load(path)
         if t_cmb in bestDiv:
             comb1, comb2 = bestDiv[t_cmb][m]
-            branch_1 = digraph.Digraph()
+            branch_1 = graph.Graph()
             c_1 = c_2 = 0
             if comb1 is not None and comb1 != [m]:
                 branch_1, c_1 = self.build_steiner_tree(m, comb1, J, bestDiv, detours)
-            branch_2 = digraph.Digraph()
+            branch_2 = graph.Graph()
             if comb2 is not None and comb2 != [m]:
                 branch_2, c_2 = self.build_steiner_tree(m, comb2, J, bestDiv, detours)
-            steiner_tree.append_from_graph(branch_1)
-            steiner_tree.append_from_graph(branch_2)
+            steiner_tree.append_graph(branch_1)
+            steiner_tree.append_graph(branch_2)
             cost += c_1 + c_2
         return steiner_tree, cost
 

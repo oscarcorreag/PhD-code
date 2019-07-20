@@ -1,7 +1,7 @@
 import sys
 import pdb
 
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from utils import comb
 
 
@@ -139,20 +139,20 @@ class DreyfusMaxStops:
     '''
     '''
     def __build_steiner_tree_bactracking(self, node, subset):
-        steiner_tree = SuitabilityDigraph()
+        steiner_tree = SuitabilityGraph()
         next_node = self.__s_d[node][tuple(subset)][1]
         print(node, self.__s_d[node][tuple(subset)])
         # pdb.set_trace()
         if next_node is not None:
-            steiner_tree.append_from_path(self.__paths[tuple(sorted([node, next_node]))], self.__graph)
+            steiner_tree.append_path(self.__paths[tuple(sorted([node, next_node]))], self.__graph)
         (best_e, best_f) = self.__s_d[node][tuple(subset)][2]
         # pdb.set_trace()
-        steiner_branch_e = SuitabilityDigraph()
+        steiner_branch_e = SuitabilityGraph()
         if best_e is not None and best_e != [next_node]:
             steiner_branch_e = self.__build_steiner_tree_bactracking(next_node, best_e)
-        steiner_branch_f = SuitabilityDigraph()
+        steiner_branch_f = SuitabilityGraph()
         if best_f is not None and best_f != [next_node] and len(best_f) > 0:
             steiner_branch_f = self.__build_steiner_tree_bactracking(next_node, best_f)
-        steiner_tree.append_from_graph(steiner_branch_e)
-        steiner_tree.append_from_graph(steiner_branch_f)
+        steiner_tree.append_graph(steiner_branch_e)
+        steiner_tree.append_graph(steiner_branch_f)
         return steiner_tree

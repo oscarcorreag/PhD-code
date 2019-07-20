@@ -3,7 +3,7 @@ import numpy as np
 
 from grid_digraph_generator import GridDigraphGenerator
 from networkx_graph_helper import NetworkXGraphHelper
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from hotspot_based import HotspotBased
 
 
@@ -25,8 +25,8 @@ if __name__ == '__main__':
     # pois = [359, 834]
     # terminals = [123, 456, 463, 897, 506, 639, 343, 232, 564, 766, 138, 469, 800]
 
-    suitability_graph = SuitabilityDigraph()
-    suitability_graph.append_from_graph(node_weighted)
+    suitability_graph = SuitabilityGraph()
+    suitability_graph.append_graph(node_weighted)
 
     suitability_graph.extend_suitable_regions(seed, generator)
     suitability_graph.extend_suitable_regions(seed, generator)

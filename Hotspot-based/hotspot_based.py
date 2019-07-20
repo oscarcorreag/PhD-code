@@ -3,7 +3,7 @@ import sys
 import pdb
 import numpy as np
 
-from suitability import SuitabilityDigraph, SuitableNodeWeightGenerator
+from suitability import SuitabilityGraph, SuitableNodeWeightGenerator
 from utils import id_generator
 
 
@@ -306,7 +306,7 @@ class HotspotBased:
             S = {h: gr for h, gr in self.__gain_ratios.iteritems() if h not in R}
 
     def __build_steiner_forest(self):
-        forest = SuitabilityDigraph()
+        forest = SuitabilityGraph()
         dist = cost = occupancy = 0
         for t, dest in self.__confirmed.iteritems():
             if dest is None:
@@ -320,7 +320,7 @@ class HotspotBased:
             # print t, dest
             self.__graph.compute_dist_paths(origins=[t], destinations=[dest], recompute=True)
             try:
-                forest.append_from_path(self.__graph.paths[tuple(sorted([t, dest]))], self.__graph)
+                forest.append_path(self.__graph.paths[tuple(sorted([t, dest]))], self.__graph)
                 dist = self.__graph.dist[tuple(sorted([t, dest]))]
                 cost += dist
             except KeyError:

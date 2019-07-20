@@ -1,7 +1,7 @@
 import numpy as np
 
-from digraph import Digraph
-from suitability import SuitabilityDigraph
+from graph import Graph
+from suitability import SuitabilityGraph
 
 
 class GridDigraphGenerator:
@@ -13,9 +13,9 @@ class GridDigraphGenerator:
         if m <= 1 or n <= 1:
             return
         if node_weighted:
-            self.graph = SuitabilityDigraph(capacitated=capacitated)
+            self.graph = SuitabilityGraph(capacitated=capacitated)
         else:
-            self.graph = Digraph(capacitated=capacitated)
+            self.graph = Graph(capacitated=capacitated)
         if edge_weighted or node_weighted or capacitated:
             np.random.seed(seed)
         for i in range(m * n):
