@@ -1,3 +1,5 @@
+import operator
+
 from graph import Graph
 from ortools.linear_solver import pywraplp
 from utils import id_generator
@@ -836,7 +838,7 @@ class CsdpAp:
                 raise NotImplementedError
         return routes, cost
 
-    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
+    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, tiebreaker='FCFA'):
         partitions = {}
         # Drivers' shortest paths are computed.
         # pairs = [(start_v, end_v) for start_v, end_v in self._ad_hoc_drivers]
@@ -852,12 +854,18 @@ class CsdpAp:
         # --------------------------------------------------------------------------------------------------------------
         if method == 'SP-fraction':
             taken = list()
-            # For each driver, a set of regions is computed. Each region corresponds to a road intersection of the
-            # shortest path of the driver and contains sets of shops and customers.
+            # For each driver, a set of regions is computed. Each region corresponds to the set of shortest-path trees
+            # grown from a road intersection of the original shortest path of the driver, and contains sets of shops and
+            # customers.
             for start_v, end_v in vehicles_pd:
                 path = self._graph.paths[tuple(sorted([start_v, end_v]))]
                 dist = vehicles_pd[(start_v, end_v)]
-                regions = self._compute_regions(path, dist, fraction_sd=fraction_sd, excluded_customers=taken)
+                if tiebreaker == 'FCFA':
+                    regions = self._compute_regions(path, dist, fraction_sd=fraction_sd, excluded_customers=taken)
+                elif tiebreaker == 'B-MST':
+                    regions = self._compute_regions(path, dist, fraction_sd=fraction_sd)
+                else:
+                    raise NotImplementedError
                 # Shops and customers of different regions of the same driver are gathered. We are interested in
                 # returning shops and customers by driver (partition) so we drop the extra level of disaggregation,
                 # i.e., by region.
@@ -868,7 +876,8 @@ class CsdpAp:
                     customers.update(shops_customers['customers'])
                 partitions[(start_v, end_v)] = {'customers': customers, 'shops': shops}
                 # These are the customers taken by this partition.
-                taken.extend(customers)
+                if tiebreaker == 'FCFA':
+                    taken.extend(customers)
         # --------------------------------------------------------------------------------------------------------------
         # SP-Voronoi:   Drivers' shortest-path-based Voronoi cells are computed.
         # --------------------------------------------------------------------------------------------------------------
@@ -904,7 +913,12 @@ class CsdpAp:
                 dist = self._graph.dist[tuple(sorted([start_v, end_v]))]
                 ellipse = self._graph.nodes_within_ellipse(start_v, end_v, dist * threshold_sd)
                 partitions[(start_v, end_v)] = dict()
-                vertices_left = set(ellipse.keys()).difference(taken)
+                if tiebreaker == 'FCFA':
+                    vertices_left = set(ellipse.keys()).difference(taken)
+                elif tiebreaker == 'B-MST':
+                    vertices_left = set(ellipse.keys())
+                else:
+                    raise NotImplementedError
                 for vertex in vertices_left:
                     if vertex in self._shops:
                         try:
@@ -917,10 +931,57 @@ class CsdpAp:
                         except KeyError:
                             partitions[(start_v, end_v)]['customers'] = {vertex}
                 # These are the customers taken by this partition.
-                if 'customers' in partitions[(start_v, end_v)]:
-                    taken.extend(partitions[(start_v, end_v)]['customers'])
+                if tiebreaker == 'FCFA':
+                    if 'customers' in partitions[(start_v, end_v)]:
+                        taken.extend(partitions[(start_v, end_v)]['customers'])
         else:
             raise NotImplementedError
+        # In case the tiebreaker is balanced-degree MST...
+        if tiebreaker == 'B-MST':
+            # Build weighted bipartite graph and compute its MST.
+            bipartite = Graph()
+            drivers_by_customer = dict()
+            for driver, shops_customers in partitions.iteritems():
+                (start_v, end_v) = driver
+                path = self._graph.paths[tuple(sorted([start_v, end_v]))]
+                for customer in shops_customers['customers']:
+                    _, d, _ = self._graph.compute_dist_paths(origins=[customer], destinations=path, end_mode='first',
+                                                             compute_paths=False)
+                    bipartite.append_edge_2((driver, customer), weight=d[d.keys()[0]])
+                    try:
+                        drivers_by_customer[customer].append(driver)
+                    except KeyError:
+                        drivers_by_customer[customer] = [driver]
+            for i in range(len(partitions) - 1):
+                bipartite.append_edge_2((partitions.keys()[i], partitions.keys()[i + 1]), weight=0)
+            mst = bipartite.compute_mst()
+            # Balance the degree of the MST.
+            while True:
+                # Compute drivers' degree within the MST.
+                drivers_by_degree = dict()
+                degree_by_driver = dict()
+                highest_degree = 0
+                for v, adj in mst.iteritems():
+                    if isinstance(v, tuple):  # If it is tuple, then it is a driver.
+                        degree = sum([1 for w in adj if not isinstance(w, tuple)])
+                        try:
+                            drivers_by_degree[degree].append(v)
+                        except KeyError:
+                            drivers_by_degree[degree] = [v]
+                        degree_by_driver[v] = degree
+                        if degree > highest_degree:
+                            highest_degree = degree
+                # Pick one of the highest-degree drivers.
+                highest_degree_driver = drivers_by_degree[highest_degree][0]
+                while True:
+                    # Pick the most expensive customer for this driver.
+                    customer = max(mst[highest_degree_driver].iteritems(), key=operator.itemgetter(1))[0]
+                    # Are there more drivers who share this customer and have degree at most highest_degree - 2?
+                    for driver in drivers_by_customer[customer]:
+                        if driver == highest_degree_driver:
+                            continue
+                        if degree_by_driver[driver] <= highest_degree - 2:
+
         return partitions
 
     def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5):
@@ -928,9 +989,9 @@ class CsdpAp:
         # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
         # one driver only.
         if method == 'BB':
-            vehicle, shops_customers = partition
+            (start_v, end_v), shops_customers = partition
             # Compute the shortest path for this driver as it is used later.
-            start_v, end_v = vehicle
+            # start_v, end_v = vehicle
             self._graph.compute_dist_paths([start_v], [end_v])
             start_end = tuple(sorted([start_v, end_v]))
             # Filter out the shops that are not in the partition.

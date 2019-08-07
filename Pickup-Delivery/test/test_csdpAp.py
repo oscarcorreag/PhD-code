@@ -159,3 +159,12 @@ class TestCsdpAp(TestCase):
                 continue
             threshold = self.graph.dist[tuple(sorted([origin, destination]))] * threshold
             self.assertLessEqual(route_cost, threshold)
+
+    def test__compute_partitions(self):
+        csdp_ap = CsdpAp(self.graph)
+        rs, ss, cs, ds = sample(nc=100, ng=3, min_s=5, max_s=10, nv=50, vertices=self.graph.keys(), seed=0)
+        csdp_ap._requests = rs
+        csdp_ap._drivers = list(ds)
+        csdp_ap._pre_process_requests_drivers()
+        partitions = csdp_ap._compute_partitions(tiebreaker='B-MST')
+        self.fail()

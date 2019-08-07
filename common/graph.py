@@ -250,6 +250,9 @@ class Graph(dict):
 
     def compute_dist_paths(self, origins=None, destinations=None, pairs=None, end_mode='all', compute_paths=True,
                            track_edges=False, recompute=False, method='dijkstra'):
+        # TODO: Improve this
+        d_first = dict()
+        p_first = dict()
         # Both origins and destinations are indicated or none.
         if (origins is not None and destinations is None) or (destinations is not None and origins is None):
             raise (RuntimeError, "Digraph: Wrong parameters when computing distances!")
@@ -286,11 +289,21 @@ class Graph(dict):
             for v, ds in requests.iteritems():
                 dist, p = self.__dijkstra(v, ds, end_mode=end_mode, compute_paths=compute_paths,
                                           track_edges=track_edges)
-                for w in ds:
+                # TODO: Improve this
+                if end_mode == 'first':
+                    d_first = dist
+                    p_first = p
+                    w = dist.keys()[0]
                     if compute_paths:
                         self.set_dist_path(v, w, dist[w], list(p[w]))
                     else:
                         self.set_dist_path(v, w, dist[w])
+                else:
+                    for w in ds:
+                        if compute_paths:
+                            self.set_dist_path(v, w, dist[w], list(p[w]))
+                        else:
+                            self.set_dist_path(v, w, dist[w])
         elif method == 'meet-in-the-middle':
             # Only one origin and one destination are expected for this method.
             if len(pairs_) != 1:
@@ -306,7 +319,8 @@ class Graph(dict):
                 self.set_dist_path(v, w, dist)
         else:
             raise (RuntimeError, "Digraph: No other method but Dijkstra has been implemented!")
-        return len(pairs_)  # number of computed pairs.
+        # TODO: Improve this
+        return len(pairs_), d_first, p_first  # number of computed pairs.
 
     def compute_euler_tour(self, origin):
         # TODO: Test on general graphs. Currently tested on tree graphs only.
