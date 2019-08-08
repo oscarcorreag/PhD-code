@@ -949,12 +949,13 @@ class CsdpAp:
                     continue
                 for customer in shops_customers['customers']:
                     _, d, _ = self._graph.compute_dist_paths(origins=[customer], destinations=path, end_mode='first',
-                                                             compute_paths=False)
+                                                             compute_paths=False, recompute=True)
                     bipartite.append_edge_2((driver, customer), weight=d[d.keys()[0]])
                     try:
                         drivers_by_customer[customer].append(driver)
                     except KeyError:
                         drivers_by_customer[customer] = [driver]
+            # Create artificial non-cost edges between drivers in bipartite graph.
             for i in range(len(partitions) - 1):
                 bipartite.append_edge_2((partitions.keys()[i], partitions.keys()[i + 1]), weight=0)
             mst = bipartite.compute_mst()
@@ -978,6 +979,8 @@ class CsdpAp:
                         degree_by_driver[v] = degree
                         if degree > highest_degree:
                             highest_degree = degree
+                if highest_degree == 0:
+                    break
                 if highest_degree == 1:
                     if moves == 0:
                         break
