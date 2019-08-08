@@ -8,9 +8,74 @@ class TestGraph(TestCase):
         generator = GridDigraphGenerator()
         self.graph = generator.generate(5, 5, edge_weighted=False)
 
+    def test_build_metric_closure(self):
+        nodes = [0, 4, 12, 20, 24]
+        subgraph = self.graph.build_metric_closure(nodes)
+        self.assertDictEqual(subgraph,
+                             {0: {24: 8, 12: 4, 4: 4, 20: 4}, 12: {0: 4, 20: 4, 4: 4, 24: 4},
+                              4: {0: 4, 20: 8, 12: 4, 24: 4}, 20: {0: 4, 12: 4, 4: 8, 24: 4},
+                              24: {0: 8, 12: 4, 4: 4, 20: 4}})
+        excluded_edges = [(24, 12)]
+        subgraph = self.graph.build_metric_closure(nodes, excluded_edges=excluded_edges)
+        self.assertDictEqual(subgraph,
+                             {0: {24: 8, 12: 4, 4: 4, 20: 4}, 12: {0: 4, 20: 4, 4: 4}, 4: {0: 4, 20: 8, 12: 4, 24: 4},
+                              20: {0: 4, 12: 4, 4: 8, 24: 4}, 24: {0: 8, 20: 4, 4: 4}})
+
     def test_clone_node(self):
         new_node = self.graph.clone_node(12)
         self.assertDictEqual(self.graph[12], self.graph[new_node])
+
+    def test_complete_both_directions(self):
+        mst = self.graph.compute_mst()
+        self.assertDictEqual(mst.get_edges(),
+                             {(11, 16): 1, (8, 13): 1, (15, 20): 1, (16, 21): 1, (10, 15): 1, (1, 6): 1, (1, 2): 1,
+                              (4, 9): 1, (7, 12): 1, (12, 17): 1, (2, 7): 1, (9, 14): 1, (6, 11): 1, (19, 24): 1,
+                              (17, 22): 1, (0, 1): 1, (5, 10): 1, (3, 4): 1, (0, 5): 1, (3, 8): 1, (18, 23): 1,
+                              (13, 18): 1, (2, 3): 1, (14, 19): 1}
+                             )
+        mst.complete_both_directions()
+        self.assertDictEqual(mst.get_edges(),
+                             {(11, 16): 1, (8, 13): 1, (21, 16): 1, (15, 20): 1, (16, 21): 1, (18, 13): 1, (2, 1): 1,
+                              (10, 15): 1, (3, 2): 1, (1, 6): 1, (9, 4): 1, (24, 19): 1, (14, 9): 1, (7, 2): 1,
+                              (1, 2): 1, (4, 9): 1, (19, 14): 1, (7, 12): 1, (12, 17): 1, (5, 0): 1, (22, 17): 1,
+                              (2, 7): 1, (16, 11): 1, (9, 14): 1, (17, 12): 1, (6, 11): 1, (12, 7): 1, (10, 5): 1,
+                              (15, 10): 1, (19, 24): 1, (17, 22): 1, (13, 8): 1, (1, 0): 1, (0, 1): 1, (8, 3): 1,
+                              (5, 10): 1, (3, 4): 1, (6, 1): 1, (0, 5): 1, (3, 8): 1, (18, 23): 1, (13, 18): 1,
+                              (23, 18): 1, (4, 3): 1, (2, 3): 1, (20, 15): 1, (14, 19): 1, (11, 6): 1}
+                             )
+
+    def test_compute_euler_tour(self):
+        mst = self.graph.compute_mst()
+        mst.complete_both_directions()
+        euler_tour = mst.compute_euler_tour(24)
+        self.assertListEqual(euler_tour,
+                             [24, 19, 14, 9, 4, 3, 8, 13, 18, 23, 18, 13, 8, 3, 2, 1, 0, 5, 10, 15, 20, 15, 10, 5, 0, 1,
+                              6, 11, 16, 21, 16, 11, 6, 1, 2, 7, 12, 17, 22, 17, 12, 7, 2, 3, 4, 9, 14, 19, 24]
+                             )
+
+    def test_compute_mst(self):
+        mst = self.graph.compute_mst()
+        self.assertDictEqual(mst,
+                             {0: {1: 1, 5: 1}, 1: {0: 1, 2: 1, 6: 1}, 2: {1: 1, 3: 1, 7: 1}, 3: {8: 1, 2: 1, 4: 1},
+                              4: {9: 1, 3: 1}, 5: {0: 1, 10: 1}, 6: {1: 1, 11: 1}, 7: {2: 1, 12: 1}, 8: {3: 1, 13: 1},
+                              9: {4: 1, 14: 1}, 10: {5: 1, 15: 1}, 11: {16: 1, 6: 1}, 12: {17: 1, 7: 1},
+                              13: {8: 1, 18: 1}, 14: {9: 1, 19: 1}, 15: {10: 1, 20: 1}, 16: {11: 1, 21: 1},
+                              17: {12: 1, 22: 1}, 18: {13: 1, 23: 1}, 19: {24: 1, 14: 1}, 20: {15: 1}, 21: {16: 1},
+                              22: {17: 1}, 23: {18: 1}, 24: {19: 1}})
+
+    def test_drop_edge(self):
+        self.graph.drop_edge((9, 20))
+        self.assertEquals(40, len(self.graph.get_edges()))
+        self.graph.drop_edge((9, 14))
+        self.assertEquals(39, len(self.graph.get_edges()))
+        self.assertDictEqual(self.graph[9], {8: 1, 4: 1})
+        self.assertDictEqual(self.graph[14], {13: 1, 19: 1})
+
+    def test_extract_node_induced_subgraph(self):
+        nodes = [6, 11, 12, 13, 24]
+        subgraph = self.graph.extract_node_induced_subgraph(nodes)
+        self.assertDictEqual(subgraph,
+                             {24: {}, 11: {12: 1, 6: 1}, 12: {11: 1, 13: 1}, 13: {12: 1}, 6: {11: 1}})
 
     def test_get_k_closest_destinations(self):
         dist, paths = self.graph.get_k_closest_destinations(12, 3, [0, 1, 2, 3, 4])
@@ -117,60 +182,3 @@ class TestGraph(TestCase):
                                  17: {11: 2, 13: 2},
                                  18: {11: 3, 13: 1}
                              })
-
-    def test_compute_mst(self):
-        mst = self.graph.compute_mst()
-        self.assertDictEqual(mst,
-                             {0: {1: 1, 5: 1}, 1: {0: 1, 2: 1, 6: 1}, 2: {1: 1, 3: 1, 7: 1}, 3: {8: 1, 2: 1, 4: 1},
-                              4: {9: 1, 3: 1}, 5: {0: 1, 10: 1}, 6: {1: 1, 11: 1}, 7: {2: 1, 12: 1}, 8: {3: 1, 13: 1},
-                              9: {4: 1, 14: 1}, 10: {5: 1, 15: 1}, 11: {16: 1, 6: 1}, 12: {17: 1, 7: 1},
-                              13: {8: 1, 18: 1}, 14: {9: 1, 19: 1}, 15: {10: 1, 20: 1}, 16: {11: 1, 21: 1},
-                              17: {12: 1, 22: 1}, 18: {13: 1, 23: 1}, 19: {24: 1, 14: 1}, 20: {15: 1}, 21: {16: 1},
-                              22: {17: 1}, 23: {18: 1}, 24: {19: 1}})
-
-    def test_extract_node_induced_subgraph(self):
-        nodes = [6, 11, 12, 13, 24]
-        subgraph = self.graph.extract_node_induced_subgraph(nodes)
-        self.assertDictEqual(subgraph,
-                             {24: {}, 11: {12: 1, 6: 1}, 12: {11: 1, 13: 1}, 13: {12: 1}, 6: {11: 1}})
-
-    def test_build_metric_closure(self):
-        nodes = [0, 4, 12, 20, 24]
-        subgraph = self.graph.build_metric_closure(nodes)
-        self.assertDictEqual(subgraph,
-                             {0: {24: 8, 12: 4, 4: 4, 20: 4}, 12: {0: 4, 20: 4, 4: 4, 24: 4},
-                              4: {0: 4, 20: 8, 12: 4, 24: 4}, 20: {0: 4, 12: 4, 4: 8, 24: 4},
-                              24: {0: 8, 12: 4, 4: 4, 20: 4}})
-        excluded_edges = [(24, 12)]
-        subgraph = self.graph.build_metric_closure(nodes, excluded_edges=excluded_edges)
-        self.assertDictEqual(subgraph,
-                             {0: {24: 8, 12: 4, 4: 4, 20: 4}, 12: {0: 4, 20: 4, 4: 4}, 4: {0: 4, 20: 8, 12: 4, 24: 4},
-                              20: {0: 4, 12: 4, 4: 8, 24: 4}, 24: {0: 8, 20: 4, 4: 4}})
-
-    def test_compute_euler_tour(self):
-        mst = self.graph.compute_mst()
-        mst.complete_both_directions()
-        euler_tour = mst.compute_euler_tour(24)
-        self.assertListEqual(euler_tour,
-                             [24, 19, 14, 9, 4, 3, 8, 13, 18, 23, 18, 13, 8, 3, 2, 1, 0, 5, 10, 15, 20, 15, 10, 5, 0, 1,
-                              6, 11, 16, 21, 16, 11, 6, 1, 2, 7, 12, 17, 22, 17, 12, 7, 2, 3, 4, 9, 14, 19, 24]
-                             )
-
-    def test_complete_both_directions(self):
-        mst = self.graph.compute_mst()
-        self.assertDictEqual(mst.get_edges(),
-                             {(11, 16): 1, (8, 13): 1, (15, 20): 1, (16, 21): 1, (10, 15): 1, (1, 6): 1, (1, 2): 1,
-                              (4, 9): 1, (7, 12): 1, (12, 17): 1, (2, 7): 1, (9, 14): 1, (6, 11): 1, (19, 24): 1,
-                              (17, 22): 1, (0, 1): 1, (5, 10): 1, (3, 4): 1, (0, 5): 1, (3, 8): 1, (18, 23): 1,
-                              (13, 18): 1, (2, 3): 1, (14, 19): 1}
-                             )
-        mst.complete_both_directions()
-        self.assertDictEqual(mst.get_edges(),
-                             {(11, 16): 1, (8, 13): 1, (21, 16): 1, (15, 20): 1, (16, 21): 1, (18, 13): 1, (2, 1): 1,
-                              (10, 15): 1, (3, 2): 1, (1, 6): 1, (9, 4): 1, (24, 19): 1, (14, 9): 1, (7, 2): 1,
-                              (1, 2): 1, (4, 9): 1, (19, 14): 1, (7, 12): 1, (12, 17): 1, (5, 0): 1, (22, 17): 1,
-                              (2, 7): 1, (16, 11): 1, (9, 14): 1, (17, 12): 1, (6, 11): 1, (12, 7): 1, (10, 5): 1,
-                              (15, 10): 1, (19, 24): 1, (17, 22): 1, (13, 8): 1, (1, 0): 1, (0, 1): 1, (8, 3): 1,
-                              (5, 10): 1, (3, 4): 1, (6, 1): 1, (0, 5): 1, (3, 8): 1, (18, 23): 1, (13, 18): 1,
-                              (23, 18): 1, (4, 3): 1, (2, 3): 1, (20, 15): 1, (14, 19): 1, (11, 6): 1}
-                             )

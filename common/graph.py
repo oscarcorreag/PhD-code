@@ -444,6 +444,23 @@ class Graph(dict):
         for edge, (edge_weight, capacity) in to_be_created.iteritems():
             self.append_edge_2(edge, weight=edge_weight, capacity=capacity)
 
+    def drop_edge(self, edge):
+        try:
+            del self.get_edges()[edge]
+            v, w = edge
+            if self.is_node_weighted():
+                del self[v][1][w]
+                if self.is_undirected():
+                    del self[w][1][v]
+            else:
+                del self[v][w]
+                if self.is_undirected():
+                    del self[w][v]
+            if self.is_capacitated():
+                del self.get_capacities()[edge]
+        except KeyError:
+            pass
+
     def drop_node_weights(self):
         if self.node_weighted:
             for v in self:

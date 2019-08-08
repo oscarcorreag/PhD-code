@@ -1,4 +1,5 @@
 import operator
+import sys
 
 from graph import Graph
 from ortools.linear_solver import pywraplp
@@ -838,7 +839,7 @@ class CsdpAp:
                 raise NotImplementedError
         return routes, cost
 
-    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, tiebreaker='FCFA'):
+    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, tiebreaker='B-MST'):
         partitions = {}
         # Drivers' shortest paths are computed.
         # pairs = [(start_v, end_v) for start_v, end_v in self._ad_hoc_drivers]
@@ -937,13 +938,15 @@ class CsdpAp:
         else:
             raise NotImplementedError
         # In case the tiebreaker is balanced-degree MST...
-        if tiebreaker == 'B-MST':
+        if method != 'SP-Voronoi' and tiebreaker == 'B-MST':
             # Build weighted bipartite graph and compute its MST.
             bipartite = Graph()
             drivers_by_customer = dict()
             for driver, shops_customers in partitions.iteritems():
                 (start_v, end_v) = driver
                 path = self._graph.paths[tuple(sorted([start_v, end_v]))]
+                if 'customers' not in shops_customers:
+                    continue
                 for customer in shops_customers['customers']:
                     _, d, _ = self._graph.compute_dist_paths(origins=[customer], destinations=path, end_mode='first',
                                                              compute_paths=False)
@@ -956,6 +959,8 @@ class CsdpAp:
                 bipartite.append_edge_2((partitions.keys()[i], partitions.keys()[i + 1]), weight=0)
             mst = bipartite.compute_mst()
             # Balance the degree of the MST.
+            quarantine = set()
+            moves = 0
             while True:
                 # Compute drivers' degree within the MST.
                 drivers_by_degree = dict()
@@ -963,6 +968,8 @@ class CsdpAp:
                 highest_degree = 0
                 for v, adj in mst.iteritems():
                     if isinstance(v, tuple):  # If it is tuple, then it is a driver.
+                        if v in quarantine:
+                            continue
                         degree = sum([1 for w in adj if not isinstance(w, tuple)])
                         try:
                             drivers_by_degree[degree].append(v)
@@ -971,17 +978,49 @@ class CsdpAp:
                         degree_by_driver[v] = degree
                         if degree > highest_degree:
                             highest_degree = degree
+                if highest_degree == 1:
+                    if moves == 0:
+                        break
+                    else:
+                        quarantine.clear()
+                        moves = 0
+                        continue
                 # Pick one of the highest-degree drivers.
                 highest_degree_driver = drivers_by_degree[highest_degree][0]
+                sup = sys.maxint
                 while True:
                     # Pick the most expensive customer for this driver.
-                    customer = max(mst[highest_degree_driver].iteritems(), key=operator.itemgetter(1))[0]
+                    most_expensive = None
+                    inf = 0
+                    for customer, cost in mst[highest_degree_driver].iteritems():
+                        if inf < cost < sup:
+                            most_expensive = customer, cost
+                            inf = cost
+                    if most_expensive is None:
+                        quarantine.add(highest_degree_driver)
+                        break
                     # Are there more drivers who share this customer and have degree at most highest_degree - 2?
-                    for driver in drivers_by_customer[customer]:
-                        if driver == highest_degree_driver:
+                    candidates = dict()
+                    for driver in drivers_by_customer[most_expensive[0]]:
+                        if driver == highest_degree_driver or driver in quarantine:
                             continue
                         if degree_by_driver[driver] <= highest_degree - 2:
-
+                            candidates[driver] = bipartite[driver][most_expensive[0]]
+                    # If there is at least one candidate driver, do the local move within the MST.
+                    # Otherwise, the loop continues with the next most expensive customer.
+                    if len(candidates) > 0:
+                        chosen, weight = min(candidates.iteritems(), key=operator.itemgetter(1))
+                        mst.drop_edge(tuple(sorted([highest_degree_driver, most_expensive[0]])))
+                        mst.append_edge_2((chosen, most_expensive[0]), weight=most_expensive[1])
+                        moves += 1
+                        break
+                    else:
+                        sup = most_expensive[1]
+            # Set customers in partitions according to the final balanced MST.
+            for v, adj in mst.iteritems():
+                if isinstance(v, tuple):  # If it is tuple, then it is a driver.
+                    partitions[v]['customers'].clear()
+                    partitions[v]['customers'].update({w for w in adj if not isinstance(w, tuple)})
         return partitions
 
     def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5):
