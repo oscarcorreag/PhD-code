@@ -1019,8 +1019,7 @@ class CsdpAp:
             # Set customers in partitions according to the final balanced MST.
             for v, adj in mst.iteritems():
                 if isinstance(v, tuple):  # If it is tuple, then it is a driver.
-                    partitions[v]['customers'].clear()
-                    partitions[v]['customers'].update({w for w in adj if not isinstance(w, tuple)})
+                    partitions[v]['customers'] = {w for w in adj if not isinstance(w, tuple)}
         return partitions
 
     def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5):
