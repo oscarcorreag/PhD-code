@@ -643,7 +643,7 @@ class CsdpAp:
         objective.SetMinimization()
 
     def solve(self, requests, drivers, method='MILP', verbose=False, partition_method='SP-fraction', fraction_sd=.5,
-              threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='BB'):
+              threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='BB', tiebreaker='FCFA'):
 
         self._requests = requests
         self._drivers = list(drivers)
@@ -660,7 +660,8 @@ class CsdpAp:
                                   fraction_sd=fraction_sd,
                                   threshold_sd=threshold_sd,
                                   solve_partition_method=solve_partition_method,
-                                  solve_unserved_method=solve_unserved_method)
+                                  solve_unserved_method=solve_unserved_method,
+                                  tiebreaker=tiebreaker)
 
     def _define_milp(self, method='MILP', threshold_sd=1.5):
         self._define_vars()
@@ -776,11 +777,11 @@ class CsdpAp:
             self._Fs_by_shop[shop] = (start_v, end_v)
 
     def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB',
-                  solve_unserved_method='BB'):
+                  solve_unserved_method='BB', tiebreaker='FCFA'):
         routes = list()
         cost = 0
-        partitions = \
-            self._compute_partitions(method=partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd)
+        partitions = self._compute_partitions(method=partition_method, fraction_sd=fraction_sd,
+                                              threshold_sd=threshold_sd, tiebreaker=tiebreaker)
         # Solve each partition
         served_customers = set()
         for partition in partitions.iteritems():
@@ -839,7 +840,7 @@ class CsdpAp:
                 raise NotImplementedError
         return routes, cost
 
-    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, tiebreaker='B-MST'):
+    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, tiebreaker='FCFA'):
         partitions = {}
         # Drivers' shortest paths are computed.
         # pairs = [(start_v, end_v) for start_v, end_v in self._ad_hoc_drivers]
@@ -979,15 +980,12 @@ class CsdpAp:
                         degree_by_driver[v] = degree
                         if degree > highest_degree:
                             highest_degree = degree
-                if highest_degree == 0:
+                if highest_degree == 0 or (highest_degree == 1 and moves == 0):
                     break
                 if highest_degree == 1:
-                    if moves == 0:
-                        break
-                    else:
-                        quarantine.clear()
-                        moves = 0
-                        continue
+                    quarantine.clear()
+                    moves = 0
+                    continue
                 # Pick one of the highest-degree drivers.
                 highest_degree_driver = drivers_by_degree[highest_degree][0]
                 sup = sys.maxint
