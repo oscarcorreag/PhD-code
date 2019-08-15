@@ -643,7 +643,7 @@ class CsdpAp:
         objective.SetMinimization()
 
     def solve(self, requests, drivers, method='MILP', verbose=False, partition_method='SP-fraction', fraction_sd=.5,
-              threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='BB', tiebreaker='FCFA'):
+              threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='BB', tiebreaker='B-MST'):
 
         self._requests = requests
         self._drivers = list(drivers)
@@ -777,7 +777,7 @@ class CsdpAp:
             self._Fs_by_shop[shop] = (start_v, end_v)
 
     def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB',
-                  solve_unserved_method='BB', tiebreaker='FCFA'):
+                  solve_unserved_method='BB', tiebreaker='B-MST'):
         routes = list()
         cost = 0
         partitions = self._compute_partitions(method=partition_method, fraction_sd=fraction_sd,
@@ -840,7 +840,7 @@ class CsdpAp:
                 raise NotImplementedError
         return routes, cost
 
-    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, tiebreaker='FCFA'):
+    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, tiebreaker='B-MST'):
         partitions = {}
         # Drivers' shortest paths are computed.
         # pairs = [(start_v, end_v) for start_v, end_v in self._ad_hoc_drivers]
