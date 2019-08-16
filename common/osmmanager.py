@@ -327,7 +327,7 @@ class OsmManager:
             zones_ = merge_two_zones(zones, np1, np2, seed=seed)
         return zones_
 
-    def zipf_sample_bbox(self, bbox, size, hotspots=True, pois=True, seed=None):
+    def zipf_sample_bbox(self, bbox, size, a=None, hotspots=True, pois=True, seed=None):
         #
         rnd = np.random.RandomState()
         if seed is not None:
@@ -337,12 +337,14 @@ class OsmManager:
         num_zones = len(freqs)
         #
         zones = self.zonify_bbox(bbox, num_zones, hotspots, pois, seed)
+        if a is not None:
+            zones = {zone: set(nodes).intersection(a) for zone, nodes in zones.iteritems()}
         #
         zone_size = {zone: len(nodes) for zone, nodes in zones.iteritems()}
         sorted_by_size = sorted(zone_size.iteritems(), key=operator.itemgetter(1))
         #
         samples = list()
         for i, (zone, _) in enumerate(sorted_by_size):
-            nodes = rnd.choice(a=zones[zone], size=freqs[i], replace=False)
+            nodes = rnd.choice(a=list(zones[zone]), size=freqs[i], replace=False)
             samples.extend(nodes)
         return samples
