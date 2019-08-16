@@ -136,6 +136,8 @@ if __name__ == '__main__':
                     stores_per_ret[retailer] = [poi]
             #
             num_retailers = len(stores_per_ret.keys())
+            if num_retailers < len(info[1]):
+                continue
             #
             for num_customers in num_customers_r:
                 # num_customers = num_req_per_retailer * num_retailers
@@ -155,7 +157,8 @@ if __name__ == '__main__':
                 for ratio in ratios:
                     num_drivers = int(round(num_customers / ratio))
                     d_starts_ends = rnd.choice(a=list(free), size=num_drivers * 2, replace=False)
-                    ds = [((d_starts_ends[i], 1, 300), (d_starts_ends[i + num_drivers], 1, 300)) for i in range(num_drivers)]
+                    ds = [((d_starts_ends[i], 1, 300), (d_starts_ends[i + num_drivers], 1, 300))
+                          for i in range(num_drivers)]
 
                     # # --------------------------------------------------------------------------------------------------
                     # # MILP

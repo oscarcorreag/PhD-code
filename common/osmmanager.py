@@ -1,8 +1,10 @@
 import numpy as np
+import itertools
+import operator
 
 from osmdbmanager import OsmDBManager
 from suitability import SuitabilityGraph
-from utils import haversine
+from utils import haversine, num_partitions, merge_two_zones
 
 
 def generate_graph(results, generator, cost_type="distance", capacitated=False):
@@ -149,34 +151,26 @@ class OsmManager:
     def __init__(self):
         self.__osmdbmngr = OsmDBManager("postgres", "naya0105", "osm", "localhost")
 
-    def get_nodes_for_bbox(self, min_lon, min_lat, max_lon, max_lat, hotspots=True, pois=True, poi_names=None):
-        kargs = {"bbox": (min_lon, min_lat, max_lon, max_lat)}
-        if poi_names is not None:
-            kargs["poi_names"] = poi_names
-        results = self.__osmdbmngr.get_graph_nodes(kargs, hotspots, pois)
-        nodes = dict()
-        for r in results:
-            node_id = r[1]
-            type_ = r[3]
-            stype = r[4]
-            lat = float(r[6])
-            lon = float(r[7])
-            sa1_code = r[8]
-            sa2_code = r[9]
-            nodes[node_id] = {'type': type_, 'lat': lat, 'lon': lon, 'sa1': sa1_code, 'sa2': sa2_code, 'subtype': stype}
-        return nodes
-
-    def generate_graph_for_file(self, file_, act, generator, hotspots=True, pois=True, cost_type="distance"):
-        results = self.__osmdbmngr.get_graph_nodes({"sa3": file_, "activity": act}, hotspots, pois)
-        return generate_graph(results, generator, cost_type=cost_type)
-
-    def generate_graph_for_bbox(self, min_lon, min_lat, max_lon, max_lat, generator, hotspots=True, pois=True,
-                                poi_names=None, cost_type="distance"):
-        kargs = {"bbox": (min_lon, min_lat, max_lon, max_lat)}
-        if poi_names is not None:
-            kargs["poi_names"] = poi_names
-        results = self.__osmdbmngr.get_graph_nodes(kargs, hotspots, pois)
-        return generate_graph(results, generator, cost_type=cost_type)
+    def choose_hotspots_according_to_population(self, sa3_code11, nh, nodes_by_sa2_code, excluded_nodes=None):
+        #
+        if excluded_nodes is None:
+            excluded_nodes = []
+        #
+        sa2_codes = self.__osmdbmngr.get_sa2_codes(sa3_code11)
+        pop_stats = self.get_population_stats(sa3_code11)
+        tot_pop = sum(pop_stats.values())
+        #
+        hotspots = []
+        for i, sa2_5dig11_l in enumerate(sa2_codes):
+            sa2_5dig11 = int(sa2_5dig11_l[0])
+            nh_sa2 = int(round(nh * float(pop_stats[sa2_5dig11]) / tot_pop, 0))
+            if i == len(sa2_codes) - 1:
+                nh_sa2 = nh - len(hotspots)
+            # print nh_sa2
+            nodes = list(set(nodes_by_sa2_code[sa2_5dig11_l[0]]).difference(excluded_nodes))
+            indices = np.random.choice(a=len(nodes), size=nh_sa2, replace=False)
+            hotspots.extend([nodes[i] for i in indices])
+        return hotspots
 
     def choose_terminals_according_to_vista(self, file_, dh, act, nodes_by_sa1_code, excluded_nodes=None):
         #
@@ -199,49 +193,17 @@ class OsmManager:
         print "t:", len(terminals)
         return list(terminals)
 
-    def choose_hotspots_according_to_population(self, sa3_code11, nh, nodes_by_sa2_code, excluded_nodes=None):
-        #
-        if excluded_nodes is None:
-            excluded_nodes = []
-        #
-        sa2_codes = self.__osmdbmngr.get_sa2_codes(sa3_code11)
-        pop_stats = self.get_population_stats(sa3_code11)
-        tot_pop = sum(pop_stats.values())
-        #
-        hotspots = []
-        for i, sa2_5dig11_l in enumerate(sa2_codes):
-            sa2_5dig11 = int(sa2_5dig11_l[0])
-            nh_sa2 = int(round(nh * float(pop_stats[sa2_5dig11]) / tot_pop, 0))
-            if i == len(sa2_codes) - 1:
-                nh_sa2 = nh - len(hotspots)
-            # print nh_sa2
-            nodes = list(set(nodes_by_sa2_code[sa2_5dig11_l[0]]).difference(excluded_nodes))
-            indices = np.random.choice(a=len(nodes), size=nh_sa2, replace=False)
-            hotspots.extend([nodes[i] for i in indices])
-        return hotspots
+    def generate_graph_for_bbox(self, min_lon, min_lat, max_lon, max_lat, generator, hotspots=True, pois=True,
+                                poi_names=None, cost_type="distance"):
+        kargs = {"bbox": (min_lon, min_lat, max_lon, max_lat)}
+        if poi_names is not None:
+            kargs["poi_names"] = poi_names
+        results = self.__osmdbmngr.get_graph_nodes(kargs, hotspots, pois)
+        return generate_graph(results, generator, cost_type=cost_type)
 
-    def get_departure_hours(self, file_):
-        return self.__osmdbmngr.get_departure_hours(file_)
-
-    def get_dest_activities(self, file_, dh):
-        return self.__osmdbmngr.get_dest_activities(file_, dh)
-
-    def get_sa1_codes_by_sa2(self, sa3_code11):
-        #
-        sa1_codes = self.__osmdbmngr.get_sa1_codes(sa3_code11)
-        #
-        sa2_codes = {}
-        for sa2_5dig11_s, sa1_7dig11 in sa1_codes:
-            sa2_5dig11 = int(sa2_5dig11_s)
-            if sa2_5dig11 in sa2_codes:
-                sa2_codes[sa2_5dig11].append(sa1_7dig11)
-            else:
-                sa2_codes[sa2_5dig11] = [sa1_7dig11]
-        return sa2_codes
-
-    def get_population_stats(self, sa3_code11):
-        pop_stats = self.__osmdbmngr.get_population_stats(sa3_code11)
-        return {sa2_5dig11: est_pop for sa2_5dig11, est_pop in pop_stats}
+    def generate_graph_for_file(self, file_, act, generator, hotspots=True, pois=True, cost_type="distance"):
+        results = self.__osmdbmngr.get_graph_nodes({"sa3": file_, "activity": act}, hotspots, pois)
+        return generate_graph(results, generator, cost_type=cost_type)
 
     def generate_samples(self, sa3_code11, sample_table):
         stats = self.__osmdbmngr.get_statistics(sa3_code11)
@@ -260,20 +222,51 @@ class OsmManager:
                     samples.append(sample)
         self.__osmdbmngr.save_samples(samples, sample_table)
 
-    def get_knn(self, session_id, lon, lat, k, min_dist=None):
-        return self.__osmdbmngr.get_knn(session_id, lon, lat, k, min_dist)
-
     def get_coordinates(self, node):
         return self.__osmdbmngr.get_coordinates(node)
 
-    def get_session_users(self, session_id):
-        return self.__osmdbmngr.get_session_users(session_id)
+    def get_departure_hours(self, file_):
+        return self.__osmdbmngr.get_departure_hours(file_)
 
-    def get_session_user_by_pk(self, pk):
-        return self.__osmdbmngr.get_session_user_by_pk(pk)
+    def get_dest_activities(self, file_, dh):
+        return self.__osmdbmngr.get_dest_activities(file_, dh)
 
-    def get_session_user(self, session_id, user_id):
-        return self.__osmdbmngr.get_session_user(session_id, user_id)
+    def get_knn(self, session_id, lon, lat, k, min_dist=None):
+        return self.__osmdbmngr.get_knn(session_id, lon, lat, k, min_dist)
+
+    def get_nodes_for_bbox(self, min_lon, min_lat, max_lon, max_lat, hotspots=True, pois=True, poi_names=None):
+        kargs = {"bbox": (min_lon, min_lat, max_lon, max_lat)}
+        if poi_names is not None:
+            kargs["poi_names"] = poi_names
+        results = self.__osmdbmngr.get_graph_nodes(kargs, hotspots, pois)
+        nodes = dict()
+        for r in results:
+            node_id = r[1]
+            type_ = r[3]
+            stype = r[4]
+            lat = float(r[6])
+            lon = float(r[7])
+            sa1_code = r[8]
+            sa2_code = r[9]
+            nodes[node_id] = {'type': type_, 'lat': lat, 'lon': lon, 'sa1': sa1_code, 'sa2': sa2_code, 'subtype': stype}
+        return nodes
+
+    def get_population_stats(self, sa3_code11):
+        pop_stats = self.__osmdbmngr.get_population_stats(sa3_code11)
+        return {sa2_5dig11: est_pop for sa2_5dig11, est_pop in pop_stats}
+
+    def get_sa1_codes_by_sa2(self, sa3_code11):
+        #
+        sa1_codes = self.__osmdbmngr.get_sa1_codes(sa3_code11)
+        #
+        sa2_codes = {}
+        for sa2_5dig11_s, sa1_7dig11 in sa1_codes:
+            sa2_5dig11 = int(sa2_5dig11_s)
+            if sa2_5dig11 in sa2_codes:
+                sa2_codes[sa2_5dig11].append(sa1_7dig11)
+            else:
+                sa2_codes[sa2_5dig11] = [sa1_7dig11]
+        return sa2_codes
 
     def get_session_nodes(self, session_id, type_, activity=None):
         return self.__osmdbmngr.get_session_nodes(session_id, type_, activity)
@@ -281,7 +274,75 @@ class OsmManager:
     def get_session_plan_vehicle_route(self, session_user_id):
         return self.__osmdbmngr.get_session_plan_vehicle_route(session_user_id)
 
+    def get_session_user(self, session_id, user_id):
+        return self.__osmdbmngr.get_session_user(session_id, user_id)
+
+    def get_session_users(self, session_id):
+        return self.__osmdbmngr.get_session_users(session_id)
+
+    def get_session_user_by_pk(self, pk):
+        return self.__osmdbmngr.get_session_user_by_pk(pk)
+
     def get_session_users_vehicle(self, session_user_id):
         return self.__osmdbmngr.get_session_users_vehicle(session_user_id)
 
+    def zonify_bbox(self, bbox, num_zones, hotspots=True, pois=True, seed=None):
+        min_lon, min_lat, max_lon, max_lat = bbox
+        # Longitude and latitude intervals of bbox.
+        big_delta_lon = max_lon - min_lon
+        big_delta_lat = max_lat - min_lat
+        # Compute bbox partitions in both dimensions.
+        num_zones_, np1, np2 = num_partitions(num_zones)
+        # Longitude and latitude intervals of zones.
+        delta_lon = big_delta_lon / np1
+        delta_lat = big_delta_lat / np2
+        # Bbox by zone. Zone is represented as (i, j).
+        inner_bboxes = dict()
+        min_lat_ = min_lat
+        for i in range(np2):
+            min_lon_ = min_lon
+            if i < np2 - 1:
+                for j in range(np1):
+                    if j < np1 - 1:
+                        inner_bboxes[(i, j)] = (min_lon_, min_lat_, min_lon_ + delta_lon, min_lat_ + delta_lat)
+                    else:
+                        inner_bboxes[(i, j)] = (min_lon_, min_lat_, max_lon, min_lat_ + delta_lat)
+                    min_lon_ += delta_lon
+                min_lat_ += delta_lat
+            else:
+                for j in range(np1):
+                    if j < np1 - 1:
+                        inner_bboxes[(i, j)] = (min_lon_, min_lat_, min_lon_ + delta_lon, max_lat)
+                    else:
+                        inner_bboxes[(i, j)] = (min_lon_, min_lat_, max_lon, max_lat)
+                    min_lon_ += delta_lon
+        # Nodes by zone.
+        zones = dict()
+        for k, inner_bbox in inner_bboxes.iteritems():
+            results = self.__osmdbmngr.get_graph_nodes({"bbox": inner_bbox}, hotspots, pois)
+            zones[k] = [r[1] for r in results]
+        # Check whether two zones must be merged to match original num-zones requirement.
+        zones_ = dict(zones)
+        if num_zones_ != num_zones:
+            zones_ = merge_two_zones(zones, np1, np2, seed=seed)
+        return zones_
 
+    def zipf_sample_bbox(self, bbox, size, hotspots=True, pois=True, seed=None):
+        #
+        rnd = np.random.RandomState()
+        if seed is not None:
+            rnd = np.random.RandomState(seed)
+        s = rnd.zipf(a=2., size=size)
+        freqs = sorted([len(list(v)) for _, v in itertools.groupby(sorted(s))])
+        num_zones = len(freqs)
+        #
+        zones = self.zonify_bbox(bbox, num_zones, hotspots, pois, seed)
+        #
+        zone_size = {zone: len(nodes) for zone, nodes in zones.iteritems()}
+        sorted_by_size = sorted(zone_size.iteritems(), key=operator.itemgetter(1))
+        #
+        samples = list()
+        for i, (zone, _) in enumerate(sorted_by_size):
+            nodes = rnd.choice(a=zones[zone], size=freqs[i], replace=False)
+            samples.extend(nodes)
+        return samples
