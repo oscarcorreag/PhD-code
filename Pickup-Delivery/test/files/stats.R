@@ -3,7 +3,8 @@ library(ggplot2)
 
 setwd("C:/Users/oscarcg/Documents/phd/code/Pickup-Delivery/test/files/")
 
-exp <- fread("experiments.csv")
+exp <- fread("csdp_ap_08Aug2019_204716.csv")
+exp <- exp[startsWith(exp$Approach, "MILP") | endsWith(exp$Approach, "DT")]
 exp$Total.cust <- exp$Num.retailers * exp$Cust.ret
 exp$Total.drv <- exp$Num.retailers * exp$Drv.ret
 exp$Ad.hoc.cost.prop <- exp$Ad.hoc.cost / exp$Cost
@@ -29,21 +30,21 @@ sd_cols <- c("Approach", "Cost", "Elapsed.time")
 
 MILP <- exp[Seed %in% exp[Approach == "MILP", Seed]]
 
-MILP_Vor <- MILP[Approach == "MILP" | Approach == "SP-Voronoi", cbind("Voronoi", ratio(.SD)), by = Seed, .SDcols = sd_cols]
-MILP_Exp_01 <- MILP[Approach == "MILP" | (Approach == "SP-fraction" & Param == 0.1), cbind("Fr: 0.1", ratio(.SD)), by = Seed, .SDcols = sd_cols]
-MILP_Exp_02 <- MILP[Approach == "MILP" | (Approach == "SP-fraction" & Param == 0.2), cbind("Fr: 0.2", ratio(.SD)), by = Seed, .SDcols = sd_cols]
-MILP_Exp_03 <- MILP[Approach == "MILP" | (Approach == "SP-fraction" & Param == 0.3), cbind("Fr: 0.3", ratio(.SD)), by = Seed, .SDcols = sd_cols]
-MILP_Exp_04 <- MILP[Approach == "MILP" | (Approach == "SP-fraction" & Param == 0.4), cbind("Fr: 0.4", ratio(.SD)), by = Seed, .SDcols = sd_cols]
-MILP_Exp_05 <- MILP[Approach == "MILP" | (Approach == "SP-fraction" & Param == 0.5), cbind("Fr: 0.5", ratio(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_Vor <- MILP[Approach == "MILP" | Approach == "SP-Voronoi-DT", cbind("Voronoi", ratio(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_Exp_01 <- MILP[Approach == "MILP" | (Approach == "SP-fraction-DT" & Param == 0.1), cbind("Fr: 0.1", ratio(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_Exp_02 <- MILP[Approach == "MILP" | (Approach == "SP-fraction-DT" & Param == 0.2), cbind("Fr: 0.2", ratio(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_Exp_03 <- MILP[Approach == "MILP" | (Approach == "SP-fraction-DT" & Param == 0.3), cbind("Fr: 0.3", ratio(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_Exp_04 <- MILP[Approach == "MILP" | (Approach == "SP-fraction-DT" & Param == 0.4), cbind("Fr: 0.4", ratio(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_Exp_05 <- MILP[Approach == "MILP" | (Approach == "SP-fraction-DT" & Param == 0.5), cbind("Fr: 0.5", ratio(.SD)), by = Seed, .SDcols = sd_cols]
 
 MILP_th <- exp[Seed %in% exp[Approach == "MILP-threshold", Seed]]
 
-MILP_th_Th_15 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold") & Param == 1.5, cbind("Thr: 1.5", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
-MILP_th_Th_16 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold") & Param == 1.6, cbind("Thr: 1.6", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
-MILP_th_Th_17 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold") & Param == 1.7, cbind("Thr: 1.7", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
-MILP_th_Th_18 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold") & Param == 1.8, cbind("Thr: 1.8", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
-MILP_th_Th_19 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold") & Param == 1.9, cbind("Thr: 1.9", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
-MILP_th_Th_20 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold") & Param == 2.0, cbind("Thr: 2.0", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_th_Th_15 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold-DT") & Param == 1.5, cbind("Thr: 1.5", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_th_Th_16 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold-DT") & Param == 1.6, cbind("Thr: 1.6", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_th_Th_17 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold-DT") & Param == 1.7, cbind("Thr: 1.7", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_th_Th_18 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold-DT") & Param == 1.8, cbind("Thr: 1.8", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_th_Th_19 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold-DT") & Param == 1.9, cbind("Thr: 1.9", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
+MILP_th_Th_20 <- MILP_th[(Approach == "MILP-threshold" | Approach == "SP-threshold-DT") & Param == 2.0, cbind("Thr: 2.0", ratio_th(.SD)), by = Seed, .SDcols = sd_cols]
 
 v_opt <- rbind(MILP_Vor, MILP_Exp_01, MILP_Exp_02, MILP_Exp_03, MILP_Exp_04, MILP_Exp_05)
 v_thr <- rbind(MILP_th_Th_15, MILP_th_Th_16, MILP_th_Th_17, MILP_th_Th_18, MILP_th_Th_19, MILP_th_Th_20)
@@ -135,7 +136,7 @@ p4 <- p4 + my_theme()
 p4 <- p4 + labs(y = "Ratio processing times")
 p4
 
-p5 <- ggplot(MILP_th[Approach %in% c("MILP", "MILP-threshold", "SP-threshold")], aes(x = Approach, y = Avg.detour, fill = Approach))
+p5 <- ggplot(MILP_th[Approach %in% c("MILP", "MILP-threshold", "SP-threshold-DT")], aes(x = Approach, y = Avg.detour, fill = Approach))
 p5 <- p5 + geom_boxplot()
 p5 <- p5 + scale_fill_brewer(palette="Set1")
 p5 <- p5 + scale_x_discrete()
@@ -144,7 +145,7 @@ p5 <- p5 + my_theme()
 p5 <- p5 + labs(y = "Avg. detour")
 p5
 
-p6 <- ggplot(MILP_th[Approach %in% c("MILP", "MILP-threshold", "SP-threshold")], aes(x = Approach, y = Ad.hoc.cost.prop, fill = Approach))
+p6 <- ggplot(MILP_th[Approach %in% c("MILP", "MILP-threshold", "SP-threshold-DT")], aes(x = Approach, y = Ad.hoc.cost.prop, fill = Approach))
 p6 <- p6 + geom_boxplot()
 p6 <- p6 + scale_fill_brewer(palette="Set1")
 p6 <- p6 + scale_x_discrete()
