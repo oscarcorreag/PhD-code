@@ -31,7 +31,8 @@ class Graph(dict):
         w = edge[1]
         # First of all, the edge tuple is created to check whether it already exists.
         if self.undirected:
-            v_w = tuple(sorted([v, w]))
+            # v_w = tuple(sorted([v, w]))
+            v_w = self.sort_edge_nodes(edge)
         else:
             v_w = (v, w)
         # If that is the case, do nothing.
@@ -91,7 +92,8 @@ class Graph(dict):
                         if w not in self[v][1]:
                             self[v][1][w] = weight
                             if self.undirected:
-                                edge = tuple(sorted([v, w]))
+                                # edge = tuple(sorted([v, w]))
+                                edge = self.sort_edge_nodes((v, w))
                             else:
                                 edge = (v, w)
                             self.get_edges()[edge] = weight
@@ -111,7 +113,8 @@ class Graph(dict):
                         if w not in self[v]:
                             self[v][w] = weight
                             if self.undirected:
-                                edge = tuple(sorted([v, w]))
+                                # edge = tuple(sorted([v, w]))
+                                edge = self.sort_edge_nodes((v, w))
                             else:
                                 edge = (v, w)
                             self.get_edges()[edge] = weight
@@ -135,7 +138,8 @@ class Graph(dict):
                 # Add edges corresponding to the whole neighbourhood.
                 for w, weight in adj_nodes.iteritems():
                     if self.undirected:
-                        edge = tuple(sorted([v, w]))
+                        # edge = tuple(sorted([v, w]))
+                        edge = self.sort_edge_nodes((v, w))
                     else:
                         edge = (v, w)
                     self.get_edges()[edge] = weight
@@ -155,11 +159,13 @@ class Graph(dict):
                 if v == w:
                     continue
                 if source_graph.is_undirected():
-                    v_w = tuple(sorted([v, w]))
+                    # v_w = tuple(sorted([v, w]))
+                    v_w = self.sort_edge_nodes((v, w))
                 else:
                     v_w = (v, w)
                 if self.is_undirected():
-                    my_v_w = tuple(sorted([v, w]))
+                    # my_v_w = tuple(sorted([v, w]))
+                    my_v_w = self.sort_edge_nodes((v, w))
                 else:
                     my_v_w = (v, w)
                 weight = source_graph.get_edges()[v_w]
@@ -183,7 +189,8 @@ class Graph(dict):
         self.compute_dist_paths(pairs=edges, compute_paths=False)
         for v, w in edges:
             if self.is_undirected():
-                v_w = tuple(sorted([v, w]))
+                # v_w = tuple(sorted([v, w]))
+                v_w = self.sort_edge_nodes((v, w))
             else:
                 v_w = (v, w)
             if self.is_node_weighted():
@@ -192,34 +199,6 @@ class Graph(dict):
             else:
                 metric_closure.append_edge_2(v_w, weight=self.dist[v_w])
         return metric_closure
-        # metric_closure = Digraph()
-        # if excluded_edges is None:
-        #     excluded_edges = set()
-        # for i in range(len(nodes) - 1):
-        #     nodes_ = []
-        #     for w in nodes[i + 1:]:
-        #         if tuple(sorted([nodes[i], w])) in excluded_edges:
-        #             continue
-        #         nodes_.append(w)
-        #     dist, _ = self.__dijkstra(nodes[i], nodes_)
-        #     neighbourhood = {}
-        #     for n in nodes_:
-        #         try:
-        #             neighbourhood[n] = dist[n]
-        #         except KeyError:
-        #             neighbourhood[n] = sys.maxint
-        #     if nodes[i] in metric_closure:
-        #         temp = list(metric_closure[nodes[i]])
-        #         temp[1].update(neighbourhood)
-        #     else:
-        #         metric_closure[nodes[i]] = (self[nodes[i]][0], neighbourhood, self[nodes[i]][2].copy())
-        #     for n, edge_weight in neighbourhood.iteritems():
-        #         if n in metric_closure:
-        #             temp = list(metric_closure[n])
-        #             temp[1][nodes[i]] = edge_weight
-        #         else:
-        #             metric_closure[n] = (self[n][0], {nodes[i]: edge_weight}, self[n][2].copy())
-        # return metric_closure
 
     def clone_node(self, node):
         new_node = id_generator()
@@ -232,8 +211,10 @@ class Graph(dict):
             if w == node:
                 continue
             if self.is_undirected():
-                node_w = tuple(sorted([node, w]))
-                new_node_w = tuple(sorted([new_node, w]))
+                # node_w = tuple(sorted([node, w]))
+                node_w = self.sort_edge_nodes((node, w))
+                # new_node_w = tuple(sorted([new_node, w]))
+                new_node_w = self.sort_edge_nodes((new_node, w))
             else:
                 node_w = (node, w)
                 new_node_w = (new_node, w)
@@ -354,7 +335,8 @@ class Graph(dict):
 
     def compute_missing_pairs_dist_paths(self, pairs, compute_paths=True):
         if self.undirected:
-            pairs_dict = {tuple(sorted([o, d])): (o, d) for (o, d) in pairs}
+            # pairs_dict = {tuple(sorted([o, d])): (o, d) for (o, d) in pairs}
+            pairs_dict = {self.sort_edge_nodes((o, d)): (o, d) for (o, d) in pairs}
         else:
             pairs_dict = {(o, d): (o, d) for (o, d) in pairs}
         missing = set(pairs_dict.keys()).difference(self.pairs_dist_paths)
@@ -378,7 +360,8 @@ class Graph(dict):
             w = path[i + 1]
             if v != w:
                 if self.is_undirected():
-                    total_weight += self.get_edges()[tuple(sorted([v, w]))]
+                    # total_weight += self.get_edges()[tuple(sorted([v, w]))]
+                    total_weight += self.get_edges()[self.sort_edge_nodes((v, w))]
                 else:
                     total_weight += self.get_edges()[(v, w)]
         return total_weight
@@ -480,7 +463,8 @@ class Graph(dict):
             v = contracted_path[i]
             w = contracted_path[i + 1]
             if self.is_undirected():
-                path = self.paths[tuple(sorted([v, w]))]
+                # path = self.paths[tuple(sorted([v, w]))]
+                path = self.paths[self.sort_edge_nodes((v, w))]
                 if w == path[0]:
                     path.reverse()
             else:
@@ -527,7 +511,8 @@ class Graph(dict):
                 for w, edge_weight in self[v][1].iteritems():
                     if w in nodes:
                         if self.is_undirected():
-                            v_w = tuple(sorted([v, w]))
+                            # v_w = tuple(sorted([v, w]))
+                            v_w = self.sort_edge_nodes((v, w))
                         else:
                             v_w = (v, w)
                         #
@@ -542,7 +527,8 @@ class Graph(dict):
                 for w, edge_weight in self[v].iteritems():
                     if w in nodes:
                         if self.is_undirected():
-                            v_w = tuple(sorted([v, w]))
+                            # v_w = tuple(sorted([v, w]))
+                            v_w = self.sort_edge_nodes((v, w))
                         else:
                             v_w = (v, w)
                         #
@@ -605,6 +591,18 @@ class Graph(dict):
         self.populate_edges()
         return self.__edges
 
+    @staticmethod
+    def sort_edge_nodes(edge):
+        v = edge[0]
+        w = edge[1]
+        if not isinstance(v, tuple) and not isinstance(w, tuple):
+            v_w = tuple(sorted([v, w]))
+        elif isinstance(v, tuple):
+            v_w = tuple([v, w])
+        else:
+            v_w = tuple([w, v])
+        return v_w
+
     def get_k_closest_destinations(self, n, k, destinations=None):
 
         distances = dict()
@@ -663,7 +661,8 @@ class Graph(dict):
             sum_ = 0
             for w in nodes:
                 if self.undirected:
-                    sum_ += self.dist[tuple(sorted([v, w]))]
+                    # sum_ += self.dist[tuple(sorted([v, w]))]
+                    sum += self.dist[self.sort_edge_nodes((v, w))]
                 else:
                     sum_ += self.dist[(v, w)]
             sums[v] = sum_
@@ -686,7 +685,8 @@ class Graph(dict):
             dists = dict()
             for m in medoids:
                 if self.undirected:
-                    n_m = tuple(sorted([n, m]))
+                    # n_m = tuple(sorted([n, m]))
+                    n_m = self.sort_edge_nodes((n, m))
                 else:
                     n_m = (n, m)
                 dists[m] = self.dist[n_m]
@@ -824,7 +824,8 @@ class Graph(dict):
                     if self.undirected:
                         self[w][1][v] = weight
                         perturbed.add((w, v))
-                        self.get_edges()[tuple(sorted([v, w]))] = weight
+                        # self.get_edges()[tuple(sorted([v, w]))] = weight
+                        self.get_edges()[self.sort_edge_nodes((v, w))] = weight
                     else:
                         self.get_edges()[(v, w)] = weight
             else:
@@ -839,7 +840,8 @@ class Graph(dict):
                     if self.undirected:
                         self[w][v] = weight
                         perturbed.add((w, v))
-                        self.get_edges()[tuple(sorted([v, w]))] = weight
+                        # self.get_edges()[tuple(sorted([v, w]))] = weight
+                        self.get_edges()[self.sort_edge_nodes((v, w))] = weight
                     else:
                         self.get_edges()[(v, w)] = weight
         # Recompute shortest distances|paths.
@@ -850,13 +852,15 @@ class Graph(dict):
             if self.is_node_weighted():
                 for v in self:
                     for w, edge_weight in self[v][1].iteritems():
-                        edge = tuple(sorted([v, w]))
+                        # edge = tuple(sorted([v, w]))
+                        edge = self.sort_edge_nodes((v, w))
                         if edge not in self.__edges:
                             self.__edges[edge] = edge_weight
             else:
                 for v in self:
                     for w, edge_weight in self[v].iteritems():
-                        edge = tuple(sorted([v, w]))
+                        # edge = tuple(sorted([v, w]))
+                        edge = self.sort_edge_nodes((v, w))
                         if edge not in self.__edges:
                             self.__edges[edge] = edge_weight
         else:
@@ -880,7 +884,8 @@ class Graph(dict):
 
     def set_dist_path(self, origin, destination, dist, path=None):
         if self.undirected:
-            v_w = tuple(sorted([origin, destination]))
+            # v_w = tuple(sorted([origin, destination]))
+            v_w = self.sort_edge_nodes((origin, destination))
         else:
             v_w = (origin, destination)
         try:
@@ -919,7 +924,8 @@ class Graph(dict):
         for (v, w), weight in weights.iteritems():
             # Check whether the edge is present.
             if self.undirected:
-                v_w = tuple(sorted([v, w]))
+                # v_w = tuple(sorted([v, w]))
+                v_w = self.sort_edge_nodes((v, w))
             else:
                 v_w = (v, w)
             if v_w not in self.get_edges():
@@ -1014,7 +1020,8 @@ class Graph(dict):
                             n1 = dropped_edges[predecessors[v]]
                             n2 = dropped_edges[w]
                             try:
-                                internal_dist = dist_paths[0][tuple(sorted([n1, n2]))]
+                                # internal_dist = dist_paths[0][tuple(sorted([n1, n2]))]
+                                internal_dist = dist_paths[0][self.sort_edge_nodes((n1, n2))]
                             except KeyError:
                                 print "Something is wrong"
                     except KeyError:
@@ -1143,7 +1150,8 @@ class Graph(dict):
         for _, (v, w) in edges_to.iteritems():
             #
             if self.is_undirected():
-                v_w = tuple(sorted([v, w]))
+                # v_w = tuple(sorted([v, w]))
+                v_w = self.sort_edge_nodes((v, w))
             else:
                 v_w = (v, w)
             #
@@ -1164,7 +1172,8 @@ class Graph(dict):
             x = path[i]
             y = path[i + 1]
             if self.undirected:
-                x_y = tuple(sorted([x, y]))
+                # x_y = tuple(sorted([x, y]))
+                x_y = self.sort_edge_nodes((x, y))
             else:
                 x_y = (x, y)
             try:

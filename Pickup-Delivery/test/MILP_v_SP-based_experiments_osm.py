@@ -68,7 +68,7 @@ if __name__ == '__main__':
     ratios = [2.0]
     fractions = [0.1, 0.3, 0.5]
     thresholds = [1.1, 1.3, 1.5]
-    driver_locations = ['U-U', 'Z-U', 'U-Z']
+    driver_locations = ['Z-U', 'U-Z']
     #
     results = []
     sample = 0
@@ -83,6 +83,7 @@ if __name__ == '__main__':
             min_lat = rnd.uniform(info[0][1], info[0][3] - delta)
             max_lon = min_lon + delta
             max_lat = min_lat + delta
+            bbox = (min_lon, min_lat, max_lon, max_lat)
             #
             center_lat = (min_lat + max_lat) / 2
             center_lon = (min_lon + max_lon) / 2
@@ -150,16 +151,14 @@ if __name__ == '__main__':
                 #
                 for ratio in ratios:
                     num_drivers = int(round(num_customers / ratio))
+                    z = osm.zipf_sample_bbox(bbox, graph.keys(), num_drivers, hotspots=False, pois=False, seed=seed)
+                    u = rnd.choice(a=list(free.difference(z)), size=num_drivers, replace=False)
                     for d_l in driver_locations:
                         if d_l == 'U-U':
                             d_starts_ends = rnd.choice(a=list(free), size=num_drivers * 2, replace=False)
                             ds = [((d_starts_ends[i], 1, 300), (d_starts_ends[i + num_drivers], 1, 300))
                                   for i in range(num_drivers)]
                         else:
-                            bbox = (min_lon, min_lat, max_lon, max_lat)
-                            z = osm.zipf_sample_bbox(bbox, num_drivers, a=graph.keys(), hotspots=False, pois=False,
-                                                     seed=seed)
-                            u = rnd.choice(a=list(free.difference(z)), size=num_drivers, replace=False)
                             if d_l == "Z-U":
                                 ds = [((z[i], 1, 300), (u[i], 1, 300)) for i in range(num_drivers)]
                             else:

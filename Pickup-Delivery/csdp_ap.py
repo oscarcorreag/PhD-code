@@ -942,42 +942,51 @@ class CsdpAp:
         if method != 'SP-Voronoi' and tiebreaker == 'B-MST':
             # Build weighted bipartite graph and compute its MST.
             bipartite = Graph()
-            drivers_by_customer = dict()
-            for driver, shops_customers in partitions.iteritems():
-                (start_v, end_v) = driver
+            starts_by_customer = dict()
+            drivers_by_start = dict()
+            # for driver, shops_customers in partitions.iteritems():
+            #     (start_v, end_v) = driver
+            for (start_v, end_v), shops_customers in partitions.iteritems():
+                drivers_by_start[start_v] = (start_v, end_v)
                 path = self._graph.paths[tuple(sorted([start_v, end_v]))]
                 if 'customers' not in shops_customers:
                     continue
                 for customer in shops_customers['customers']:
                     _, d, _ = self._graph.compute_dist_paths(origins=[customer], destinations=path, end_mode='first',
                                                              compute_paths=False, recompute=True)
-                    bipartite.append_edge_2((driver, customer), weight=d[d.keys()[0]])
+                    # bipartite.append_edge_2((driver, customer), weight=d[d.keys()[0]])
+                    bipartite.append_edge_2((start_v, customer), weight=d[d.keys()[0]])
                     try:
-                        drivers_by_customer[customer].append(driver)
+                        # drivers_by_customer[customer].append(driver)
+                        starts_by_customer[customer].append(start_v)
                     except KeyError:
-                        drivers_by_customer[customer] = [driver]
+                        # drivers_by_customer[customer] = [driver]
+                        starts_by_customer[customer] = [start_v]
             # Create artificial non-cost edges between drivers in bipartite graph.
             for i in range(len(partitions) - 1):
-                bipartite.append_edge_2((partitions.keys()[i], partitions.keys()[i + 1]), weight=0)
+                # bipartite.append_edge_2((partitions.keys()[i], partitions.keys()[i + 1]), weight=0)
+                bipartite.append_edge_2((partitions.keys()[i][0], partitions.keys()[i + 1][0]), weight=0)
             mst = bipartite.compute_mst()
             # Balance the degree of the MST.
             quarantine = set()
             moves = 0
             while True:
                 # Compute drivers' degree within the MST.
-                drivers_by_degree = dict()
-                degree_by_driver = dict()
+                starts_by_degree = dict()
+                degree_by_start = dict()
                 highest_degree = 0
                 for v, adj in mst.iteritems():
-                    if isinstance(v, tuple):  # If it is tuple, then it is a driver.
+                    # if isinstance(v, tuple):  # If it is tuple, then it is a driver.
+                    if v in self.H_s:
                         if v in quarantine:
                             continue
-                        degree = sum([1 for w in adj if not isinstance(w, tuple)])
+                        # degree = sum([1 for w in adj if not isinstance(w, tuple)])
+                        degree = sum([1 for w in adj if w not in self.H_s])
                         try:
-                            drivers_by_degree[degree].append(v)
+                            starts_by_degree[degree].append(v)
                         except KeyError:
-                            drivers_by_degree[degree] = [v]
-                        degree_by_driver[v] = degree
+                            starts_by_degree[degree] = [v]
+                        degree_by_start[v] = degree
                         if degree > highest_degree:
                             highest_degree = degree
                 if highest_degree == 0 or (highest_degree == 1 and moves == 0):
@@ -987,7 +996,7 @@ class CsdpAp:
                     moves = 0
                     continue
                 # Pick one of the highest-degree drivers.
-                highest_degree_driver = drivers_by_degree[highest_degree][0]
+                highest_degree_driver = starts_by_degree[highest_degree][0]
                 sup = sys.maxint
                 while True:
                     # Pick the most expensive customer for this driver.
@@ -1002,10 +1011,10 @@ class CsdpAp:
                         break
                     # Are there more drivers who share this customer and have degree at most highest_degree - 2?
                     candidates = dict()
-                    for driver in drivers_by_customer[most_expensive[0]]:
+                    for driver in starts_by_customer[most_expensive[0]]:
                         if driver == highest_degree_driver or driver in quarantine:
                             continue
-                        if degree_by_driver[driver] <= highest_degree - 2:
+                        if degree_by_start[driver] <= highest_degree - 2:
                             candidates[driver] = bipartite[driver][most_expensive[0]]
                     # If there is at least one candidate driver, do the local move within the MST.
                     # Otherwise, the loop continues with the next most expensive customer.
@@ -1019,8 +1028,11 @@ class CsdpAp:
                         sup = most_expensive[1]
             # Set customers in partitions according to the final balanced MST.
             for v, adj in mst.iteritems():
-                if isinstance(v, tuple):  # If it is tuple, then it is a driver.
-                    partitions[v]['customers'] = {w for w in adj if not isinstance(w, tuple)}
+                # if isinstance(v, tuple):  # If it is tuple, then it is a driver.
+                if v in self.H_s:
+                    # partitions[v]['customers'] = {w for w in adj if not isinstance(w, tuple)}
+                    partitions[drivers_by_start[v]]['customers'] = {w for w in adj if w not in self.H_s}
+
         return partitions
 
     def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5):

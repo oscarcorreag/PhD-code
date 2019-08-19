@@ -286,13 +286,13 @@ class OsmManager:
     def get_session_users_vehicle(self, session_user_id):
         return self.__osmdbmngr.get_session_users_vehicle(session_user_id)
 
-    def zonify_bbox(self, bbox, num_zones, hotspots=True, pois=True, seed=None):
+    def zonify_bbox(self, bbox, nodes, num_zones, hotspots=True, pois=True, seed=None):
         min_lon, min_lat, max_lon, max_lat = bbox
         # Longitude and latitude intervals of bbox.
         big_delta_lon = max_lon - min_lon
         big_delta_lat = max_lat - min_lat
         # Compute bbox partitions in both dimensions.
-        num_zones_, np1, np2 = num_partitions(num_zones)
+        _, np1, np2 = num_partitions(num_zones)
         # Longitude and latitude intervals of zones.
         delta_lon = big_delta_lon / np1
         delta_lat = big_delta_lat / np2
@@ -320,14 +320,17 @@ class OsmManager:
         zones = dict()
         for k, inner_bbox in inner_bboxes.iteritems():
             results = self.__osmdbmngr.get_graph_nodes({"bbox": inner_bbox}, hotspots, pois)
-            zones[k] = [r[1] for r in results]
+            nodes_zone = {r[1] for r in results}
+            if len(nodes_zone) > 0:
+                zones[k] = nodes_zone.intersection(nodes)
+
         # Check whether two zones must be merged to match original num-zones requirement.
         zones_ = dict(zones)
-        if num_zones_ != num_zones:
+        if len(zones) > num_zones:
             zones_ = merge_two_zones(zones, np1, np2, seed=seed)
         return zones_
 
-    def zipf_sample_bbox(self, bbox, size, a=None, hotspots=True, pois=True, seed=None):
+    def zipf_sample_bbox(self, bbox, nodes, size, hotspots=True, pois=True, seed=None):
         #
         rnd = np.random.RandomState()
         if seed is not None:
@@ -336,9 +339,11 @@ class OsmManager:
         freqs = sorted([len(list(v)) for _, v in itertools.groupby(sorted(s))])
         num_zones = len(freqs)
         #
-        zones = self.zonify_bbox(bbox, num_zones, hotspots, pois, seed)
-        if a is not None:
-            zones = {zone: set(nodes).intersection(a) for zone, nodes in zones.iteritems()}
+        zones = self.zonify_bbox(bbox, nodes, num_zones, hotspots, pois, seed)
+        if len(zones) < num_zones:
+            while len(zones) < len(freqs):
+                freq = freqs.pop(0)
+                freqs[-1] += freq
         #
         zone_size = {zone: len(nodes) for zone, nodes in zones.iteritems()}
         sorted_by_size = sorted(zone_size.iteritems(), key=operator.itemgetter(1))

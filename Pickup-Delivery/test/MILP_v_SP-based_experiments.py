@@ -88,8 +88,8 @@ if __name__ == '__main__':
     delta_meters = 10000.0
     delta = delta_meters / 111111
     num_samples = 10
-    # num_customers_r = [10, 100, 1000]
-    num_customers_r = [100]
+    # num_customers_r = [4, 16, 64, 256, 1024]
+    num_customers_r = [256]
     # ratios = [1.5, 2.0, 2.5, 3.0]
     ratios = [2.0]
     fractions = [0.1, 0.3, 0.5]
@@ -109,6 +109,7 @@ if __name__ == '__main__':
             min_lat = rnd.uniform(info[0][1], info[0][3] - delta)
             max_lon = min_lon + delta
             max_lat = min_lat + delta
+            bbox = (min_lon, min_lat, max_lon, max_lat)
             # Generate network sample.
             graph, _, pois, _, _ = osm.generate_graph_for_bbox(min_lon, min_lat, max_lon, max_lat, generator,
                                                                hotspots=False, poi_names=info[1].keys())
@@ -159,16 +160,14 @@ if __name__ == '__main__':
                 #
                 for ratio in ratios:
                     num_drivers = int(round(num_customers / ratio))
+                    z = osm.zipf_sample_bbox(bbox, graph.keys(), num_drivers, hotspots=False, pois=False, seed=seed)
+                    u = rnd.choice(a=list(free.difference(z)), size=num_drivers, replace=False)
                     for d_l in driver_locations:
                         if d_l == 'U-U':
                             d_starts_ends = rnd.choice(a=list(free), size=num_drivers * 2, replace=False)
                             ds = [((d_starts_ends[i], 1, 300), (d_starts_ends[i + num_drivers], 1, 300))
                                   for i in range(num_drivers)]
                         else:
-                            bbox = (min_lon, min_lat, max_lon, max_lat)
-                            z = osm.zipf_sample_bbox(bbox, num_drivers, a=graph.keys(), hotspots=False, pois=False,
-                                                     seed=seed)
-                            u = rnd.choice(a=list(free.difference(z)), size=num_drivers, replace=False)
                             if d_l == "Z-U":
                                 ds = [((z[i], 1, 300), (u[i], 1, 300)) for i in range(num_drivers)]
                             else:

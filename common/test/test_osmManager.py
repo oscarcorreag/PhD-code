@@ -1,5 +1,6 @@
 from unittest import TestCase
 from osmmanager import OsmManager
+from suitability import SuitableNodeWeightGenerator
 
 
 class TestOsmManager(TestCase):
@@ -7,9 +8,12 @@ class TestOsmManager(TestCase):
     def setUp(self):
         self.osmmgr = OsmManager()
         self.bbox = (144.942043, -37.822496, 145.053342, -37.734496)
+        generator = SuitableNodeWeightGenerator()
+        self.graph = self.osmmgr.generate_graph_for_bbox(self.bbox[0], self.bbox[1], self.bbox[2], self.bbox[3],
+                                                         generator, hotspots=False, pois=False)
 
     def test_zonify_bbox(self):
-        zones = self.osmmgr.zipf_sample_bbox(self.bbox, 100, hotspots=False, seed=0)
+        zones = self.osmmgr.zipf_sample_bbox(self.bbox, self.graph.keys(), 100, hotspots=False, pois=False, seed=0)
         self.assertListEqual(zones,
                              [127362667, 251452389, 214131749, 1423021859, 247961910, 1645179845, 310742008, 2172834570,
                               3947168757, 32997295, 34177595, 1272832422, 2905756447, 2207661041, 871096413, 570734694,
