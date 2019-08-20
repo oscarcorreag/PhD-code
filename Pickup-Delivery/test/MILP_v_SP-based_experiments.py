@@ -87,14 +87,14 @@ if __name__ == '__main__':
     #
     delta_meters = 10000.0
     delta = delta_meters / 111111
-    num_samples = 10
+    num_samples = 25
     # num_customers_r = [4, 16, 64, 256, 1024]
     num_customers_r = [256]
     # ratios = [1.5, 2.0, 2.5, 3.0]
     ratios = [2.0]
     fractions = [0.1, 0.3, 0.5]
     thresholds = [1.1, 1.3, 1.5]
-    driver_locations = ['U-U', 'Z-U', 'U-Z']
+    driver_locations = ['U-Z', 'Z-U', 'U-U']
     #
     results = []
     sample = 0
@@ -160,7 +160,7 @@ if __name__ == '__main__':
                 #
                 for ratio in ratios:
                     num_drivers = int(round(num_customers / ratio))
-                    z = osm.zipf_sample_bbox(bbox, graph.keys(), num_drivers, hotspots=False, pois=False, seed=seed)
+                    z = osm.zipf_sample_bbox(bbox, free, num_drivers, hotspots=False, pois=False, seed=seed)
                     u = rnd.choice(a=list(free.difference(z)), size=num_drivers, replace=False)
                     for d_l in driver_locations:
                         if d_l == 'U-U':

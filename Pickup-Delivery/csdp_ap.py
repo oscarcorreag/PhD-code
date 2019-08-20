@@ -1002,9 +1002,9 @@ class CsdpAp:
                     # Pick the most expensive customer for this driver.
                     most_expensive = None
                     inf = 0
-                    for customer, cost in mst[highest_degree_driver].iteritems():
-                        if inf < cost < sup:
-                            most_expensive = customer, cost
+                    for v, cost in mst[highest_degree_driver].iteritems():
+                        if inf <= cost < sup and v not in self.H_s:
+                            most_expensive = v, cost
                             inf = cost
                     if most_expensive is None:
                         quarantine.add(highest_degree_driver)
@@ -1121,7 +1121,7 @@ class CsdpAp:
                         # Priority queue is fed up with the offspring.
                         if partition_method == 'SP-threshold':
                             for child in offspring:
-                                # child.cust_ub >= actual_cust_ub is always true as long as the maximum number has not
+                                # child.cust_ub >= actual_cust_ub is alwaazys true as long as the maximum number has not
                                 # been found out yet.
                                 if child.cust_lb > 0 and child.cust_ub >= actual_cust_ub:
                                     priority_queue[child] = child.cust_ub * (-1)
