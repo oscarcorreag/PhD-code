@@ -98,7 +98,7 @@ if __name__ == '__main__':
     #
     results = []
     sample = 0
-    seed = 0
+    seed = 53
     for region, info in regions.iteritems():
         while sample < num_samples:
             #
