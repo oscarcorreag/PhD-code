@@ -789,6 +789,9 @@ class CsdpAp:
                                                 method=solve_partition_method,
                                                 partition_method=partition_method,
                                                 threshold_sd=threshold_sd)
+            # TODO: Simple control to avoid prohibitive computation
+            if (path, c, sc) == (None, -1, None):
+                return None, -1
             routes.append(path)
             cost += c
             served_customers.update(sc)
@@ -814,7 +817,10 @@ class CsdpAp:
         # Solve the partitions created for the dedicated fleet.
         for partition in partitions.iteritems():
             if solve_unserved_method == 'BB':
-                path, c, _ = self._solve_partition(partition)
+                path, c, sc = self._solve_partition(partition)
+                # TODO: Simple control to avoid prohibitive computation
+                if (path, c, sc) == (None, -1, None):
+                    return None, -1
                 path = [v if v not in self._shop_by_F else self._shop_by_F[v] for v in path]
                 routes.append(path)
                 cost += c
@@ -1066,6 +1072,9 @@ class CsdpAp:
                 route = self._graph.paths[start_end]
                 cost = self._graph.dist[start_end]
             else:
+                # TODO: Simple control to avoid prohibitive computation
+                if len(customers_dict) > 10:
+                    return None, -1, None
                 # Otherwise, partial paths' lower bounds are stored into a priority queue.
                 priority_queue = PriorityDictionary()
                 # There are MORE THAN ONE initial path as there are more than one alternative pick-up locations.
