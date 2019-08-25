@@ -325,10 +325,10 @@ class OsmManager:
                 zones[k] = nodes_zone.intersection(nodes)
 
         # Check whether two zones must be merged to match original num-zones requirement.
-        zones_ = dict(zones)
-        if len(zones) > num_zones:
-            zones_ = merge_two_zones(zones, np1, np2, seed=seed)
-        return zones_
+        # zones_ = dict(zones)
+        while len(zones) > num_zones:
+            zones = merge_two_zones(zones, np1, np2, seed=seed)
+        return zones
 
     def zipf_sample_bbox(self, bbox, nodes, size, hotspots=True, pois=True, seed=None):
         #
@@ -340,16 +340,17 @@ class OsmManager:
         num_zones = len(freqs)
         #
         zones = self.zonify_bbox(bbox, nodes, num_zones, hotspots, pois, seed)
-        if len(zones) < num_zones:
-            while len(zones) < len(freqs):
-                freq = freqs.pop(0)
-                freqs[-1] += freq
+        while len(zones) < len(freqs):
+            freq = freqs.pop(0)
+            freqs[-1] += freq
         #
         zone_size = {zone: len(nodes) for zone, nodes in zones.iteritems()}
         sorted_by_size = sorted(zone_size.iteritems(), key=operator.itemgetter(1))
         #
         samples = list()
         for i, (zone, _) in enumerate(sorted_by_size):
+            if freqs[i] > len(zones[zone]):
+                return None
             nodes = rnd.choice(a=list(zones[zone]), size=freqs[i], replace=False)
             samples.extend(nodes)
         return samples

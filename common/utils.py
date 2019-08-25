@@ -71,6 +71,10 @@ def divisors(k):
 
 
 def num_partitions(k):
+    if k == 1:
+        return k, 1, 1
+    if k == 2:
+        return k, 2, 1
     while 1:
         divs = divisors(k)
         if divs:
