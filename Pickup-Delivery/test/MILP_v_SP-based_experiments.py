@@ -89,17 +89,17 @@ if __name__ == '__main__':
     delta = delta_meters / 111111
     num_samples = 25
     # num_customers_r = [4, 16, 64, 256, 1024]
-    num_customers_r = [1024]
+    num_customers_r = [256]
     # ratios = [1.5, 2.0, 2.5, 3.0]
-    ratios = [2.0]
+    ratios = [1.0, 2.0, 3.0, 4.0]
     fractions = [0.1, 0.3, 0.5]
     thresholds = [1.1, 1.3, 1.5]
-    # driver_locations = ['U-Z', 'Z-U', 'U-U']
+    # driver_locations = ['Z-U', 'U-Z', 'U-U']
     driver_locations = ['Z-U']
     #
     results = []
     sample = 0
-    seed = 97
+    seed = 98
     for region, info in regions.iteritems():
         while sample < num_samples:
             #
@@ -195,46 +195,46 @@ if __name__ == '__main__':
                         # print line
                         # results.append(line)
 
-                        # # ----------------------------------------------------------------------------------------------
-                        # # SP-based -> Partition='SP-Voronoi'
-                        # # ----------------------------------------------------------------------------------------------
-                        # st = time.clock()
-                        # routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-Voronoi',
-                        #                              solve_unserved_method='double-tree')
-                        # # TODO: Simple control to avoid prohibitive computation
-                        # if (routes, cost) == (None, -1):
-                        #     continue
-                        # et = time.clock() - st
-                        # stats = compute_stats_per_driver_type(routes, graph)
-                        #
-                        # line = ['SP-Voronoi-DT', 0, seed, region, N, delta_meters, num_pois, num_retailers,
-                        #         len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
-                        #         stats['dedicated']['total'], stats['ad hoc']['no'], stats['dedicated']['no'],
-                        #         stats['ad hoc']['avg'], stats['dedicated']['avg'], stats['ad hoc']['avg detour'],
-                        #         stats['ad hoc']['w avg detour']]
-                        # print line
-                        # results.append(line)
-                        #
-                        # # ----------------------------------------------------------------------------------------------
-                        # # SP-based -> Partition='SP-fraction'
-                        # # ----------------------------------------------------------------------------------------------
-                        # for fraction in fractions:
-                        #     st = time.clock()
-                        #     routes, cost = csdp_ap.solve(rs, ds, method='SP-based', solve_unserved_method='double-tree',
-                        #                                  fraction_sd=fraction)
-                        #     # TODO: Simple control to avoid prohibitive computation
-                        #     if (routes, cost) == (None, -1):
-                        #         continue
-                        #     et = time.clock() - st
-                        #     stats = compute_stats_per_driver_type(routes, graph)
-                        #
-                        #     line = ['SP-fraction-DT', fraction, seed, region, N, delta_meters, num_pois, num_retailers,
-                        #             len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
-                        #             stats['dedicated']['total'], stats['ad hoc']['no'], stats['dedicated']['no'],
-                        #             stats['ad hoc']['avg'], stats['dedicated']['avg'], stats['ad hoc']['avg detour'],
-                        #             stats['ad hoc']['w avg detour']]
-                        #     print line
-                        #     results.append(line)
+                        # ----------------------------------------------------------------------------------------------
+                        # SP-based -> Partition='SP-Voronoi'
+                        # ----------------------------------------------------------------------------------------------
+                        st = time.clock()
+                        routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-Voronoi',
+                                                     solve_unserved_method='double-tree')
+                        # TODO: Simple control to avoid prohibitive computation
+                        if (routes, cost) == (None, -1):
+                            continue
+                        et = time.clock() - st
+                        stats = compute_stats_per_driver_type(routes, graph)
+
+                        line = ['SP-Voronoi-DT', 0, seed, region, N, delta_meters, num_pois, num_retailers,
+                                len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
+                                stats['dedicated']['total'], stats['ad hoc']['no'], stats['dedicated']['no'],
+                                stats['ad hoc']['avg'], stats['dedicated']['avg'], stats['ad hoc']['avg detour'],
+                                stats['ad hoc']['w avg detour']]
+                        print line
+                        results.append(line)
+
+                        # ----------------------------------------------------------------------------------------------
+                        # SP-based -> Partition='SP-fraction'
+                        # ----------------------------------------------------------------------------------------------
+                        for fraction in fractions:
+                            st = time.clock()
+                            routes, cost = csdp_ap.solve(rs, ds, method='SP-based', solve_unserved_method='double-tree',
+                                                         fraction_sd=fraction)
+                            # TODO: Simple control to avoid prohibitive computation
+                            if (routes, cost) == (None, -1):
+                                continue
+                            et = time.clock() - st
+                            stats = compute_stats_per_driver_type(routes, graph)
+
+                            line = ['SP-fraction-DT', fraction, seed, region, N, delta_meters, num_pois, num_retailers,
+                                    len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
+                                    stats['dedicated']['total'], stats['ad hoc']['no'], stats['dedicated']['no'],
+                                    stats['ad hoc']['avg'], stats['dedicated']['avg'], stats['ad hoc']['avg detour'],
+                                    stats['ad hoc']['w avg detour']]
+                            print line
+                            results.append(line)
 
                         for threshold in thresholds:
                             # # ------------------------------------------------------------------------------------------
