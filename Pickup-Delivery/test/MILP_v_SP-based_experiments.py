@@ -88,10 +88,10 @@ if __name__ == '__main__':
     delta_meters = 10000.0
     delta = delta_meters / 111111
     num_samples = 25
-    # num_customers_r = [4, 16, 64, 256, 1024]
-    num_customers_r = [256]
-    # ratios = [1.5, 2.0, 2.5, 3.0]
-    ratios = [1.0, 2.0, 3.0, 4.0]
+    num_customers_r = [64, 256, 1024]
+    # num_customers_r = [256]
+    # ratios = [1.0, 2.0, 3.0, 4.0]
+    ratios = [2.0]
     fractions = [0.1, 0.3, 0.5]
     thresholds = [1.1, 1.3, 1.5]
     # driver_locations = ['Z-U', 'U-Z', 'U-U']
@@ -229,13 +229,34 @@ if __name__ == '__main__':
 
                             # TODO: Simple control to avoid prohibitive computation
                             if (routes, cost) == (None, -1):
-                                line = ['SP-fraction-DT', fraction, seed, region, N, delta_meters, num_pois,
+                                line = ['SP-fraction_B-MST_EP', fraction, seed, region, N, delta_meters, num_pois,
                                         num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0,
                                         0, 0]
                             else:
                                 stats = compute_stats_per_driver_type(routes, graph)
 
-                                line = ['SP-fraction-DT', fraction, seed, region, N, delta_meters, num_pois,
+                                line = ['SP-fraction_B-MST_EP', fraction, seed, region, N, delta_meters, num_pois,
+                                        num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost,
+                                        stats['ad hoc']['total'], stats['dedicated']['total'], stats['ad hoc']['no'],
+                                        stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
+                                        stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
+                            print line
+                            results.append(line)
+
+                            st = time.clock()
+                            routes, cost = csdp_ap.solve(rs, ds, method='SP-based', solve_unserved_method='double-tree',
+                                                         fraction_sd=fraction, tb_dist_bipartite='SP')
+                            et = time.clock() - st
+
+                            # TODO: Simple control to avoid prohibitive computation
+                            if (routes, cost) == (None, -1):
+                                line = ['SP-fraction_B-MST_SP', fraction, seed, region, N, delta_meters, num_pois,
+                                        num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0,
+                                        0, 0]
+                            else:
+                                stats = compute_stats_per_driver_type(routes, graph)
+
+                                line = ['SP-fraction_B-MST_SP', fraction, seed, region, N, delta_meters, num_pois,
                                         num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost,
                                         stats['ad hoc']['total'], stats['dedicated']['total'], stats['ad hoc']['no'],
                                         stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
@@ -270,13 +291,35 @@ if __name__ == '__main__':
 
                             # TODO: Simple control to avoid prohibitive computation
                             if (routes, cost) == (None, -1):
-                                line = ['SP-threshold-DT', threshold, seed, region, N, delta_meters, num_pois,
+                                line = ['SP-threshold_B-MST_EP', threshold, seed, region, N, delta_meters, num_pois,
                                         num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0,
                                         0, 0]
                             else:
                                 stats = compute_stats_per_driver_type(routes, graph)
 
-                                line = ['SP-threshold-DT', threshold, seed, region, N, delta_meters, num_pois,
+                                line = ['SP-threshold_B-MST_EP', threshold, seed, region, N, delta_meters, num_pois,
+                                        num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost,
+                                        stats['ad hoc']['total'], stats['dedicated']['total'], stats['ad hoc']['no'],
+                                        stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
+                                        stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
+                            print line
+                            results.append(line)
+
+                            st = time.clock()
+                            routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold',
+                                                         solve_unserved_method='double-tree', threshold_sd=threshold,
+                                                         tb_dist_bipartite='SP')
+                            et = time.clock() - st
+
+                            # TODO: Simple control to avoid prohibitive computation
+                            if (routes, cost) == (None, -1):
+                                line = ['SP-threshold_B-MST_SP', threshold, seed, region, N, delta_meters, num_pois,
+                                        num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0,
+                                        0, 0]
+                            else:
+                                stats = compute_stats_per_driver_type(routes, graph)
+
+                                line = ['SP-threshold_B-MST_SP', threshold, seed, region, N, delta_meters, num_pois,
                                         num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost,
                                         stats['ad hoc']['total'], stats['dedicated']['total'], stats['ad hoc']['no'],
                                         stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],

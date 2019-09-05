@@ -643,7 +643,8 @@ class CsdpAp:
         objective.SetMinimization()
 
     def solve(self, requests, drivers, method='MILP', verbose=False, partition_method='SP-fraction', fraction_sd=.5,
-              threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='BB', tiebreaker='B-MST'):
+              threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='BB', tiebreaker='B-MST',
+              tb_dist_bipartite='EP'):
 
         self._requests = requests
         self._drivers = list(drivers)
@@ -661,7 +662,8 @@ class CsdpAp:
                                   threshold_sd=threshold_sd,
                                   solve_partition_method=solve_partition_method,
                                   solve_unserved_method=solve_unserved_method,
-                                  tiebreaker=tiebreaker)
+                                  tiebreaker=tiebreaker,
+                                  tb_dist_bipartite=tb_dist_bipartite)
 
     def _define_milp(self, method='MILP', threshold_sd=1.5):
         self._define_vars()
@@ -777,11 +779,12 @@ class CsdpAp:
             self._Fs_by_shop[shop] = (start_v, end_v)
 
     def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB',
-                  solve_unserved_method='BB', tiebreaker='B-MST'):
+                  solve_unserved_method='BB', tiebreaker='B-MST', tb_dist_bipartite='EP'):
         routes = list()
         cost = 0
         partitions = self._compute_partitions(method=partition_method, fraction_sd=fraction_sd,
-                                              threshold_sd=threshold_sd, tiebreaker=tiebreaker)
+                                              threshold_sd=threshold_sd, tiebreaker=tiebreaker,
+                                              tb_dist_bipartite=tb_dist_bipartite)
         # Solve each partition
         served_customers = set()
         for partition in partitions.iteritems():
@@ -846,7 +849,8 @@ class CsdpAp:
                 raise NotImplementedError
         return routes, cost
 
-    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, tiebreaker='B-MST'):
+    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, tiebreaker='B-MST',
+                            tb_dist_bipartite='EP'):
         partitions = {}
         # Drivers' shortest paths are computed.
         # pairs = [(start_v, end_v) for start_v, end_v in self._ad_hoc_drivers]
@@ -952,32 +956,36 @@ class CsdpAp:
             drivers_by_start = dict()
             for (start_v, end_v), shops_customers in partitions.iteritems():
                 drivers_by_start[start_v] = (start_v, end_v)
-                # path = self._graph.paths[tuple(sorted([start_v, end_v]))]
+                path = []
+                if tb_dist_bipartite == 'SP':
+                    path = self._graph.paths[tuple(sorted([start_v, end_v]))]
                 if 'customers' not in shops_customers:
                     continue
-                # Approach 2: ------------------------------------------------------------------------------------------
+                customers = shops_customers['customers']
                 if 'shops' not in shops_customers:
                     continue
-                customers = shops_customers['customers']
                 shops = shops_customers['shops']
-                self._graph.compute_dist_paths(origins=[start_v], destinations=shops, compute_paths=False)
-                self._graph.compute_dist_paths(origins=shops, destinations=customers, compute_paths=False)
-                self._graph.compute_dist_paths(origins=customers, destinations=[end_v], compute_paths=False)
+                #
+                if tb_dist_bipartite == 'EP':
+                    self._graph.compute_dist_paths(origins=[start_v], destinations=shops, compute_paths=False)
+                    self._graph.compute_dist_paths(origins=shops, destinations=customers, compute_paths=False)
+                    self._graph.compute_dist_paths(origins=customers, destinations=[end_v], compute_paths=False)
                 for customer in customers:
-                # ------------------------------------------------------------------------------------------------------
-                # for customer in shops_customers['customers']:
-                    # Approach 2: --------------------------------------------------------------------------------------
-                    d = sys.maxint
-                    for shop in shops:
-                        d1 = self._graph.dist[tuple(sorted([start_v, shop]))]
-                        d2 = self._graph.dist[tuple(sorted([shop, customer]))]
-                        if d1 + d2 < d:
-                            d = d1 + d2
-                    d += self._graph.dist[tuple(sorted([customer, end_v]))]
-                    # --------------------------------------------------------------------------------------------------
-                    # _, d, _ = self._graph.compute_dist_paths(origins=[customer], destinations=path, end_mode='first',
-                    #                                          compute_paths=False, recompute=True)
-                    # bipartite.append_edge_2((start_v, customer), weight=d[d.keys()[0]])
+                    if tb_dist_bipartite == 'SP':
+                        _, dist, _ = self._graph.compute_dist_paths(origins=[customer], destinations=path,
+                                                                    end_mode='first', compute_paths=False,
+                                                                    recompute=True)
+                        d = dist[dist.keys()[0]]
+                    elif tb_dist_bipartite == 'EP':
+                        d = sys.maxint
+                        for shop in shops:
+                            d1 = self._graph.dist[tuple(sorted([start_v, shop]))]
+                            d2 = self._graph.dist[tuple(sorted([shop, customer]))]
+                            if d1 + d2 < d:
+                                d = d1 + d2
+                        d += self._graph.dist[tuple(sorted([customer, end_v]))]
+                    else:
+                        raise NotImplementedError
                     bipartite.append_edge_2((start_v, customer), weight=d)
                     try:
                         starts_by_customer[customer].append(start_v)
