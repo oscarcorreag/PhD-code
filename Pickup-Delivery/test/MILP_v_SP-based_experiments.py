@@ -88,7 +88,7 @@ if __name__ == '__main__':
     delta_meters = 10000.0
     delta = delta_meters / 111111
     num_samples = 25
-    num_customers_r = [64, 256, 1024]
+    num_customers_r = [64, 256]
     # num_customers_r = [256]
     # ratios = [1.0, 2.0, 3.0, 4.0]
     ratios = [2.0]
@@ -210,7 +210,7 @@ if __name__ == '__main__':
                         else:
                             stats = compute_stats_per_driver_type(routes, graph)
 
-                            line = ['SP-Voronoi-DT', 0, seed, region, N, delta_meters, num_pois, num_retailers, len(rs),
+                            line = ['SP-Voronoi', 0, seed, region, N, delta_meters, num_pois, num_retailers, len(rs),
                                     ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
                                     stats['dedicated']['total'], stats['ad hoc']['no'], stats['dedicated']['no'],
                                     stats['ad hoc']['avg'], stats['dedicated']['avg'], stats['ad hoc']['avg detour'],
@@ -224,7 +224,7 @@ if __name__ == '__main__':
                         for fraction in fractions:
                             st = time.clock()
                             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', solve_unserved_method='double-tree',
-                                                         fraction_sd=fraction)
+                                                         fraction_sd=fraction, tb_limit=8)
                             et = time.clock() - st
 
                             # TODO: Simple control to avoid prohibitive computation
@@ -286,7 +286,8 @@ if __name__ == '__main__':
                             # ------------------------------------------------------------------------------------------
                             st = time.clock()
                             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold',
-                                                         solve_unserved_method='double-tree', threshold_sd=threshold)
+                                                         solve_unserved_method='double-tree', threshold_sd=threshold,
+                                                         tb_limit=8)
                             et = time.clock() - st
 
                             # TODO: Simple control to avoid prohibitive computation
