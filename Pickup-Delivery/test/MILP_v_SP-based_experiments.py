@@ -201,17 +201,20 @@ if __name__ == '__main__':
                         st = time.clock()
                         routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-Voronoi',
                                                      solve_unserved_method='double-tree')
+                        et = time.clock() - st
+
                         # TODO: Simple control to avoid prohibitive computation
                         if (routes, cost) == (None, -1):
-                            continue
-                        et = time.clock() - st
-                        stats = compute_stats_per_driver_type(routes, graph)
+                            line = ['SP-Voronoi-DT', 0, seed, region, N, delta_meters, num_pois, num_retailers, len(rs),
+                                    ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0, 0, 0]
+                        else:
+                            stats = compute_stats_per_driver_type(routes, graph)
 
-                        line = ['SP-Voronoi-DT', 0, seed, region, N, delta_meters, num_pois, num_retailers,
-                                len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
-                                stats['dedicated']['total'], stats['ad hoc']['no'], stats['dedicated']['no'],
-                                stats['ad hoc']['avg'], stats['dedicated']['avg'], stats['ad hoc']['avg detour'],
-                                stats['ad hoc']['w avg detour']]
+                            line = ['SP-Voronoi-DT', 0, seed, region, N, delta_meters, num_pois, num_retailers, len(rs),
+                                    ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
+                                    stats['dedicated']['total'], stats['ad hoc']['no'], stats['dedicated']['no'],
+                                    stats['ad hoc']['avg'], stats['dedicated']['avg'], stats['ad hoc']['avg detour'],
+                                    stats['ad hoc']['w avg detour']]
                         print line
                         results.append(line)
 
@@ -222,17 +225,21 @@ if __name__ == '__main__':
                             st = time.clock()
                             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', solve_unserved_method='double-tree',
                                                          fraction_sd=fraction)
+                            et = time.clock() - st
+
                             # TODO: Simple control to avoid prohibitive computation
                             if (routes, cost) == (None, -1):
-                                continue
-                            et = time.clock() - st
-                            stats = compute_stats_per_driver_type(routes, graph)
+                                line = ['SP-fraction-DT', fraction, seed, region, N, delta_meters, num_pois,
+                                        num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0,
+                                        0, 0]
+                            else:
+                                stats = compute_stats_per_driver_type(routes, graph)
 
-                            line = ['SP-fraction-DT', fraction, seed, region, N, delta_meters, num_pois, num_retailers,
-                                    len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
-                                    stats['dedicated']['total'], stats['ad hoc']['no'], stats['dedicated']['no'],
-                                    stats['ad hoc']['avg'], stats['dedicated']['avg'], stats['ad hoc']['avg detour'],
-                                    stats['ad hoc']['w avg detour']]
+                                line = ['SP-fraction-DT', fraction, seed, region, N, delta_meters, num_pois,
+                                        num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost,
+                                        stats['ad hoc']['total'], stats['dedicated']['total'], stats['ad hoc']['no'],
+                                        stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
+                                        stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
                             print line
                             results.append(line)
 
@@ -259,17 +266,21 @@ if __name__ == '__main__':
                             st = time.clock()
                             routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold',
                                                          solve_unserved_method='double-tree', threshold_sd=threshold)
+                            et = time.clock() - st
+
                             # TODO: Simple control to avoid prohibitive computation
                             if (routes, cost) == (None, -1):
-                                continue
-                            et = time.clock() - st
-                            stats = compute_stats_per_driver_type(routes, graph)
+                                line = ['SP-threshold-DT', threshold, seed, region, N, delta_meters, num_pois,
+                                        num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0,
+                                        0, 0]
+                            else:
+                                stats = compute_stats_per_driver_type(routes, graph)
 
-                            line = ['SP-threshold-DT', threshold, seed, region, N, delta_meters, num_pois,
-                                    num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost,
-                                    stats['ad hoc']['total'], stats['dedicated']['total'], stats['ad hoc']['no'],
-                                    stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
-                                    stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
+                                line = ['SP-threshold-DT', threshold, seed, region, N, delta_meters, num_pois,
+                                        num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost,
+                                        stats['ad hoc']['total'], stats['dedicated']['total'], stats['ad hoc']['no'],
+                                        stats['dedicated']['no'], stats['ad hoc']['avg'], stats['dedicated']['avg'],
+                                        stats['ad hoc']['avg detour'], stats['ad hoc']['w avg detour']]
                             print line
                             results.append(line)
             #
