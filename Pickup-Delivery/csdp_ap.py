@@ -950,27 +950,41 @@ class CsdpAp:
             bipartite = Graph()
             starts_by_customer = dict()
             drivers_by_start = dict()
-            # for driver, shops_customers in partitions.iteritems():
-            #     (start_v, end_v) = driver
             for (start_v, end_v), shops_customers in partitions.iteritems():
                 drivers_by_start[start_v] = (start_v, end_v)
-                path = self._graph.paths[tuple(sorted([start_v, end_v]))]
+                # path = self._graph.paths[tuple(sorted([start_v, end_v]))]
                 if 'customers' not in shops_customers:
                     continue
-                for customer in shops_customers['customers']:
-                    _, d, _ = self._graph.compute_dist_paths(origins=[customer], destinations=path, end_mode='first',
-                                                             compute_paths=False, recompute=True)
-                    # bipartite.append_edge_2((driver, customer), weight=d[d.keys()[0]])
-                    bipartite.append_edge_2((start_v, customer), weight=d[d.keys()[0]])
+                # Approach 2: ------------------------------------------------------------------------------------------
+                if 'shops' not in shops_customers:
+                    continue
+                customers = shops_customers['customers']
+                shops = shops_customers['shops']
+                self._graph.compute_dist_paths(origins=[start_v], destinations=shops, compute_paths=False)
+                self._graph.compute_dist_paths(origins=shops, destinations=customers, compute_paths=False)
+                self._graph.compute_dist_paths(origins=customers, destinations=[end_v], compute_paths=False)
+                for customer in customers:
+                # ------------------------------------------------------------------------------------------------------
+                # for customer in shops_customers['customers']:
+                    # Approach 2: --------------------------------------------------------------------------------------
+                    d = sys.maxint
+                    for shop in shops:
+                        d1 = self._graph.dist[tuple(sorted([start_v, shop]))]
+                        d2 = self._graph.dist[tuple(sorted([shop, customer]))]
+                        if d1 + d2 < d:
+                            d = d1 + d2
+                    d += self._graph.dist[tuple(sorted([customer, end_v]))]
+                    # --------------------------------------------------------------------------------------------------
+                    # _, d, _ = self._graph.compute_dist_paths(origins=[customer], destinations=path, end_mode='first',
+                    #                                          compute_paths=False, recompute=True)
+                    # bipartite.append_edge_2((start_v, customer), weight=d[d.keys()[0]])
+                    bipartite.append_edge_2((start_v, customer), weight=d)
                     try:
-                        # drivers_by_customer[customer].append(driver)
                         starts_by_customer[customer].append(start_v)
                     except KeyError:
-                        # drivers_by_customer[customer] = [driver]
                         starts_by_customer[customer] = [start_v]
             # Create artificial non-cost edges between drivers in bipartite graph.
             for i in range(len(partitions) - 1):
-                # bipartite.append_edge_2((partitions.keys()[i], partitions.keys()[i + 1]), weight=0)
                 bipartite.append_edge_2((partitions.keys()[i][0], partitions.keys()[i + 1][0]), weight=0)
             mst = bipartite.compute_mst()
             # Balance the degree of the MST.
@@ -1072,9 +1086,9 @@ class CsdpAp:
                 route = self._graph.paths[start_end]
                 cost = self._graph.dist[start_end]
             else:
-                # TODO: Simple control to avoid prohibitive computation
-                if len(customers_dict) > 10:
-                    return None, -1, None
+                # # TODO: Simple control to avoid prohibitive computation
+                # if len(customers_dict) > 10:
+                #     return None, -1, None
                 # Otherwise, partial paths' lower bounds are stored into a priority queue.
                 priority_queue = PriorityDictionary()
                 # There are MORE THAN ONE initial path as there are more than one alternative pick-up locations.
