@@ -82,6 +82,7 @@ class CsdpAp:
         self._working_graph = None
 
         self._drivers = list()
+        self._drivers_by_start = dict()
         self._ad_hoc_drivers = list()
         self._dedicated_drivers = list()
         self._requests = list()
@@ -642,9 +643,9 @@ class CsdpAp:
             objective.SetCoefficient(x, coeff + self._working_graph[i][j])
         objective.SetMinimization()
 
-    def solve(self, requests, drivers, method='MILP', verbose=False, partition_method='SP-fraction', fraction_sd=.5,
-              threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='BB', tiebreaker='B-MST',
-              tb_dist_bipartite='EP', tb_limit=0):
+    def solve(self, requests, drivers, method='MILP', verbose=False, assignment_method='LL-EP', partition_method=None,
+              fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='double-tree',
+              max_load=0):
 
         self._requests = requests
         self._drivers = list(drivers)
@@ -657,14 +658,13 @@ class CsdpAp:
             return self._solve_milp(method, threshold_sd, verbose)
 
         if method == 'SP-based':
-            return self._sp_based(partition_method=partition_method,
+            return self._sp_based(assignment_method=assignment_method,
+                                  partition_method=partition_method,
                                   fraction_sd=fraction_sd,
                                   threshold_sd=threshold_sd,
                                   solve_partition_method=solve_partition_method,
                                   solve_unserved_method=solve_unserved_method,
-                                  tiebreaker=tiebreaker,
-                                  tb_dist_bipartite=tb_dist_bipartite,
-                                  tb_limit=tb_limit)
+                                  max_load=max_load)
 
     def _define_milp(self, method='MILP', threshold_sd=1.5):
         self._define_vars()
@@ -746,6 +746,7 @@ class CsdpAp:
         self.H_e = list()
         self._ad_hoc_drivers = list()
         for (start_v, _, _), (end_v, _, _) in self._drivers:
+            self._drivers_by_start[start_v] = (start_v, end_v)
             self.H_s.append(start_v)
             self.H_e.append(end_v)
             # Update list of AD HOC drivers.
@@ -779,13 +780,12 @@ class CsdpAp:
             self._shop_by_F[end_v] = shop
             self._Fs_by_shop[shop] = (start_v, end_v)
 
-    def _sp_based(self, partition_method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB',
-                  solve_unserved_method='BB', tiebreaker='B-MST', tb_dist_bipartite='EP', tb_limit=0):
+    def _sp_based(self, assignment_method='LL-EP', partition_method=None, fraction_sd=.5, threshold_sd=1.5,
+                  solve_partition_method='BB', solve_unserved_method='double-tree', max_load=0):
         routes = list()
         cost = 0
-        partitions = self._compute_partitions(method=partition_method, fraction_sd=fraction_sd,
-                                              threshold_sd=threshold_sd, tiebreaker=tiebreaker,
-                                              tb_dist_bipartite=tb_dist_bipartite, tb_limit=tb_limit)
+        partitions = self._assign(method=assignment_method, max_load=max_load, partition_method=partition_method,
+                                  fraction_sd=fraction_sd, threshold_sd=threshold_sd)
         # Solve each partition
         served_customers = set()
         for partition in partitions.iteritems():
@@ -850,51 +850,13 @@ class CsdpAp:
                 raise NotImplementedError
         return routes, cost
 
-    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5, tiebreaker='B-MST',
-                            tb_dist_bipartite='EP', tb_limit=0):
+    def _assign(self, method='LL-EP', max_load=0, partition_method=None, fraction_sd=0.5, threshold_sd=1.5):
         partitions = {}
-        # Drivers' shortest paths are computed.
-        # pairs = [(start_v, end_v) for start_v, end_v in self._ad_hoc_drivers]
-        self._graph.compute_dist_paths(pairs=self._ad_hoc_drivers)
-        #  Priority queue is built based on shortest distances.
-        vehicles_pd = PriorityDictionary()
-        for start_v, end_v in self._ad_hoc_drivers:
-            vehicles_pd[(start_v, end_v)] = self._graph.dist[tuple(sorted([start_v, end_v]))]
         # --------------------------------------------------------------------------------------------------------------
-        # SP-fraction:  Shortest-path trees are grown from drivers' shortest-path's road intersections.
-        #               Drivers' shortest paths are iterated in shortest-distance ascending order as a tie-breaker for
-        #               common customers between drivers.
+        # SP-Voronoi
         # --------------------------------------------------------------------------------------------------------------
-        if method == 'SP-fraction':
-            taken = list()
-            # For each driver, a set of regions is computed. Each region corresponds to the set of shortest-path trees
-            # grown from a road intersection of the original shortest path of the driver, and contains sets of shops and
-            # customers.
-            for start_v, end_v in vehicles_pd:
-                path = self._graph.paths[tuple(sorted([start_v, end_v]))]
-                dist = vehicles_pd[(start_v, end_v)]
-                if tiebreaker == 'FCFA':
-                    regions = self._compute_regions(path, dist, fraction_sd=fraction_sd, excluded_customers=taken)
-                elif tiebreaker == 'B-MST':
-                    regions = self._compute_regions(path, dist, fraction_sd=fraction_sd)
-                else:
-                    raise NotImplementedError
-                # Shops and customers of different regions of the same driver are gathered. We are interested in
-                # returning shops and customers by driver (partition) so we drop the extra level of disaggregation,
-                # i.e., by region.
-                shops = set()
-                customers = set()
-                for shops_customers in regions.values():
-                    shops.update(shops_customers['shops'])
-                    customers.update(shops_customers['customers'])
-                partitions[(start_v, end_v)] = {'customers': customers, 'shops': shops}
-                # These are the customers taken by this partition.
-                if tiebreaker == 'FCFA':
-                    taken.extend(customers)
-        # --------------------------------------------------------------------------------------------------------------
-        # SP-Voronoi:   Drivers' shortest-path-based Voronoi cells are computed.
-        # --------------------------------------------------------------------------------------------------------------
-        elif method == 'SP-Voronoi':
+        if method == 'SP-Voronoi':
+            self._graph.compute_dist_paths(pairs=self._ad_hoc_drivers)
             # Drivers' paths are gathered as a list to be sent as parameter for Voronoi cells computation.
             paths = list()
             for start_v, end_v in self._ad_hoc_drivers:
@@ -915,23 +877,113 @@ class CsdpAp:
                             partitions[(start_v, end_v)]['customers'].add(vertex)
                         except KeyError:
                             partitions[(start_v, end_v)]['customers'] = {vertex}
+            # Are there customers without a corresponding shop?
+            for (start_v, end_v), shops_customers in partitions.iteritems():
+                try:
+                    if len(shops_customers['customers']) == 0:
+                        continue
+                except KeyError:
+                    continue
+                customers = shops_customers['customers']
+                path = self._graph.paths[tuple(sorted([start_v, end_v]))]
+                if ('shops' in shops_customers and len(shops_customers['shops']) == 0) \
+                        or 'shops' not in shops_customers:
+                    for customer in customers:
+                        group_id = self._customers_dict[customer]
+                        shops_customer = self._shops_by_group_id[group_id]
+                        dist, _ = self._graph.get_k_closest_destinations(path, 1, shops_customer, compute_paths=False)
+                        try:
+                            partitions[(start_v, end_v)]['shops'].add(dist.keys()[0])
+                        except KeyError:
+                            partitions[(start_v, end_v)]['shops'] = {dist.keys()[0]}
+                    continue
+                shops = shops_customers['shops']
+                for customer in customers:
+                    group_id = self._customers_dict[customer]
+                    shops_customer = self._shops_by_group_id[group_id]
+                    if shops.intersection(self._shops_by_group_id[group_id]):
+                        continue
+                    dist, _ = self._graph.get_k_closest_destinations(path, 1, shops_customer, compute_paths=False)
+                    partitions[(start_v, end_v)]['shops'].add(dist.keys()[0])
+        # --------------------------------------------------------------------------------------------------------------
+        # LL-EP: Limited-Load Elementary Path assignment
+        # --------------------------------------------------------------------------------------------------------------
+        elif method == 'LL-EP':
+            starts_by_customer = dict()
+            if partition_method is not None:
+                partitions = self._compute_partitions(partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd)
+            else:
+                for start_v, end_v in self._ad_hoc_drivers:
+                    partitions[(start_v, end_v)] = {'shops': self._shops, 'customers': self._customers}
+            for (start_v, _), shops_customers in partitions.iteritems():
+                if 'customers' not in shops_customers:
+                    continue
+                for customer in shops_customers['customers']:
+                    try:
+                        starts_by_customer[customer].append(start_v)
+                    except KeyError:
+                        starts_by_customer[customer] = [start_v]
+            bipartite, best_shop_per_driver_cust = self.create_bipartite_graph(partitions)
+            mst = bipartite.compute_mst()
+            to_downgrade = self.compute_amortized_edge_weights(mst, best_shop_per_driver_cust)
+            mst.update_edge_weights(to_downgrade)
+            # iter = 0
+            # while to_downgrade and iter < 50:
+            #     mst.update_edge_weights(to_downgrade)
+            #     bck = dict(to_downgrade)
+            #     temp = self.compute_amortized_edge_weights(mst, best_shop_per_driver_cust)
+            #     to_downgrade = dict()
+            #     for (x, y), new_weight in temp.iteritems():
+            #         if new_weight != bck[(x, y)]:
+            #             to_downgrade[(x, y)] = new_weight
+            #     iter += 1
+            #     # print iter
+            if max_load > 0:
+                self.decrease_degree_mst(mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load)
+            # Set customers in partitions according to the final limited MST.
+            driver_starts = set(self.H_s)
+            for v, adj in mst.iteritems():
+                if v in driver_starts:
+                    partitions[self._drivers_by_start[v]]['customers'] = {w for w in adj if w not in driver_starts}
+        return partitions
+
+    def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
+        partitions = {}
+        # Drivers' shortest paths are computed.
+        self._graph.compute_dist_paths(pairs=self._ad_hoc_drivers)
+        # --------------------------------------------------------------------------------------------------------------
+        # SP-fraction:  Shortest-path trees are grown from drivers' shortest-path's road intersections.
+        #               Drivers' shortest paths are iterated in shortest-distance ascending order as a tie-breaker for
+        #               common customers between drivers.
+        # --------------------------------------------------------------------------------------------------------------
+        if method == 'SP-fraction':
+            # For each driver, a set of regions is computed. Each region corresponds to the set of shortest-path trees
+            # grown from a road intersection of the original shortest path of the driver, and contains sets of shops and
+            # customers.
+            for start_v, end_v in self._ad_hoc_drivers:
+                path = self._graph.paths[tuple(sorted([start_v, end_v]))]
+                dist = self._graph.dist[tuple(sorted([start_v, end_v]))]
+                regions = self._compute_regions(path, dist, fraction_sd=fraction_sd)
+                # Shops and customers of different regions of the same driver are gathered. We are interested in
+                # returning shops and customers by driver (partition) so we drop the extra level of disaggregation,
+                # i.e., by region.
+                shops = set()
+                customers = set()
+                for shops_customers in regions.values():
+                    shops.update(shops_customers['shops'])
+                    customers.update(shops_customers['customers'])
+                partitions[(start_v, end_v)] = {'customers': customers, 'shops': shops}
         # --------------------------------------------------------------------------------------------------------------
         # SP-threshold: Vertices within ellipses with constant = SD * threshold_sd are retrieved for each driver as an
         #               initial partition. The partition must be solved accordingly, i.e., regarding the threshold, this
         #               is the initial partition only.
         # --------------------------------------------------------------------------------------------------------------
         elif method == 'SP-threshold':
-            taken = list()
-            for start_v, end_v in vehicles_pd:
+            for start_v, end_v in self._ad_hoc_drivers:
                 dist = self._graph.dist[tuple(sorted([start_v, end_v]))]
                 ellipse = self._graph.nodes_within_ellipse(start_v, end_v, dist * threshold_sd)
                 partitions[(start_v, end_v)] = dict()
-                if tiebreaker == 'FCFA':
-                    vertices_left = set(ellipse.keys()).difference(taken)
-                elif tiebreaker == 'B-MST':
-                    vertices_left = set(ellipse.keys())
-                else:
-                    raise NotImplementedError
+                vertices_left = set(ellipse.keys())
                 for vertex in vertices_left:
                     if vertex in self._shops:
                         try:
@@ -943,162 +995,159 @@ class CsdpAp:
                             partitions[(start_v, end_v)]['customers'].add(vertex)
                         except KeyError:
                             partitions[(start_v, end_v)]['customers'] = {vertex}
-                # These are the customers taken by this partition.
-                if tiebreaker == 'FCFA':
-                    if 'customers' in partitions[(start_v, end_v)]:
-                        taken.extend(partitions[(start_v, end_v)]['customers'])
         else:
             raise NotImplementedError
-        # In case the tiebreaker is balanced-degree MST...
-        if method != 'SP-Voronoi' and tiebreaker == 'B-MST':
-            # Build weighted bipartite graph and compute its MST.
-            bipartite = Graph()
-            starts_by_customer = dict()
-            drivers_by_start = dict()
-            shops_per_driver_cust = dict()
-            # For each ad hoc driver...
-            for (start_v, end_v), shops_customers in partitions.iteritems():
-                drivers_by_start[start_v] = (start_v, end_v)
-                path = []
-                if tb_dist_bipartite == 'SP':
-                    path = self._graph.paths[tuple(sorted([start_v, end_v]))]
-                if 'customers' not in shops_customers:
-                    continue
-                customers = shops_customers['customers']
-                if 'shops' not in shops_customers:
-                    continue
-                shops = shops_customers['shops']
-                # Distances needed to compute edge weights when they correspond to elementary paths.
-                if tb_dist_bipartite == 'EP':
-                    self._graph.compute_dist_paths(origins=[start_v], destinations=shops, compute_paths=False)
-                    self._graph.compute_dist_paths(origins=shops, destinations=customers, compute_paths=False)
-                    self._graph.compute_dist_paths(origins=customers, destinations=[end_v], compute_paths=False)
-                # Create the edges between the customer and the ad hoc driver's start location in the bipartite graph.
-                for customer in customers:
-                    if tb_dist_bipartite == 'SP':
-                        # weight <= distance to ad hoc driver's path
-                        _, dist, _ = self._graph.compute_dist_paths(origins=[customer], destinations=path,
-                                                                    end_mode='first', compute_paths=False,
-                                                                    recompute=True)
-                        d = dist[dist.keys()[0]]
-                    elif tb_dist_bipartite == 'EP':
-                        # weight <= distance of elementary path
-                        d = sys.maxint
-                        for shop in shops:
-                            d1 = self._graph.dist[tuple(sorted([start_v, shop]))]
-                            d2 = self._graph.dist[tuple(sorted([shop, customer]))]
-                            if d1 + d2 < d:
-                                d = d1 + d2
-                                try:
-                                    shops_per_driver_cust[start_v][customer] = shop
-                                except KeyError:
-                                    shops_per_driver_cust[start_v] = {customer: shop}
-                        d += self._graph.dist[tuple(sorted([customer, end_v]))]
-                    else:
-                        raise NotImplementedError
-                    bipartite.append_edge_2((start_v, customer), weight=d)
-                    try:
-                        starts_by_customer[customer].append(start_v)
-                    except KeyError:
-                        starts_by_customer[customer] = [start_v]
-            # Create artificial non-cost edges between drivers in bipartite graph.
-            for i in range(len(partitions) - 1):
-                bipartite.append_edge_2((partitions.keys()[i][0], partitions.keys()[i + 1][0]), weight=0)
-            mst = bipartite.compute_mst()
-            # Balance the degree of the MST.
-            quarantine = set()
-            moves = 0
-            while True:
-                # Compute drivers' degree within the MST.
-                starts_by_degree = dict()
-                degree_by_start = dict()
-                highest_degree = 0
-                for v, adj in mst.iteritems():
-                    # if isinstance(v, tuple):  # If it is tuple, then it is a driver.
-                    if v in self.H_s:
-                        if v in quarantine:
-                            continue
-                        # degree = sum([1 for w in adj if not isinstance(w, tuple)])
-                        degree = sum([1 for w in adj if w not in self.H_s])
-                        try:
-                            starts_by_degree[degree].append(v)
-                        except KeyError:
-                            starts_by_degree[degree] = [v]
-                        degree_by_start[v] = degree
-                        if degree > highest_degree:
-                            highest_degree = degree
-                if 0 < tb_limit == highest_degree:
-                    break
-                if highest_degree == 0 or (highest_degree == 1 and moves == 0):
-                    break
-                if highest_degree == 1:
-                    quarantine.clear()
-                    moves = 0
-                    continue
-                # Pick one of the highest-degree drivers.
-                highest_degree_driver = starts_by_degree[highest_degree][0]
-                sup = sys.maxint
-                while True:
-                    # Pick the most expensive customer for this driver.
-                    most_expensive = None
-                    inf = 0
-                    for v, cost in mst[highest_degree_driver].iteritems():
-                        if inf <= cost < sup and v not in self.H_s:
-                            most_expensive = v, cost
-                            inf = cost
-                    if most_expensive is None:
-                        quarantine.add(highest_degree_driver)
-                        break
-                    # Are there more drivers who share this customer and have degree at most highest_degree - 2?
-                    candidates = dict()
-                    for driver in starts_by_customer[most_expensive[0]]:
-                        if driver == highest_degree_driver or driver in quarantine:
-                            continue
-                        if degree_by_start[driver] <= highest_degree - 2:
-                            candidates[driver] = bipartite[driver][most_expensive[0]]
-                    # If there is at least one candidate driver, do the local move within the MST.
-                    # Otherwise, the loop continues with the next most expensive customer.
-                    if len(candidates) > 0:
-                        chosen, weight = min(candidates.iteritems(), key=operator.itemgetter(1))
-                        #
-                        mst.drop_edge(tuple(sorted([highest_degree_driver, most_expensive[0]])))
-                        mst.append_edge_2((chosen, most_expensive[0]), weight=most_expensive[1])
-                        moves += 1
-                        break
-                    else:
-                        sup = most_expensive[1]
-            # Set customers in partitions according to the final balanced MST.
-            for v, adj in mst.iteritems():
-                # if isinstance(v, tuple):  # If it is tuple, then it is a driver.
-                if v in self.H_s:
-                    # partitions[v]['customers'] = {w for w in adj if not isinstance(w, tuple)}
-                    partitions[drivers_by_start[v]]['customers'] = {w for w in adj if w not in self.H_s}
-
         return partitions
 
-    def refine_edge_weights(self, mst, drivers_by_start, shops_per_driver_cust, source=None, target=None):
-        if source is None and target is None:
+    def decrease_degree_mst(self, mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load):
+        # Decrease the degree of the MST upto max_load.
+        quarantine = set()
+        moves = 0
+        driver_starts = set(self.H_s)
+        while True:
+            # Compute drivers' degree within the MST.
+            starts_by_degree = dict()
+            degree_by_start = dict()
+            highest_degree = 0
             for v, adj in mst.iteritems():
-                if v not in self.H_s:
-                    continue
-                customers_per_shop = dict()
-                _, end_v = drivers_by_start[v]
-                for w in adj:
-                    if w in self.H_s:
+                # if isinstance(v, tuple):  # If it is tuple, then it is a driver.
+                if v in driver_starts:
+                    if v in quarantine:
                         continue
+                    # degree = sum([1 for w in adj if not isinstance(w, tuple)])
+                    degree = sum([1 for w in adj if w not in driver_starts])
                     try:
-                        customers_per_shop[shops_per_driver_cust[v][w]].append(w)
+                        starts_by_degree[degree].append(v)
                     except KeyError:
-                        customers_per_shop[shops_per_driver_cust[v][w]] = [w]
-                for shop, customers in customers_per_shop.iteritems():
-                    if len(customers) == 1:
+                        starts_by_degree[degree] = [v]
+                    degree_by_start[v] = degree
+                    if degree > highest_degree:
+                        highest_degree = degree
+            if highest_degree == max_load:
+                break
+            if highest_degree == 0 or (highest_degree == 1 and moves == 0):
+                break
+            if highest_degree == 1:
+                quarantine.clear()
+                moves = 0
+                continue
+            # Pick one of the highest-degree drivers.
+            highest_degree_driver = starts_by_degree[highest_degree][0]
+            sup = sys.maxint
+            while True:
+                # Pick the most expensive customer for this driver.
+                most_expensive = None
+                inf = 0
+                for v, cost in mst[highest_degree_driver].iteritems():
+                    if inf <= cost < sup and v not in driver_starts:
+                        most_expensive = v, cost
+                        inf = cost
+                if most_expensive is None:
+                    quarantine.add(highest_degree_driver)
+                    break
+                # Are there more drivers who share this customer and have degree at most highest_degree - 2?
+                candidates = dict()
+                for driver in starts_by_customer[most_expensive[0]]:
+                    if driver == highest_degree_driver or driver in quarantine:
                         continue
-                    d_to_amortize = self._graph.dist[tuple(sorted([v, shop]))]
-                    for customer in customers:
-                        d2 = self._graph.dist[tuple(sorted([shop, customer]))]
-                        d3 = self._graph.dist[tuple(sorted([customer, end_v]))]
-                        mst.update
+                    if degree_by_start[driver] <= highest_degree - 2:
+                        candidates[driver] = bipartite[driver][most_expensive[0]]
+                # If there is at least one candidate driver, do the local move within the MST.
+                # Otherwise, the loop continues with the next most expensive customer.
+                if len(candidates) > 0:
+                    chosen, weight = min(candidates.iteritems(), key=operator.itemgetter(1))
+                    mst.drop_edge(tuple(sorted([highest_degree_driver, most_expensive[0]])))
+                    mst.append_edge_2((chosen, most_expensive[0]), weight=most_expensive[1])
+                    to_downgrade = self.compute_amortized_edge_weights(mst, best_shop_per_driver_cust,
+                                                                       highest_degree_driver, chosen)
+                    mst.update_edge_weights(to_downgrade)
+                    moves += 1
+                    break
+                else:
+                    sup = most_expensive[1]
 
+    def create_bipartite_graph(self, partitions):
+        # Build weighted bipartite graph and compute its MST.
+        bipartite = Graph()
+        best_shop_per_driver_cust = dict()
+        # For each ad hoc driver...
+        for (start_v, end_v), shops_customers in partitions.iteritems():
+            try:
+                if len(shops_customers['customers']) == 0:
+                    continue
+            except KeyError:
+                continue
+            customers = shops_customers['customers']
+            if ('shops' in shops_customers and len(shops_customers['shops']) == 0) or 'shops' not in shops_customers:
+                for customer in customers:
+                    bipartite.append_edge_2((start_v, customer), weight=sys.maxint)
+                continue
+            # try:
+            #     if len(shops_customers['shops']) == 0:
+            #         continue
+            # except KeyError:
+            #     continue
+            shops = shops_customers['shops']
+            # Distances needed to compute edge weights when they correspond to elementary paths.
+            self._graph.compute_dist_paths(origins=[start_v], destinations=shops, compute_paths=False)
+            # self._graph.compute_dist_paths(origins=shops, destinations=customers, compute_paths=False)
+            self._graph.compute_dist_paths(origins=customers, destinations=[end_v], compute_paths=False)
+            # Create the edges between the customer and the ad hoc driver's start location in the bipartite graph.
+            for customer in customers:
+                group_id = self._customers_dict[customer]
+                shops_by_customer = shops.intersection(self._shops_by_group_id[group_id])
+                if len(shops_by_customer) == 0:
+                    bipartite.append_edge_2((start_v, customer), weight=sys.maxint)
+                    continue
+                self._graph.compute_dist_paths(origins=[customer], destinations=shops_by_customer, compute_paths=False)
+                d = sys.maxint
+                for shop in shops_by_customer:
+                    d1 = self._graph.dist[tuple(sorted([start_v, shop]))]
+                    d2 = self._graph.dist[tuple(sorted([shop, customer]))]
+                    if d1 + d2 < d:
+                        d = d1 + d2
+                        try:
+                            best_shop_per_driver_cust[start_v][customer] = shop
+                        except KeyError:
+                            best_shop_per_driver_cust[start_v] = {customer: shop}
+                d += self._graph.dist[tuple(sorted([customer, end_v]))]
+                bipartite.append_edge_2((start_v, customer), weight=d)
+        # Create artificial non-cost edges between drivers in bipartite graph.
+        for i in range(len(partitions) - 1):
+            bipartite.append_edge_2((partitions.keys()[i][0], partitions.keys()[i + 1][0]), weight=0)
+        return bipartite, best_shop_per_driver_cust
+
+    def compute_amortized_edge_weights(self, mst, best_shop_per_driver_cust, source=None, target=None):
+        to_downgrade = dict()
+        driver_starts = set(self.H_s)
+        for v, adj in mst.iteritems():
+            if v not in driver_starts:  # If it is not a driver then continue.
+                continue
+            if v not in best_shop_per_driver_cust:
+                continue
+            if source is not None and target is not None:
+                if v != source and v != target:
+                    continue
+            customers_per_shop = dict()  # Which customers have the same best shop?
+            _, end_v = self._drivers_by_start[v]
+            for w in adj:
+                if w in driver_starts:  # If it is not a customer then continue.
+                    continue
+                if w not in best_shop_per_driver_cust[v]:
+                    continue
+                try:
+                    customers_per_shop[best_shop_per_driver_cust[v][w]].append(w)
+                except KeyError:
+                    customers_per_shop[best_shop_per_driver_cust[v][w]] = [w]
+            # Weights of edges of customers who have the same best shop are downgraded.
+            for shop, customers in customers_per_shop.iteritems():
+                d_to_amortize = self._graph.dist[tuple(sorted([v, shop]))]
+                amortized = d_to_amortize / len(customers)
+                for customer in customers:
+                    d2 = self._graph.dist[tuple(sorted([shop, customer]))]
+                    d3 = self._graph.dist[tuple(sorted([customer, end_v]))]
+                    to_downgrade[tuple(sorted([v, customer]))] = amortized + d2 + d3
+        return to_downgrade
 
     def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5):
         served_customers = set()
@@ -1131,9 +1180,9 @@ class CsdpAp:
                 route = self._graph.paths[start_end]
                 cost = self._graph.dist[start_end]
             else:
-                # # TODO: Simple control to avoid prohibitive computation
-                # if len(customers_dict) > 10:
-                #     return None, -1, None
+                # TODO: Simple control to avoid prohibitive computation
+                if len(customers_dict) > 12:
+                    return None, -1, None
                 # Otherwise, partial paths' lower bounds are stored into a priority queue.
                 priority_queue = PriorityDictionary()
                 # There are MORE THAN ONE initial path as there are more than one alternative pick-up locations.
@@ -1225,37 +1274,8 @@ class CsdpAp:
             customers_region = customers.intersection(region.keys())
             # Which shops are in this region?
             shops_region = self._shops.intersection(region.keys())
-            # # Which of those customers can be attended?
-            # # They are going to be the ones who have at least one of their preferred shops within the same region or
-            # # within a previous region.
-            # customers_region_revised = set()
-            # shops_region_revised[vertex] = set()
-            # for customer_region in customers_region:
-            #     shops_customer = self._shops_by_group_id[self._customers_dict[customer_region]]
-            #     # Check within this region.
-            #     temp = shops_region.intersection(shops_customer)
-            #     if temp:
-            #         customers_region_revised.add(customer_region)
-            #         shops_region_revised[vertex].update(temp)
-            #     # else:  # Otherwise, check in previous regions.
-            #     # Check in previous regions, too.
-            #     for j in range(i - 1, -1, -1):
-            #         previous_vertex = path[j]
-            #         shops_past_region = regions[previous_vertex]['shops']
-            #         temp = shops_past_region.intersection(shops_customer)
-            #         if temp:
-            #             customers_region_revised.add(customer_region)
-            #             shops_region_revised[previous_vertex].update(temp)
-            #             # A break would've been efficient but it incorrectly could prevent shops in previous
-            #             # regions to be included in the search space. Of course, the inclusion of the customer
-            #             # into the set is not needed but luckily nothing happens as it is a set.
-            # # Gather customers and shops and classify them by intermediate vertex.
-            # regions[vertex] = {'customers': customers_region_revised, 'shops': shops_region}
+            #
             regions[vertex] = {'customers': customers_region, 'shops': shops_region}
-        # # Update regions with shops that may serve customers, i.e., there might be shops within regions that are not
-        # # used at all.
-        # for vertex in path:
-        #     regions[vertex]['shops'] = shops_region_revised[vertex]
         return regions
 
     def _build_routes_milp(self):

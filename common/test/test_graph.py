@@ -81,6 +81,9 @@ class TestGraph(TestCase):
         dist, paths = self.graph.get_k_closest_destinations(12, 3, [0, 1, 2, 3, 4])
         self.assertDictEqual(dist, {1: 3, 2: 2, 3: 3})
         self.assertDictEqual(paths, {1: [12, 7, 2, 1], 2: [12, 7, 2], 3: [12, 7, 2, 3]})
+        dist, paths = self.graph.get_k_closest_destinations([1, 6, 7, 12, 13], 2, [24, 9, 20])
+        self.assertDictEqual(dist, {24: 3, 9: 2})
+        self.assertDictEqual(paths, {24: [13, 14, 19, 24], 9: [7, 8, 9]})
 
     def test_get_voronoi_paths_cells(self):
         # --------------------------------------------------------------------------------------------------------------

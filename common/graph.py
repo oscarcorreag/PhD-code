@@ -603,13 +603,18 @@ class Graph(dict):
             v_w = tuple([w, v])
         return v_w
 
-    def get_k_closest_destinations(self, n, k, destinations=None):
+    def get_k_closest_destinations(self, origin, k, destinations=None, compute_paths=True):
 
         distances = dict()
         predecessors = {}
         paths = {}
         priority_dict = PriorityDictionary()
-        priority_dict[n] = 0
+        # Initialize the priority dictionary.
+        if isinstance(origin, list):    # If the origin is a path...
+            for v in origin:
+                priority_dict[v] = 0
+        else:                           # If the origin is a node...
+            priority_dict[origin] = 0
 
         if destinations is None:
             destinations_ = self.keys()
@@ -622,15 +627,20 @@ class Graph(dict):
             if v in destinations_:
                 reached_nodes.append(v)
                 # Build the shortest path to the current destination.
-                path = []
-                w = v
-                while 1:
-                    path.append(w)
-                    if w == n:
-                        break
-                    w = predecessors[w]
-                path.reverse()
-                paths[v] = path
+                if compute_paths:
+                    path = []
+                    w = v
+                    while 1:
+                        path.append(w)
+                        if isinstance(origin, list):    # If the origin is a path...
+                            if w in origin:
+                                break
+                        else:                           # If the origin is a node...
+                            if w == origin:
+                                break
+                        w = predecessors[w]
+                    path.reverse()
+                    paths[v] = path
                 # Check whether the number of nearest destinations has been reached or the total number of destinations.
                 if len(reached_nodes) == k or len(reached_nodes) == len(destinations_):
                     distances = {u: dist for u, dist in distances.iteritems() if u in destinations_}
@@ -946,6 +956,7 @@ class Graph(dict):
                 od_to_recompute.update(self.__edges_in_sp[v_w])
         # Recompute shortest distances|paths.
         if len(od_to_recompute) > 0:
+            print "Distances recomputed due to edge weight update!"
             self.compute_dist_paths(pairs=od_to_recompute, compute_paths=len(self.paths) > 0, recompute=True,
                                     track_edges=True)
 
