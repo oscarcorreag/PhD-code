@@ -9,6 +9,7 @@ class TestPartialPath(TestCase):
         # self.graph = Digraph(undirected=False)
         self.graph = Graph()
 
+        self.graph.append_edge_2(('A', 'P1'), weight=1.5)
         self.graph.append_edge_2(('A', 'o'), weight=1.5)
         self.graph.append_edge_2(('A', 'H'), weight=4)
         self.graph.append_edge_2(('A', 'J'), weight=3.5)
@@ -23,6 +24,7 @@ class TestPartialPath(TestCase):
         self.graph.append_edge_2(('C', 'K'), weight=1)
         self.graph.append_edge_2(('C', 'L'), weight=1)
         self.graph.append_edge_2(('C', 'P2'), weight=4.5)
+        self.graph.append_edge_2(('C', 'P3'), weight=4.5)
 
         self.graph.append_edge_2(('d', 'I'), weight=3.5)
         self.graph.append_edge_2(('d', 'L'), weight=2)
@@ -110,6 +112,13 @@ class TestPartialPath(TestCase):
         self.fail()
 
     def test__compute_dist_lb(self):
+        self.fail()
+
+    def test__compute_dist_ub(self):
+        for k, ip in self.initial_paths.iteritems():
+            ip.compute_dist_lb()
+            ip._compute_dist_ub()
+            print k, ip.dist_lb, ip.dist_ub
         self.fail()
 
     def test__compute_cust_ub(self):

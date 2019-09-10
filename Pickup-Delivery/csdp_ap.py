@@ -645,7 +645,7 @@ class CsdpAp:
 
     def solve(self, requests, drivers, method='MILP', verbose=False, assignment_method='LL-EP', partition_method=None,
               fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='double-tree',
-              max_load=0):
+              max_load=0, bounds='both'):
 
         self._requests = requests
         self._drivers = list(drivers)
@@ -664,7 +664,8 @@ class CsdpAp:
                                   threshold_sd=threshold_sd,
                                   solve_partition_method=solve_partition_method,
                                   solve_unserved_method=solve_unserved_method,
-                                  max_load=max_load)
+                                  max_load=max_load,
+                                  bounds=bounds)
 
     def _define_milp(self, method='MILP', threshold_sd=1.5):
         self._define_vars()
@@ -781,7 +782,7 @@ class CsdpAp:
             self._Fs_by_shop[shop] = (start_v, end_v)
 
     def _sp_based(self, assignment_method='LL-EP', partition_method=None, fraction_sd=.5, threshold_sd=1.5,
-                  solve_partition_method='BB', solve_unserved_method='double-tree', max_load=0):
+                  solve_partition_method='BB', solve_unserved_method='double-tree', max_load=0, bounds='both'):
         routes = list()
         cost = 0
         partitions = self._assign(method=assignment_method, max_load=max_load, partition_method=partition_method,
@@ -792,9 +793,10 @@ class CsdpAp:
             path, c, sc = self._solve_partition(partition,
                                                 method=solve_partition_method,
                                                 partition_method=partition_method,
-                                                threshold_sd=threshold_sd)
+                                                threshold_sd=threshold_sd,
+                                                bounds=bounds)
             # TODO: Simple control to avoid prohibitive computation
-            if (path, c, sc) == (None, -1, None):
+            if c == -1:
                 return None, -1
             routes.append(path)
             cost += c
@@ -823,7 +825,7 @@ class CsdpAp:
             if solve_unserved_method == 'BB':
                 path, c, sc = self._solve_partition(partition)
                 # TODO: Simple control to avoid prohibitive computation
-                if (path, c, sc) == (None, -1, None):
+                if c == -1:
                     return None, -1
                 path = [v if v not in self._shop_by_F else self._shop_by_F[v] for v in path]
                 routes.append(path)
@@ -911,7 +913,8 @@ class CsdpAp:
         elif method == 'LL-EP':
             starts_by_customer = dict()
             if partition_method is not None:
-                partitions = self._compute_partitions(partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd)
+                partitions = self._compute_partitions(partition_method, fraction_sd=fraction_sd,
+                                                      threshold_sd=threshold_sd)
             else:
                 for start_v, end_v in self._ad_hoc_drivers:
                     partitions[(start_v, end_v)] = {'shops': self._shops, 'customers': self._customers}
@@ -923,9 +926,9 @@ class CsdpAp:
                         starts_by_customer[customer].append(start_v)
                     except KeyError:
                         starts_by_customer[customer] = [start_v]
-            bipartite, best_shop_per_driver_cust = self.create_bipartite_graph(partitions)
+            bipartite, best_shop_per_driver_cust = self._create_bipartite_graph(partitions)
             mst = bipartite.compute_mst()
-            to_downgrade = self.compute_amortized_edge_weights(mst, best_shop_per_driver_cust)
+            to_downgrade = self._compute_amortized_edge_weights(mst, best_shop_per_driver_cust)
             mst.update_edge_weights(to_downgrade)
             # iter = 0
             # while to_downgrade and iter < 50:
@@ -939,12 +942,36 @@ class CsdpAp:
             #     iter += 1
             #     # print iter
             if max_load > 0:
-                self.decrease_degree_mst(mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load)
+                self._decrease_degree_mst(mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load)
             # Set customers in partitions according to the final limited MST.
             driver_starts = set(self.H_s)
             for v, adj in mst.iteritems():
                 if v in driver_starts:
                     partitions[self._drivers_by_start[v]]['customers'] = {w for w in adj if w not in driver_starts}
+        # Are there shops without customers within each partition?
+        to_remove = dict()
+        for (start_v, end_v), shops_customers in partitions.iteritems():
+            if ('customers' in shops_customers and len(shops_customers['customers']) == 0) \
+                    or 'customers' not in shops_customers:
+                partitions[(start_v, end_v)]['shops'] = set()
+                continue
+            customers = shops_customers['customers']
+            try:
+                if len(shops_customers['shops']) == 0:
+                    continue
+            except KeyError:
+                continue
+            shops = set(shops_customers['shops'])
+            for shop in shops:
+                group_id = self._shops_dict[shop]
+                if customers.intersection(self._customers_by_group_id[group_id]):
+                    continue
+                try:
+                    to_remove[(start_v, end_v)].append(shop)
+                except KeyError:
+                    to_remove[(start_v, end_v)] = [shop]
+        for (start_v, end_v), shops in to_remove.iteritems():
+            partitions[(start_v, end_v)]['shops'] = partitions[(start_v, end_v)]['shops'].difference(shops)
         return partitions
 
     def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
@@ -999,7 +1026,7 @@ class CsdpAp:
             raise NotImplementedError
         return partitions
 
-    def decrease_degree_mst(self, mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load):
+    def _decrease_degree_mst(self, mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load):
         # Decrease the degree of the MST upto max_load.
         quarantine = set()
         moves = 0
@@ -1058,15 +1085,15 @@ class CsdpAp:
                     chosen, weight = min(candidates.iteritems(), key=operator.itemgetter(1))
                     mst.drop_edge(tuple(sorted([highest_degree_driver, most_expensive[0]])))
                     mst.append_edge_2((chosen, most_expensive[0]), weight=most_expensive[1])
-                    to_downgrade = self.compute_amortized_edge_weights(mst, best_shop_per_driver_cust,
-                                                                       highest_degree_driver, chosen)
+                    to_downgrade = self._compute_amortized_edge_weights(mst, best_shop_per_driver_cust,
+                                                                        highest_degree_driver, chosen)
                     mst.update_edge_weights(to_downgrade)
                     moves += 1
                     break
                 else:
                     sup = most_expensive[1]
 
-    def create_bipartite_graph(self, partitions):
+    def _create_bipartite_graph(self, partitions):
         # Build weighted bipartite graph and compute its MST.
         bipartite = Graph()
         best_shop_per_driver_cust = dict()
@@ -1117,7 +1144,7 @@ class CsdpAp:
             bipartite.append_edge_2((partitions.keys()[i][0], partitions.keys()[i + 1][0]), weight=0)
         return bipartite, best_shop_per_driver_cust
 
-    def compute_amortized_edge_weights(self, mst, best_shop_per_driver_cust, source=None, target=None):
+    def _compute_amortized_edge_weights(self, mst, best_shop_per_driver_cust, source=None, target=None):
         to_downgrade = dict()
         driver_starts = set(self.H_s)
         for v, adj in mst.iteritems():
@@ -1149,14 +1176,13 @@ class CsdpAp:
                     to_downgrade[tuple(sorted([v, customer]))] = amortized + d2 + d3
         return to_downgrade
 
-    def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5):
+    def _solve_partition(self, partition, method='BB', partition_method=None, threshold_sd=1.5, bounds='lb'):
         served_customers = set()
         # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
         # one driver only.
         if method == 'BB':
             (start_v, end_v), shops_customers = partition
             # Compute the shortest path for this driver as it is used later.
-            # start_v, end_v = vehicle
             self._graph.compute_dist_paths([start_v], [end_v])
             start_end = tuple(sorted([start_v, end_v]))
             # Filter out the shops that are not in the partition.
@@ -1176,15 +1202,11 @@ class CsdpAp:
                             break
             # If there are no shops nor customers, the driver follows her original route.
             if not shops_dict or not customers_dict:
-                # print start_end
                 route = self._graph.paths[start_end]
                 cost = self._graph.dist[start_end]
             else:
-                # TODO: Simple control to avoid prohibitive computation
-                if len(customers_dict) > 12:
-                    return None, -1, None
-                # Otherwise, partial paths' lower bounds are stored into a priority queue.
-                priority_queue = PriorityDictionary()
+                # Otherwise, partial paths' upper bounds are stored into a priority queue.
+                pd = PriorityDictionary()
                 # There are MORE THAN ONE initial path as there are more than one alternative pick-up locations.
                 if partition_method == 'SP-threshold':
                     dist = self._graph.dist[start_end]
@@ -1193,69 +1215,103 @@ class CsdpAp:
                                                      customers_dict,
                                                      start_v,
                                                      end_v,
-                                                     dist * threshold_sd)
+                                                     dist * threshold_sd,
+                                                     bounds='ub' if bounds == 'both' else bounds)
                     for initial_path in initial_paths:
                         if initial_path.cust_lb > 0:
-                            priority_queue[initial_path] = initial_path.cust_ub * (-1)
+                            pd[initial_path] = initial_path.cust_ub * (-1)
                 else:
                     # The lower bounds must be computed taking into account only one from each group of shops each time.
                     initial_paths = PartialPath.init(self._graph,
                                                      shops_dict,
                                                      customers_dict,
                                                      start_v,
-                                                     end_v)
-                    for initial_path in initial_paths:
-                        priority_queue[initial_path] = initial_path.dist_lb
+                                                     end_v,
+                                                     bounds='ub' if bounds == 'both' else bounds)
+                    if bounds == 'lb':
+                        for initial_path in initial_paths:
+                            pd[initial_path] = initial_path.dist_lb
+                    else:
+                        for initial_path in initial_paths:
+                            pd[initial_path] = initial_path.dist_ub
                 # If the priority dictionary is empty, it means that there weren't customers within the threshold. Thus,
                 # the driver follows her original route.
-                if len(priority_queue) == 0:
+                if len(pd) == 0:
                     # print start_end
                     route = self._graph.paths[start_end]
                     cost = self._graph.dist[start_end]
                 else:
-                    partial_path = None
-                    # This is the maximum number of customers to be served found out after exhausting the priority
-                    # dictionary.
-                    actual_cust_ub = 0
-                    for p in priority_queue:
-                        # Check whether ALL customers have been served. This is the termination condition.
-                        if len(p.customers) == 0 and p.path[-1] == end_v:
-                            if partition_method == 'SP-threshold':
-                                # This is when the maximum number of customers within a threshold is found out.
-                                if actual_cust_ub == 0:
-                                    partial_path = p
-                                    actual_cust_ub = partial_path.cust_ub
-                                else:
-                                    # The next time, I have to check whether the current path is cheaper and it is
-                                    # serving the same maximum number of customers.
-                                    if p.cust_ub == actual_cust_ub and p.dist < partial_path.dist:
-                                        partial_path = p
-                            else:
-                                partial_path = p
-                                break
-                        # Expands the partial path = computes partial path's offspring.
-                        offspring = p.spawn()
-                        # Priority queue is fed up with the offspring.
-                        if partition_method == 'SP-threshold':
-                            for child in offspring:
-                                # child.cust_ub >= actual_cust_ub is alwaazys true as long as the maximum number has not
-                                # been found out yet.
-                                if child.cust_lb > 0 and child.cust_ub >= actual_cust_ub:
-                                    priority_queue[child] = child.cust_ub * (-1)
-                        else:
-                            for child in offspring:
-                                priority_queue[child] = child.dist_lb
-                    if partial_path is not None:
-                        # print partial_path.path
-                        served_customers = set(self._customers_dict.keys()).intersection(partial_path.path)
-                        route = self._graph.expand_contracted_path(partial_path.path)
-                        cost = partial_path.dist
-                    else:
-                        # print start_end
-                        route = self._graph.paths[start_end]
-                        cost = self._graph.dist[start_end]
+                    route, cost, served_customers = self.bb(start_v, end_v, partition_method, pd, bounds=bounds)
+                    # TODO: Simple control to avoid prohibitive computation
+                    if cost == -1:
+                        return None, -1, None
+                    if bounds == 'both':
+                        lb_pd = PriorityDictionary()
+                        for partial_path in pd:
+                            partial_path.compute_dist_lb()
+                            lb_pd[partial_path] = partial_path.dist_lb
+                        route, cost, served_customers = self.bb(start_v, end_v, partition_method, lb_pd, bounds='lb',
+                                                                ub=cost)
+                        # TODO: Simple control to avoid prohibitive computation
+                        if cost == -1:
+                            return None, -1, None
         else:
             raise NotImplementedError
+        return route, cost, served_customers
+
+    def bb(self, start_v, end_v, partition_method, priority_queue, bounds='lb', ub=None):
+        served_customers = set()
+        partial_path = None
+        # This is the maximum number of customers to be served found out after exhausting the priority
+        # dictionary.
+        actual_cust_ub = 0
+        for p in priority_queue:
+            # Check whether ALL customers have been served. This is the termination condition.
+            if len(p.customers) == 0 and p.path[-1] == end_v:
+                if partition_method == 'SP-threshold':
+                    # This is when the maximum number of customers within a threshold is found out.
+                    if actual_cust_ub == 0:
+                        partial_path = p
+                        actual_cust_ub = partial_path.cust_ub
+                    else:
+                        # The next time, I have to check whether the current path is cheaper and it is
+                        # serving the same maximum number of customers.
+                        if p.cust_ub == actual_cust_ub and p.dist < partial_path.dist:
+                            partial_path = p
+                else:
+                    partial_path = p
+                    break
+            # Expands the partial path = computes partial path's offspring.
+            if bounds == 'lb':
+                offspring = p.spawn(bounds=bounds)
+            else:
+                offspring = p.spawn(bounds='ub')
+            # Priority queue is fed with the offspring.
+            if partition_method == 'SP-threshold':
+                for child in offspring:
+                    # child.cust_ub >= actual_cust_ub is always true as long as the maximum number has not
+                    # been found out yet.
+                    if child.cust_lb > 0 and child.cust_ub >= actual_cust_ub:
+                        priority_queue[child] = child.cust_ub * (-1)
+            else:
+                for child in offspring:
+                    if bounds == 'lb':
+                        if ub is not None and child.dist_lb >= ub:
+                            continue
+                        priority_queue[child] = child.dist_lb
+                    else:
+                        priority_queue[child] = child.dist_ub
+            # TODO: Simple control to avoid prohibitive computation
+            if len(priority_queue) > 200000:
+                return None, -1, None
+        if partial_path is not None:
+            served_customers = set(self._customers_dict.keys()).intersection(partial_path.path)
+            route = self._graph.expand_contracted_path(partial_path.path)
+            cost = partial_path.dist
+        else:
+            start_end = tuple(sorted([start_v, end_v]))
+            route = self._graph.paths[start_end]
+            cost = self._graph.dist[start_end]
         return route, cost, served_customers
 
     def _compute_regions(self, path, dist, fraction_sd=.5, excluded_customers=None):
@@ -1359,10 +1415,11 @@ class PartialPath:
     _threshold = None
 
     @staticmethod
-    def init(graph, shops_dict, customers_dict, origin, destination, threshold=None):
+    def init(graph, shops_dict, customers_dict, origin, destination, threshold=None, bounds='lb'):
         """
         Parameters
         ----------
+        :param bounds:
         :param graph: Digraph
             Used to retrieve shortest distances. It may be updated by an instance which in turn benefits others.
         :param shops_dict: dict
@@ -1425,7 +1482,7 @@ class PartialPath:
             # current shop.
             for comb_shops in combs_shops:
                 path = PartialPath([PartialPath._origin], 0, comb_shops, PartialPath._custs_dict.keys())
-                path._append_vertex(shop)
+                path._append_vertex(shop, bounds=bounds)
                 initial_paths.append(path)
         return initial_paths
 
@@ -1444,13 +1501,14 @@ class PartialPath:
         """
         self.path = list(path)
         self.dist_lb = 0
+        self.dist_ub = 0
         self.cust_ub = 0
         self.cust_lb = 0
         self.dist = dist
         self.shops = set(shops)  # Contains non-visited shops only.
         self.customers = set(customers)  # Contains non-visited customers only. It is exhausted as they are visited.
 
-    def spawn(self):
+    def spawn(self, bounds='lb'):
         """
         Create offspring where each child is one of the possible candidate vertices to visit. It is important that
         each child inherits the list of shops 'self.shops' and customers 'self.customers' to be visited.
@@ -1462,11 +1520,11 @@ class PartialPath:
         to_ = self._where_to(self.path[-1])
         for vertex in to_:
             child = PartialPath(self.path, self.dist, self.shops, self.customers)
-            child._append_vertex(vertex)
+            child._append_vertex(vertex, bounds=bounds)
             offspring.append(child)
         return offspring
 
-    def _append_vertex(self, vertex):
+    def _append_vertex(self, vertex, bounds='lb'):
         """
         Appends a vertex at the end of the path. In turn, updates the traveled distance and the lower bound.
 
@@ -1507,10 +1565,15 @@ class PartialPath:
         else:
             self.shops.discard(vertex)
             self.customers.discard(vertex)
-            # Update the distance lower bound.
-            self._compute_dist_lb()
+            # Update the distance bounds.
+            if bounds == 'lb':
+                self.compute_dist_lb()
+            elif bounds == 'ub':
+                self._compute_dist_ub()
+            else:
+                raise NotImplementedError
 
-    def _compute_dist_lb(self):
+    def compute_dist_lb(self):
         """
         Compute the lower bound. This may be thought as a matrix where the row entries are the starting points and the
         column entries are the destinations.
@@ -1548,6 +1611,23 @@ class PartialPath:
         # The lower bound is the sum of the row- and column-wise minimum values and path distance so far.
         self.dist_lb = sum(mins_row_wise.values()) + sum(mins_col_wise) + self.dist
 
+    def _compute_dist_ub(self):
+        path = list(self.path)
+        from_ = path[-1]
+        shops = set(self.shops)
+        customers = set(self.customers)
+        self.dist_ub = self.dist
+        while from_ != self._destination:
+            candidates_to = self._where_to(from_, path, shops, customers)
+            PartialPath._graph.compute_dist_paths([from_], candidates_to, compute_paths=False)
+            dist = ({v: PartialPath._graph.dist[tuple(sorted([from_, v]))] for v in candidates_to})
+            nn, d = min(dist.iteritems(), key=operator.itemgetter(1))
+            path.append(nn)
+            shops.discard(nn)
+            customers.discard(nn)
+            self.dist_ub += d
+            from_ = nn
+
     def _compute_cust_bs(self):
         # The minimum number of customers (lower bound) to visit is the current number of already visited customers and
         # at least one more from the set of non-visited customers. IMPORTANT: Customers who cannot be served by any shop
@@ -1558,7 +1638,7 @@ class PartialPath:
         # the number of non-visited customers.
         self.cust_ub = len(visited_customers) + len(self.customers)
 
-    def _where_to(self, from_):
+    def _where_to(self, from_, path=None, shops=None, customers=None):
         """
         What are the possible next vertices to visit from a specific vertex?
 
@@ -1568,23 +1648,33 @@ class PartialPath:
             Vertices to visit.
         """
         to_ = set()
-        visited_shops = PartialPath._shops_set.intersection(self.path)
+        if path is None:
+            visited_shops = PartialPath._shops_set.intersection(self.path)
+        else:
+            visited_shops = PartialPath._shops_set.intersection(path)
         visited_groups = {PartialPath._shops_dict[visited_shop] for visited_shop in visited_shops}
         non_visited_groups = PartialPath._groups_set.difference(visited_groups)
         # Shops in non-visited groups.
         for non_visited_group in non_visited_groups:
             if non_visited_group not in PartialPath._shops_by_group_id:
                 continue
-            to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(self.shops))
+            if shops is None:
+                to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(self.shops))
+            else:
+                to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(shops))
         # Non-visited customers in visited groups.
         for visited_group in visited_groups:
             if visited_group not in PartialPath._customers_by_group_id:
                 continue
-            to_.update(PartialPath._customers_by_group_id[visited_group].intersection(self.customers))
+            if customers is None:
+                to_.update(PartialPath._customers_by_group_id[visited_group].intersection(self.customers))
+            else:
+                to_.update(PartialPath._customers_by_group_id[visited_group].intersection(customers))
         # Is it from a customer?
         if from_ in PartialPath._customers_set:
-            # Then, it is possible to go to the destination.
-            to_.add(PartialPath._destination)
+            if (customers is None and len(self.customers) == 0) or (customers is not None and len(customers) == 0):
+                # Then, it is possible to go to the destination.
+                to_.add(PartialPath._destination)
         return to_
 
     def _lb_where_to(self, from_):

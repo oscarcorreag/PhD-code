@@ -6,6 +6,7 @@ from osmmanager import OsmManager
 from suitability import SuitableNodeWeightGenerator
 from numpy.random import RandomState
 from csdp_ap import CsdpAp
+from graph import Graph
 
 
 def compute_route_cost(route, graph_):
@@ -101,8 +102,10 @@ if __name__ == '__main__':
     thresholds = []
     # driver_locations = ['Z-U', 'U-Z', 'U-U']
     driver_locations = ['Z-U']
-    max_loads = [0, 2, 4, 8, 10]
+    max_loads = [0, 2, 4, 8, 10, 12]
     # max_loads = [0]
+    bounds = ['ub', 'lb', 'both']
+    # bounds = ['ub']
     #
     results = []
     sample = 0
@@ -129,7 +132,7 @@ if __name__ == '__main__':
                 graph = graph.extract_node_induced_subgraph(nodes)
                 shops = set(graph.keys()).intersection(shops)
             #
-            csdp_ap = CsdpAp(graph)
+            # csdp_ap = CsdpAp(graph)
             #
             N = len(graph.keys())
             num_shops = len(shops)
@@ -188,12 +191,6 @@ if __name__ == '__main__':
                             else:
                                 ds = [((u[i], 1, 300), (z[i], 1, 300)) for i in range(num_drivers)]
 
-                        # starts = [ds[i][0][0] for i in range(num_drivers)]
-                        # ends = [ds[i][1][0] for i in range(num_drivers)]
-                        # graph.compute_dist_paths(origins=starts, destinations=shops, compute_paths=False)
-                        # graph.compute_dist_paths(origins=shops, destinations=customers, compute_paths=False)
-                        # graph.compute_dist_paths(origins=customers, destinations=ends, compute_paths=False)
-
                         # # ----------------------------------------------------------------------------------------------
                         # # MILP
                         # # ----------------------------------------------------------------------------------------------
@@ -212,110 +209,136 @@ if __name__ == '__main__':
                         # print line
                         # results.append(line)
 
-                        # ----------------------------------------------------------------------------------------------
-                        # SP-based -> Partition='SP-Voronoi'
-                        # ----------------------------------------------------------------------------------------------
-                        st = time.clock()
-                        routes, cost = csdp_ap.solve(rs, ds, method='SP-based', assignment_method='SP-Voronoi')
-                        et = time.clock() - st
+                        for b in bounds:
+                            # # ------------------------------------------------------------------------------------------
+                            # # SP-based -> Partition='SP-Voronoi'
+                            # # ------------------------------------------------------------------------------------------
+                            g = Graph()
+                            g.append_graph(graph)
+                            csdp_ap = CsdpAp(g)
 
-                        # TODO: Simple control to avoid prohibitive computation
-                        if (routes, cost) == (None, -1):
-                            line = ['SP-Voronoi-DT', 0, seed, region, N, delta_meters, num_shops, num_retailers,
-                                    len(rs),
-                                    ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0]
-                        else:
-                            stats = compute_stats_per_driver_type(routes, graph)
-
-                            line = ['SP-Voronoi', 0, seed, region, N, delta_meters, num_shops, num_retailers,
-                                    len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
-                                    stats['dedicated']['total'], stats['ad hoc']['service'],
-                                    stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg detour']]
-                        print line
-                        results.append(line)
-
-                        for max_load in max_loads:
                             st = time.clock()
-                            routes, cost = csdp_ap.solve(rs, ds, method='SP-based', max_load=max_load)
+                            routes, cost = csdp_ap.solve(rs, ds, method='SP-based', assignment_method='SP-Voronoi',
+                                                         bounds=b)
                             et = time.clock() - st
 
                             # TODO: Simple control to avoid prohibitive computation
-                            if (routes, cost) == (None, -1):
-                                line = ['LL-EP', 0, seed, region, N, delta_meters, num_shops, num_retailers, len(rs),
-                                        ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0, max_load]
+                            if cost == -1:
+                                line = ['SP-Voronoi', 0, seed, region, N, delta_meters, num_shops, num_retailers,
+                                        len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0, 0, b]
                             else:
                                 stats = compute_stats_per_driver_type(routes, graph)
 
-                                line = ['LL-EP', 0, seed, region, N, delta_meters, num_shops, num_retailers, len(rs),
-                                        ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
-                                        stats['dedicated']['total'], stats['ad hoc']['service'], stats['ad hoc']['no'],
-                                        stats['dedicated']['no'], stats['ad hoc']['avg detour'], max_load]
+                                line = ['SP-Voronoi', 0, seed, region, N, delta_meters, num_shops, num_retailers,
+                                        len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
+                                        stats['dedicated']['total'], stats['ad hoc']['service'],
+                                        stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg detour'],
+                                        0, b]
                             print line
                             results.append(line)
 
-                            # ----------------------------------------------------------------------------------------------
-                            # SP-based -> Partition='SP-fraction'
-                            # ----------------------------------------------------------------------------------------------
-                            for fraction in fractions:
+                            for max_load in max_loads:
+
+                                g = Graph()
+                                g.append_graph(graph)
+                                csdp_ap = CsdpAp(g)
+
                                 st = time.clock()
-                                routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-fraction',
-                                                             fraction_sd=fraction, max_load=max_load)
+                                routes, cost = csdp_ap.solve(rs, ds, method='SP-based', max_load=max_load, bounds=b)
                                 et = time.clock() - st
 
                                 # TODO: Simple control to avoid prohibitive computation
-                                if (routes, cost) == (None, -1):
-                                    line = ['SP-fraction_LL-EP', fraction, seed, region, N, delta_meters, num_shops,
-                                            num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0, max_load]
+                                if cost == -1:
+                                    line = ['LL-EP', 0, seed, region, N, delta_meters, num_shops, num_retailers,
+                                            len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0, max_load,
+                                            b]
                                 else:
                                     stats = compute_stats_per_driver_type(routes, graph)
 
-                                    line = ['SP-fraction_LL-EP', fraction, seed, region, N, delta_meters, num_shops,
-                                            num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost,
-                                            stats['ad hoc']['total'], stats['dedicated']['total'],
-                                            stats['ad hoc']['service'], stats['ad hoc']['no'], stats['dedicated']['no'],
-                                            stats['ad hoc']['avg detour'], max_load]
+                                    line = ['LL-EP', 0, seed, region, N, delta_meters, num_shops, num_retailers,
+                                            len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
+                                            stats['dedicated']['total'], stats['ad hoc']['service'],
+                                            stats['ad hoc']['no'], stats['dedicated']['no'],
+                                            stats['ad hoc']['avg detour'], max_load, b]
                                 print line
                                 results.append(line)
 
-                            for threshold in thresholds:
-                                # # ------------------------------------------------------------------------------------------
-                                # # MILP-threshold
-                                # # ------------------------------------------------------------------------------------------
-                                # st = time.clock()
-                                # routes, cost = csdp_ap.solve(rs, ds, method='MILP-threshold', threshold_sd=threshold)
-                                # et = time.clock() - st
-                                # stats = compute_stats_per_driver_type(routes, graph)
-                                #
-                                # line = ['MILP-threshold', threshold, seed, region, N, delta_meters, num_pois, num_retailers,
-                                #         len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
-                                #         stats['dedicated']['total'], stats['ad hoc']['no'], stats['dedicated']['no'],
-                                #         stats['ad hoc']['avg'], stats['dedicated']['avg'], stats['ad hoc']['avg detour'],
-                                #         stats['ad hoc']['w avg detour']]
-                                # print line
-                                # results.append(line)
+                                # --------------------------------------------------------------------------------------
+                                # SP-based -> Partition='SP-fraction'
+                                # --------------------------------------------------------------------------------------
+                                for fraction in fractions:
 
-                                # ------------------------------------------------------------------------------------------
-                                # SP-based -> Partition='SP-threshold'
-                                # ------------------------------------------------------------------------------------------
-                                st = time.clock()
-                                routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold',
-                                                             threshold_sd=threshold, max_load=max_load)
-                                et = time.clock() - st
+                                    g = Graph()
+                                    g.append_graph(graph)
+                                    csdp_ap = CsdpAp(g)
 
-                                # TODO: Simple control to avoid prohibitive computation
-                                if (routes, cost) == (None, -1):
-                                    line = ['SP-threshold_LL_EP', threshold, seed, region, N, delta_meters, num_shops,
-                                            num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0, max_load]
-                                else:
-                                    stats = compute_stats_per_driver_type(routes, graph)
+                                    st = time.clock()
+                                    routes, cost = csdp_ap.solve(rs, ds, method='SP-based',
+                                                                 partition_method='SP-fraction', fraction_sd=fraction,
+                                                                 max_load=max_load, bounds=b)
+                                    et = time.clock() - st
 
-                                    line = ['SP-threshold_LL_EP', threshold, seed, region, N, delta_meters, num_shops,
-                                            num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost,
-                                            stats['ad hoc']['total'], stats['dedicated']['total'],
-                                            stats['ad hoc']['service'], stats['ad hoc']['no'], stats['dedicated']['no'],
-                                            stats['ad hoc']['avg detour'], max_load]
-                                print line
-                                results.append(line)
+                                    # TODO: Simple control to avoid prohibitive computation
+                                    if cost == -1:
+                                        line = ['SP-fraction_LL-EP', fraction, seed, region, N, delta_meters, num_shops,
+                                                num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0,
+                                                0, 0, 0, max_load, b]
+                                    else:
+                                        stats = compute_stats_per_driver_type(routes, graph)
+
+                                        line = ['SP-fraction_LL-EP', fraction, seed, region, N, delta_meters, num_shops,
+                                                num_retailers, len(rs), ratio, len(ds), d_l, sample, et, cost,
+                                                stats['ad hoc']['total'], stats['dedicated']['total'],
+                                                stats['ad hoc']['service'], stats['ad hoc']['no'],
+                                                stats['dedicated']['no'], stats['ad hoc']['avg detour'], max_load, b]
+                                    print line
+                                    results.append(line)
+
+                                for threshold in thresholds:
+                                    # # ------------------------------------------------------------------------------------------
+                                    # # MILP-threshold
+                                    # # ------------------------------------------------------------------------------------------
+                                    # st = time.clock()
+                                    # routes, cost = csdp_ap.solve(rs, ds, method='MILP-threshold', threshold_sd=threshold)
+                                    # et = time.clock() - st
+                                    # stats = compute_stats_per_driver_type(routes, graph)
+                                    #
+                                    # line = ['MILP-threshold', threshold, seed, region, N, delta_meters, num_pois, num_retailers,
+                                    #         len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
+                                    #         stats['dedicated']['total'], stats['ad hoc']['no'], stats['dedicated']['no'],
+                                    #         stats['ad hoc']['avg'], stats['dedicated']['avg'], stats['ad hoc']['avg detour'],
+                                    #         stats['ad hoc']['w avg detour']]
+                                    # print line
+                                    # results.append(line)
+
+                                    # ------------------------------------------------------------------------------------------
+                                    # SP-based -> Partition='SP-threshold'
+                                    # ------------------------------------------------------------------------------------------
+                                    g = Graph()
+                                    g.append_graph(graph)
+                                    csdp_ap = CsdpAp(g)
+
+                                    st = time.clock()
+                                    routes, cost = csdp_ap.solve(rs, ds, method='SP-based',
+                                                                 partition_method='SP-threshold',
+                                                                 threshold_sd=threshold, max_load=max_load, bounds=b)
+                                    et = time.clock() - st
+
+                                    # TODO: Simple control to avoid prohibitive computation
+                                    if cost == -1:
+                                        line = ['SP-threshold_LL_EP', threshold, seed, region, N, delta_meters,
+                                                num_shops, num_retailers, len(rs), ratio, len(ds), d_l, sample, et,
+                                                cost, 0, 0, 0, 0, 0, 0, max_load, b]
+                                    else:
+                                        stats = compute_stats_per_driver_type(routes, graph)
+
+                                        line = ['SP-threshold_LL_EP', threshold, seed, region, N, delta_meters,
+                                                num_shops, num_retailers, len(rs), ratio, len(ds), d_l, sample, et,
+                                                cost, stats['ad hoc']['total'], stats['dedicated']['total'],
+                                                stats['ad hoc']['service'], stats['ad hoc']['no'],
+                                                stats['dedicated']['no'], stats['ad hoc']['avg detour'], max_load, b]
+                                    print line
+                                    results.append(line)
             #
             sample += 1
 
