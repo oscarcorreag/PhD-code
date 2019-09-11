@@ -102,9 +102,9 @@ if __name__ == '__main__':
     thresholds = []
     # driver_locations = ['Z-U', 'U-Z', 'U-U']
     driver_locations = ['Z-U']
-    max_loads = [0, 2, 4, 8, 10, 12]
+    max_loads = [0, 2, 4, 8, 16]
     # max_loads = [0]
-    bounds = ['ub', 'lb', 'both']
+    bounds = ['both', 'lb', 'ub']
     # bounds = ['ub']
     #
     results = []
