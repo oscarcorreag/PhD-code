@@ -50,7 +50,7 @@ my_theme <- function(base_size = 11, base_family = "") {
 
 # BOUNDS EFFECT in LL-EP
 # -------------
-bds <- fread("LL-EP_bounds_12Sep2019_030832.csv")
+bds <- fread("LL-EP_bounds_32C_12Sep2019_030832.csv")
 bds$Approach <- as.factor(bds$Approach)
 bds$Zone <- as.factor(bds$Zone)
 bds$Distribution <- as.factor(bds$Distribution)
@@ -102,7 +102,7 @@ milp_prop_f <- function(sd) {
   }
 }
 
-sd_cols_milp <- c("Approach", "Cost", "Elapsed.time")
+sd_cols_milp <- c("Approach", "Cost", "Service.cost", "Elapsed.time")
 
 milp_12C_prop_dt <- milp_12C[Cost != -1, milp_prop_f(.SD), by = Seed, .SDcols = sd_cols_milp]
 milp_12C_prop_dt[, Customers := 12]
@@ -120,3 +120,55 @@ p_milp_time_prop <- p_milp_time_prop + geom_density(alpha = 0.1, adjust = 1/5)
 p_milp_time_prop <- p_milp_time_prop + my_theme()
 p_milp_time_prop <- p_milp_time_prop + labs(x = "Proportion MILP processing time")
 p_milp_time_prop
+
+
+# LL-EP Vs Voronoi (32 Customers + Limits: [0, 2, 4, 8, 16] + no spatial partitioning)
+# ------------------------------------------------------------------------------------
+vor_32C <- fread("LL-EP_bounds_32C_12Sep2019_030832.csv")
+vor_32C$Approach <- as.factor(vor_32C$Approach)
+vor_32C$Zone <- as.factor(vor_32C$Zone)
+vor_32C$Distribution <- as.factor(vor_32C$Distribution)
+vor_32C$Bounds <- as.factor(vor_32C$Bounds)
+
+vor_prop_f <- function(sd) {
+  baseline <- sd[Approach == "SP-Voronoi", -1, with = FALSE]
+  other <- sd[Approach != "SP-Voronoi", -1, with = FALSE]
+  if(nrow(baseline) == 1 & nrow(other) == 1){
+    other[1] / baseline[1]
+  }
+}
+
+sd_cols_vor <- c("Approach", "Cost", "Service.cost",  "Elapsed.time", "Avg.detour")
+
+vor_32C_lim0_prop_dt <- vor_32C[(Approach == 'SP-Voronoi' | (Approach == 'LL-EP' & Limit == 0)) &  Bounds == 'both' & Cost != -1, vor_prop_f(.SD), by = Seed, .SDcols = sd_cols_vor]
+vor_32C_lim0_prop_dt[, Limit := 0]
+vor_32C_lim2_prop_dt <- vor_32C[(Approach == 'SP-Voronoi' | (Approach == 'LL-EP' & Limit == 2)) &  Bounds == 'both' & Cost != -1, vor_prop_f(.SD), by = Seed, .SDcols = sd_cols_vor]
+vor_32C_lim2_prop_dt[, Limit := 2]
+vor_32C_lim4_prop_dt <- vor_32C[(Approach == 'SP-Voronoi' | (Approach == 'LL-EP' & Limit == 4)) &  Bounds == 'both' & Cost != -1, vor_prop_f(.SD), by = Seed, .SDcols = sd_cols_vor]
+vor_32C_lim4_prop_dt[, Limit := 4]
+vor_32C_lim8_prop_dt <- vor_32C[(Approach == 'SP-Voronoi' | (Approach == 'LL-EP' & Limit == 8)) &  Bounds == 'both' & Cost != -1, vor_prop_f(.SD), by = Seed, .SDcols = sd_cols_vor]
+vor_32C_lim8_prop_dt[, Limit := 8]
+vor_32C_lim16_prop_dt <- vor_32C[(Approach == 'SP-Voronoi' | (Approach == 'LL-EP' & Limit == 16)) &  Bounds == 'both' & Cost != -1, vor_prop_f(.SD), by = Seed, .SDcols = sd_cols_vor]
+vor_32C_lim16_prop_dt[, Limit := 16]
+
+vor_32C_prop_dt <- rbind(vor_32C_lim0_prop_dt, vor_32C_lim2_prop_dt, vor_32C_lim4_prop_dt, vor_32C_lim8_prop_dt, vor_32C_lim16_prop_dt)
+
+p_vor_32C_cost_prop <- ggplot(vor_32C_prop_dt, aes(x = Limit, y = Service.cost, fill = Limit)) 
+# p_vor_32C_cost_prop <- ggplot(vor_32C_prop_dt, aes(x = Service.cost, fill = Limit, colour = Limit)) 
+p_vor_32C_cost_prop <- p_vor_32C_cost_prop + geom_boxplot()
+# p_vor_32C_cost_prop <- p_vor_32C_cost_prop + geom_density(alpha = 0.1, adjust = 1/5)
+p_vor_32C_cost_prop <- p_vor_32C_cost_prop + scale_x_discrete()
+p_vor_32C_cost_prop <- p_vor_32C_cost_prop + scale_y_log10()
+p_vor_32C_cost_prop <- p_vor_32C_cost_prop + my_theme()
+p_vor_32C_cost_prop <- p_vor_32C_cost_prop + labs(x = "Proportion Voronoi Cost")
+p_vor_32C_cost_prop
+
+p_vor_32C_time_prop <- ggplot(vor_32C_prop_dt, aes(x = Limit, y = Elapsed.time, fill = Limit)) 
+#p_vor_32C_time_prop <- ggplot(vor_32C_prop_dt, aes(x = Elapsed.time, fill = Limit, colour = Limit))
+p_vor_32C_time_prop <- p_vor_32C_time_prop + geom_boxplot()
+#p_vor_32C_time_prop <- p_vor_32C_time_prop + geom_density(alpha = 0.1, adjust = 1/5)
+p_vor_32C_time_prop <- p_vor_32C_time_prop + scale_x_discrete()
+p_vor_32C_time_prop <- p_vor_32C_time_prop + scale_y_log10()
+p_vor_32C_time_prop <- p_vor_32C_time_prop + my_theme()
+p_vor_32C_time_prop <- p_vor_32C_time_prop + labs(x = "Proportion Voronoi Cost")
+p_vor_32C_time_prop
