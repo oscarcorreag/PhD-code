@@ -93,7 +93,7 @@ if __name__ == '__main__':
     delta = delta_meters / 111111
     num_samples = 50
     # num_customers_r = [16, 64, 256, 1024]
-    num_customers_r = [12]
+    num_customers_r = [16]
     ratios = [4.0]
     # ratios = [2.0]
     # fractions = [0.1, 0.3, 0.5]
