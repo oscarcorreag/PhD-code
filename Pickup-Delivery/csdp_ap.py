@@ -990,16 +990,21 @@ class CsdpAp:
             for start_v, end_v in self._ad_hoc_drivers:
                 path = self._graph.paths[tuple(sorted([start_v, end_v]))]
                 dist = self._graph.dist[tuple(sorted([start_v, end_v]))]
-                regions = self._compute_regions(path, dist, fraction_sd=fraction_sd)
+                expansion = dict()
+                for i, vertex in enumerate(path):
+                    region = self._graph.explore_upto(vertex, dist * fraction_sd)
+                    expansion.update(region)
+                partitions[(start_v, end_v)] = {'all': expansion.keys()}
+                # regions = self._compute_regions(path, dist, fraction_sd=fraction_sd)
                 # Shops and customers of different regions of the same driver are gathered. We are interested in
                 # returning shops and customers by driver (partition) so we drop the extra level of disaggregation,
                 # i.e., by region.
-                shops = set()
-                customers = set()
-                for shops_customers in regions.values():
-                    shops.update(shops_customers['shops'])
-                    customers.update(shops_customers['customers'])
-                partitions[(start_v, end_v)] = {'customers': customers, 'shops': shops}
+                # shops = set()
+                # customers = set()
+                # for shops_customers in regions.values():
+                #     shops.update(shops_customers['shops'])
+                #     customers.update(shops_customers['customers'])
+                # partitions[(start_v, end_v)] = {'customers': customers, 'shops': shops}
         # --------------------------------------------------------------------------------------------------------------
         # SP-threshold: Vertices within ellipses with constant = SD * threshold_sd are retrieved for each driver as an
         #               initial partition. The partition must be solved accordingly, i.e., regarding the threshold, this
@@ -1009,21 +1014,35 @@ class CsdpAp:
             for start_v, end_v in self._ad_hoc_drivers:
                 dist = self._graph.dist[tuple(sorted([start_v, end_v]))]
                 ellipse = self._graph.nodes_within_ellipse(start_v, end_v, dist * threshold_sd)
-                partitions[(start_v, end_v)] = dict()
-                vertices_left = set(ellipse.keys())
-                for vertex in vertices_left:
-                    if vertex in self._shops:
-                        try:
-                            partitions[(start_v, end_v)]['shops'].add(vertex)
-                        except KeyError:
-                            partitions[(start_v, end_v)]['shops'] = {vertex}
-                    elif vertex in self._customers:
-                        try:
-                            partitions[(start_v, end_v)]['customers'].add(vertex)
-                        except KeyError:
-                            partitions[(start_v, end_v)]['customers'] = {vertex}
+                partitions[(start_v, end_v)] = {'all': ellipse.keys()}
+                # partitions[(start_v, end_v)] = dict()
+                # vertices_left = set(ellipse.keys())
+                # for vertex in vertices_left:
+                #     if vertex in self._shops:
+                #         try:
+                #             partitions[(start_v, end_v)]['shops'].add(vertex)
+                #         except KeyError:
+                #             partitions[(start_v, end_v)]['shops'] = {vertex}
+                #     elif vertex in self._customers:
+                #         try:
+                #             partitions[(start_v, end_v)]['customers'].add(vertex)
+                #         except KeyError:
+                #             partitions[(start_v, end_v)]['customers'] = {vertex}
         else:
             raise NotImplementedError
+        for (start_v, end_v), vertices in partitions.iteritems():
+            for vertex in vertices['all']:
+                if vertex in self._shops:
+                    try:
+                        partitions[(start_v, end_v)]['shops'].add(vertex)
+                    except KeyError:
+                        partitions[(start_v, end_v)]['shops'] = {vertex}
+                elif vertex in self._customers:
+                    try:
+                        partitions[(start_v, end_v)]['customers'].add(vertex)
+                    except KeyError:
+                        partitions[(start_v, end_v)]['customers'] = {vertex}
+
         return partitions
 
     def _decrease_degree_mst(self, mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load):
@@ -1306,7 +1325,7 @@ class CsdpAp:
                         else:
                             priority_queue[child] = child.dist_ub
             # TODO: Simple control to avoid prohibitive computation
-            if len(priority_queue) > 200000:
+            if len(priority_queue) > 500000:
                 return None, -1, None
         if partial_path is not None:
             served_customers = set(self._customers_dict.keys()).intersection(partial_path.path)
@@ -1318,25 +1337,22 @@ class CsdpAp:
             cost = self._graph.dist[start_end]
         return route, cost, served_customers
 
-    def _compute_regions(self, path, dist, fraction_sd=.5, excluded_customers=None):
-        customers = set(self._customers)
-        if excluded_customers is not None:
-            customers = customers.difference(excluded_customers)
-        # Explore from each intermediate vertex in the path up to [dist] * [fraction_sd]
-        # Find shops and customers within those explored regions.
-        regions = {}  # Customers and shops by intermediate vertex.
-        # shops_region_revised = dict()
-        for i, vertex in enumerate(path):
-            # Explore graph from each intermediate vertex in driver's shortest path until 1/2 shortest distance.
-            region = self._graph.explore_upto(vertex, dist * fraction_sd)
-            # Which customers are in this region?
-            # customers_region = self._customers.intersection(region.keys())
-            customers_region = customers.intersection(region.keys())
-            # Which shops are in this region?
-            shops_region = self._shops.intersection(region.keys())
-            #
-            regions[vertex] = {'customers': customers_region, 'shops': shops_region}
-        return regions
+    # def _compute_regions(self, path, dist, fraction_sd=.5):
+    #     # Explore from each intermediate vertex in the path up to [dist] * [fraction_sd]
+    #     # Find shops and customers within those explored regions.
+    #     regions = {}  # Customers and shops by intermediate vertex.
+    #     # shops_region_revised = dict()
+    #     for i, vertex in enumerate(path):
+    #         # Explore graph from each intermediate vertex in driver's shortest path until 1/2 shortest distance.
+    #         region = self._graph.explore_upto(vertex, dist * fraction_sd)
+    #         # Which customers are in this region?
+    #         customers_region = self._customers.intersection(region.keys())
+    #         # customers_region = customers.intersection(region.keys())
+    #         # Which shops are in this region?
+    #         shops_region = self._shops.intersection(region.keys())
+    #         #
+    #         regions[vertex] = {'customers': customers_region, 'shops': shops_region}
+    #     return regions
 
     def _build_routes_milp(self):
         routes = list()
