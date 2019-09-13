@@ -117,17 +117,21 @@ milp_12C_prop_dt <- milp_12C[Cost != -1, milp_prop_f(.SD), by = Seed, .SDcols = 
 milp_12C_prop_dt[, Customers := 12]
 
 milp_prop_dt <- rbind(milp_8C_prop_dt, milp_12C_prop_dt)
+milp_prop_dt$Customers <- as.factor(milp_prop_dt$Customers)
+milp_prop_dt[is.infinite(Service.cost), Service.cost := NaN]
+milp_prop_dt[Service.cost > 1e6, Service.cost := NaN]
+milp_prop_dt[Service.cost < 1e-6, Service.cost := NaN]
 
-p_milp_cost_prop <- ggplot(milp_prop_dt, aes(x = Cost, fill = as.factor(Customers), colour = as.factor(Customers)))
-p_milp_cost_prop <- p_milp_cost_prop + geom_density(alpha = 0.1, adjust = 1/5)
+p_milp_cost_prop <- ggplot(milp_prop_dt, aes(x = Service.cost, fill = Customers, colour = Customers))
+p_milp_cost_prop <- p_milp_cost_prop + geom_density(alpha = 0.1, adjust = 1/3)
 p_milp_cost_prop <- p_milp_cost_prop + my_theme()
-p_milp_cost_prop <- p_milp_cost_prop + labs(x = "Proportion MILP Cost")
+p_milp_cost_prop <- p_milp_cost_prop + labs(x = "Proportion MILP Service Cost")
 p_milp_cost_prop
 
-p_milp_time_prop <- ggplot(milp_prop_dt, aes(x = Elapsed.time, fill = as.factor(Customers), colour = as.factor(Customers)))
-p_milp_time_prop <- p_milp_time_prop + geom_density(alpha = 0.1, adjust = 1/5)
+p_milp_time_prop <- ggplot(milp_prop_dt, aes(x = Elapsed.time, fill = Customers, colour = Customers))
+p_milp_time_prop <- p_milp_time_prop + geom_density(alpha = 0.1, adjust = 1/3)
 p_milp_time_prop <- p_milp_time_prop + my_theme()
-p_milp_time_prop <- p_milp_time_prop + labs(x = "Proportion MILP processing time")
+p_milp_time_prop <- p_milp_time_prop + labs(x = "Proportion MILP Processing Time")
 p_milp_time_prop
 
 
@@ -161,23 +165,24 @@ vor_32C_lim16_prop_dt <- vor_32C[(Approach == 'SP-Voronoi' | (Approach == 'LL-EP
 vor_32C_lim16_prop_dt[, Limit := 16]
 
 vor_32C_prop_dt <- rbind(vor_32C_lim0_prop_dt, vor_32C_lim2_prop_dt, vor_32C_lim4_prop_dt, vor_32C_lim8_prop_dt, vor_32C_lim16_prop_dt)
+vor_32C_prop_dt[, Limit := as.factor(Limit)]
 
-p_vor_32C_cost_prop <- ggplot(vor_32C_prop_dt, aes(x = Limit, y = Service.cost, fill = as.factor(Limit)))
+p_vor_32C_cost_prop <- ggplot(vor_32C_prop_dt, aes(x = Limit, y = Service.cost, fill = Limit))
 # p_vor_32C_cost_prop <- ggplot(vor_32C_prop_dt, aes(x = Service.cost, fill = Limit, colour = Limit)) 
 p_vor_32C_cost_prop <- p_vor_32C_cost_prop + geom_boxplot()
 # p_vor_32C_cost_prop <- p_vor_32C_cost_prop + geom_density(alpha = 0.1, adjust = 1/5)
 p_vor_32C_cost_prop <- p_vor_32C_cost_prop + scale_x_discrete()
-p_vor_32C_cost_prop <- p_vor_32C_cost_prop + scale_y_log10()
-p_vor_32C_cost_prop <- p_vor_32C_cost_prop + my_theme()
-#p_vor_32C_cost_prop <- p_vor_32C_cost_prop + labs(x = "Proportion Voronoi Cost")
+#p_vor_32C_cost_prop <- p_vor_32C_cost_prop + scale_y_log10()
+#p_vor_32C_cost_prop <- p_vor_32C_cost_prop + my_theme()
+p_vor_32C_cost_prop <- p_vor_32C_cost_prop + labs(y = "Proportion Voronoi Service Cost")
 p_vor_32C_cost_prop
 
-p_vor_32C_time_prop <- ggplot(vor_32C_prop_dt, aes(x = Limit, y = Elapsed.time, fill = as.factor(Limit)))
+p_vor_32C_time_prop <- ggplot(vor_32C_prop_dt, aes(x = Limit, y = Elapsed.time, fill = Limit))
 #p_vor_32C_time_prop <- ggplot(vor_32C_prop_dt, aes(x = Elapsed.time, fill = Limit, colour = Limit))
 p_vor_32C_time_prop <- p_vor_32C_time_prop + geom_boxplot()
 #p_vor_32C_time_prop <- p_vor_32C_time_prop + geom_density(alpha = 0.1, adjust = 1/5)
 p_vor_32C_time_prop <- p_vor_32C_time_prop + scale_x_discrete()
 p_vor_32C_time_prop <- p_vor_32C_time_prop + scale_y_log10()
-p_vor_32C_time_prop <- p_vor_32C_time_prop + my_theme()
-#p_vor_32C_time_prop <- p_vor_32C_time_prop + labs(x = "Proportion Voronoi Cost")
+#p_vor_32C_time_prop <- p_vor_32C_time_prop + my_theme()
+p_vor_32C_time_prop <- p_vor_32C_time_prop + labs(y = "Proportion Voronoi Processing Time")
 p_vor_32C_time_prop
