@@ -854,6 +854,8 @@ class CsdpAp:
 
     def _assign(self, method='LL-EP', max_load=0, partition_method=None, fraction_sd=0.5, threshold_sd=1.5):
         partitions = {}
+        if partition_method is not None:
+            partitions = self._compute_partitions(partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd)
         # --------------------------------------------------------------------------------------------------------------
         # SP-Voronoi
         # --------------------------------------------------------------------------------------------------------------
@@ -861,11 +863,17 @@ class CsdpAp:
             self._graph.compute_dist_paths(pairs=self._ad_hoc_drivers)
             # Drivers' paths are gathered as a list to be sent as parameter for Voronoi cells computation.
             paths = list()
+            vertices = set()
             for start_v, end_v in self._ad_hoc_drivers:
                 paths.append(self._graph.paths[tuple(sorted([start_v, end_v]))])
+                if partition_method is not None:
+                    vertices.update(partitions[(start_v, end_v)]['all'])
             # Voronoi cells contain all kinds of vertices, i.e., not only shops and customers. Thus, cells must be
             # sieved.
-            cells, _ = self._graph.get_voronoi_paths_cells(paths)
+            if len(vertices) > 0:
+                cells, _ = self._graph.get_voronoi_paths_cells(paths, vertices)
+            else:
+                cells, _ = self._graph.get_voronoi_paths_cells(paths)
             for (start_v, end_v), vertices in cells.iteritems():
                 partitions[(start_v, end_v)] = dict()
                 for vertex in vertices:
@@ -912,10 +920,7 @@ class CsdpAp:
         # --------------------------------------------------------------------------------------------------------------
         elif method == 'LL-EP':
             starts_by_customer = dict()
-            if partition_method is not None:
-                partitions = self._compute_partitions(partition_method, fraction_sd=fraction_sd,
-                                                      threshold_sd=threshold_sd)
-            else:
+            if partition_method is None:
                 for start_v, end_v in self._ad_hoc_drivers:
                     partitions[(start_v, end_v)] = {'shops': self._shops, 'customers': self._customers}
             for (start_v, _), shops_customers in partitions.iteritems():
@@ -930,17 +935,6 @@ class CsdpAp:
             mst = bipartite.compute_mst()
             to_downgrade = self._compute_amortized_edge_weights(mst, best_shop_per_driver_cust)
             mst.update_edge_weights(to_downgrade)
-            # iter = 0
-            # while to_downgrade and iter < 50:
-            #     mst.update_edge_weights(to_downgrade)
-            #     bck = dict(to_downgrade)
-            #     temp = self.compute_amortized_edge_weights(mst, best_shop_per_driver_cust)
-            #     to_downgrade = dict()
-            #     for (x, y), new_weight in temp.iteritems():
-            #         if new_weight != bck[(x, y)]:
-            #             to_downgrade[(x, y)] = new_weight
-            #     iter += 1
-            #     # print iter
             if max_load > 0:
                 self._decrease_degree_mst(mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load)
             # Set customers in partitions according to the final limited MST.
@@ -995,16 +989,6 @@ class CsdpAp:
                     region = self._graph.explore_upto(vertex, dist * fraction_sd)
                     expansion.update(region)
                 partitions[(start_v, end_v)] = {'all': expansion.keys()}
-                # regions = self._compute_regions(path, dist, fraction_sd=fraction_sd)
-                # Shops and customers of different regions of the same driver are gathered. We are interested in
-                # returning shops and customers by driver (partition) so we drop the extra level of disaggregation,
-                # i.e., by region.
-                # shops = set()
-                # customers = set()
-                # for shops_customers in regions.values():
-                #     shops.update(shops_customers['shops'])
-                #     customers.update(shops_customers['customers'])
-                # partitions[(start_v, end_v)] = {'customers': customers, 'shops': shops}
         # --------------------------------------------------------------------------------------------------------------
         # SP-threshold: Vertices within ellipses with constant = SD * threshold_sd are retrieved for each driver as an
         #               initial partition. The partition must be solved accordingly, i.e., regarding the threshold, this
@@ -1015,19 +999,6 @@ class CsdpAp:
                 dist = self._graph.dist[tuple(sorted([start_v, end_v]))]
                 ellipse = self._graph.nodes_within_ellipse(start_v, end_v, dist * threshold_sd)
                 partitions[(start_v, end_v)] = {'all': ellipse.keys()}
-                # partitions[(start_v, end_v)] = dict()
-                # vertices_left = set(ellipse.keys())
-                # for vertex in vertices_left:
-                #     if vertex in self._shops:
-                #         try:
-                #             partitions[(start_v, end_v)]['shops'].add(vertex)
-                #         except KeyError:
-                #             partitions[(start_v, end_v)]['shops'] = {vertex}
-                #     elif vertex in self._customers:
-                #         try:
-                #             partitions[(start_v, end_v)]['customers'].add(vertex)
-                #         except KeyError:
-                #             partitions[(start_v, end_v)]['customers'] = {vertex}
         else:
             raise NotImplementedError
         for (start_v, end_v), vertices in partitions.iteritems():
@@ -1042,7 +1013,6 @@ class CsdpAp:
                         partitions[(start_v, end_v)]['customers'].add(vertex)
                     except KeyError:
                         partitions[(start_v, end_v)]['customers'] = {vertex}
-
         return partitions
 
     def _decrease_degree_mst(self, mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load):

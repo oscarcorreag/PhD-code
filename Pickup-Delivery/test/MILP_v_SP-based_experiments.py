@@ -96,8 +96,8 @@ if __name__ == '__main__':
     num_customers_r = [32]
     ratios = [4.0]
     # ratios = [2.0]
-    # fractions = [0.1, 0.3, 0.5]
-    fractions = []
+    fractions = [0.1, 0.3, 0.5]
+    # fractions = []
     # thresholds = [1.1, 1.3, 1.5]
     thresholds = []
     # driver_locations = ['Z-U', 'U-Z', 'U-U']
@@ -191,55 +191,81 @@ if __name__ == '__main__':
                             else:
                                 ds = [((u[i], 1, 300), (z[i], 1, 300)) for i in range(num_drivers)]
 
-                        # ----------------------------------------------------------------------------------------------
-                        # MILP
-                        # ----------------------------------------------------------------------------------------------
-                        g = Graph()
-                        g.append_graph(graph)
-                        csdp_ap = CsdpAp(g)
-
-                        st = time.clock()
-                        try:
-                            routes, cost = csdp_ap.solve(rs, ds)
-                        except RuntimeError:
-                            continue
-                        et = time.clock() - st
-                        stats = compute_stats_per_driver_type(routes, graph)
-
-                        line = ['MILP', 0, seed, region, N, delta_meters, num_shops, num_retailers, len(rs), ratio,
-                                len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
-                                stats['dedicated']['total'], stats['ad hoc']['service'], stats['ad hoc']['no'],
-                                stats['dedicated']['no'], stats['ad hoc']['avg detour'], 0, 0]
-                        print line
-                        results.append(line)
+                        # # ----------------------------------------------------------------------------------------------
+                        # # MILP
+                        # # ----------------------------------------------------------------------------------------------
+                        # g = Graph()
+                        # g.append_graph(graph)
+                        # csdp_ap = CsdpAp(g)
+                        #
+                        # st = time.clock()
+                        # try:
+                        #     routes, cost = csdp_ap.solve(rs, ds)
+                        # except RuntimeError:
+                        #     continue
+                        # et = time.clock() - st
+                        # stats = compute_stats_per_driver_type(routes, graph)
+                        #
+                        # line = ['MILP', 0, seed, region, N, delta_meters, num_shops, num_retailers, len(rs), ratio,
+                        #         len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
+                        #         stats['dedicated']['total'], stats['ad hoc']['service'], stats['ad hoc']['no'],
+                        #         stats['dedicated']['no'], stats['ad hoc']['avg detour'], 0, 0]
+                        # print line
+                        # results.append(line)
 
                         for b in bounds:
-                            # # # ------------------------------------------------------------------------------------------
-                            # # # SP-based -> Partition='SP-Voronoi'
-                            # # # ------------------------------------------------------------------------------------------
-                            # g = Graph()
-                            # g.append_graph(graph)
-                            # csdp_ap = CsdpAp(g)
-                            #
-                            # st = time.clock()
-                            # routes, cost = csdp_ap.solve(rs, ds, method='SP-based', assignment_method='SP-Voronoi',
-                            #                              bounds=b)
-                            # et = time.clock() - st
-                            #
-                            # # TODO: Simple control to avoid prohibitive computation
-                            # if cost == -1:
-                            #     line = ['SP-Voronoi', 0, seed, region, N, delta_meters, num_shops, num_retailers,
-                            #             len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0, 0, b]
-                            # else:
-                            #     stats = compute_stats_per_driver_type(routes, graph)
-                            #
-                            #     line = ['SP-Voronoi', 0, seed, region, N, delta_meters, num_shops, num_retailers,
-                            #             len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
-                            #             stats['dedicated']['total'], stats['ad hoc']['service'],
-                            #             stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg detour'],
-                            #             0, b]
-                            # print line
-                            # results.append(line)
+                            # ------------------------------------------------------------------------------------------
+                            # SP-based -> Partition='SP-Voronoi'
+                            # ------------------------------------------------------------------------------------------
+                            g = Graph()
+                            g.append_graph(graph)
+                            csdp_ap = CsdpAp(g)
+
+                            st = time.clock()
+                            routes, cost = csdp_ap.solve(rs, ds, method='SP-based', assignment_method='SP-Voronoi',
+                                                         bounds=b)
+                            et = time.clock() - st
+
+                            # TODO: Simple control to avoid prohibitive computation
+                            if cost == -1:
+                                line = ['SP-Voronoi', 0, seed, region, N, delta_meters, num_shops, num_retailers,
+                                        len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0, 0, b]
+                            else:
+                                stats = compute_stats_per_driver_type(routes, graph)
+
+                                line = ['SP-Voronoi', 0, seed, region, N, delta_meters, num_shops, num_retailers,
+                                        len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
+                                        stats['dedicated']['total'], stats['ad hoc']['service'],
+                                        stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg detour'],
+                                        0, b]
+                            print line
+                            results.append(line)
+
+                            for fraction in fractions:
+                                g = Graph()
+                                g.append_graph(graph)
+                                csdp_ap = CsdpAp(g)
+
+                                st = time.clock()
+                                routes, cost = csdp_ap.solve(rs, ds, method='SP-based', assignment_method='SP-Voronoi',
+                                                             partition_method='SP-fraction', fraction_sd=fraction,
+                                                             bounds=b)
+                                et = time.clock() - st
+
+                                # TODO: Simple control to avoid prohibitive computation
+                                if cost == -1:
+                                    line = ['SP-fraction_SP-Voronoi', fraction, seed, region, N, delta_meters, num_shops, num_retailers,
+                                            len(rs), ratio, len(ds), d_l, sample, et, cost, 0, 0, 0, 0, 0, 0, 0, b]
+                                else:
+                                    stats = compute_stats_per_driver_type(routes, graph)
+
+                                    line = ['SP-fraction_SP-Voronoi', fraction, seed, region, N, delta_meters, num_shops, num_retailers,
+                                            len(rs), ratio, len(ds), d_l, sample, et, cost, stats['ad hoc']['total'],
+                                            stats['dedicated']['total'], stats['ad hoc']['service'],
+                                            stats['ad hoc']['no'], stats['dedicated']['no'], stats['ad hoc']['avg detour'],
+                                            0, b]
+                                print line
+                                results.append(line)
 
                             for max_load in max_loads:
 
