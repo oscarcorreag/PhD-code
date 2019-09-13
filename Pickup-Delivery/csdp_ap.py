@@ -887,34 +887,36 @@ class CsdpAp:
                             partitions[(start_v, end_v)]['customers'].add(vertex)
                         except KeyError:
                             partitions[(start_v, end_v)]['customers'] = {vertex}
-            # Are there customers without a corresponding shop?
-            for (start_v, end_v), shops_customers in partitions.iteritems():
-                try:
-                    if len(shops_customers['customers']) == 0:
+            #
+            if partition_method is None:
+                # Are there customers without a corresponding shop?
+                for (start_v, end_v), shops_customers in partitions.iteritems():
+                    try:
+                        if len(shops_customers['customers']) == 0:
+                            continue
+                    except KeyError:
                         continue
-                except KeyError:
-                    continue
-                customers = shops_customers['customers']
-                path = self._graph.paths[tuple(sorted([start_v, end_v]))]
-                if ('shops' in shops_customers and len(shops_customers['shops']) == 0) \
-                        or 'shops' not in shops_customers:
+                    customers = shops_customers['customers']
+                    path = self._graph.paths[tuple(sorted([start_v, end_v]))]
+                    if ('shops' in shops_customers and len(shops_customers['shops']) == 0) \
+                            or 'shops' not in shops_customers:
+                        for customer in customers:
+                            group_id = self._customers_dict[customer]
+                            shops_customer = self._shops_by_group_id[group_id]
+                            dist, _ = self._graph.get_k_closest_destinations(path, 1, shops_customer, compute_paths=False)
+                            try:
+                                partitions[(start_v, end_v)]['shops'].add(dist.keys()[0])
+                            except KeyError:
+                                partitions[(start_v, end_v)]['shops'] = {dist.keys()[0]}
+                        continue
+                    shops = shops_customers['shops']
                     for customer in customers:
                         group_id = self._customers_dict[customer]
                         shops_customer = self._shops_by_group_id[group_id]
+                        if shops.intersection(self._shops_by_group_id[group_id]):
+                            continue
                         dist, _ = self._graph.get_k_closest_destinations(path, 1, shops_customer, compute_paths=False)
-                        try:
-                            partitions[(start_v, end_v)]['shops'].add(dist.keys()[0])
-                        except KeyError:
-                            partitions[(start_v, end_v)]['shops'] = {dist.keys()[0]}
-                    continue
-                shops = shops_customers['shops']
-                for customer in customers:
-                    group_id = self._customers_dict[customer]
-                    shops_customer = self._shops_by_group_id[group_id]
-                    if shops.intersection(self._shops_by_group_id[group_id]):
-                        continue
-                    dist, _ = self._graph.get_k_closest_destinations(path, 1, shops_customer, compute_paths=False)
-                    partitions[(start_v, end_v)]['shops'].add(dist.keys()[0])
+                        partitions[(start_v, end_v)]['shops'].add(dist.keys()[0])
         # --------------------------------------------------------------------------------------------------------------
         # LL-EP: Limited-Load Elementary Path assignment
         # --------------------------------------------------------------------------------------------------------------
@@ -988,7 +990,7 @@ class CsdpAp:
                 for i, vertex in enumerate(path):
                     region = self._graph.explore_upto(vertex, dist * fraction_sd)
                     expansion.update(region)
-                partitions[(start_v, end_v)] = {'all': expansion.keys()}
+                partitions[(start_v, end_v)] = {'all': set(expansion.keys())}
         # --------------------------------------------------------------------------------------------------------------
         # SP-threshold: Vertices within ellipses with constant = SD * threshold_sd are retrieved for each driver as an
         #               initial partition. The partition must be solved accordingly, i.e., regarding the threshold, this
@@ -998,7 +1000,7 @@ class CsdpAp:
             for start_v, end_v in self._ad_hoc_drivers:
                 dist = self._graph.dist[tuple(sorted([start_v, end_v]))]
                 ellipse = self._graph.nodes_within_ellipse(start_v, end_v, dist * threshold_sd)
-                partitions[(start_v, end_v)] = {'all': ellipse.keys()}
+                partitions[(start_v, end_v)] = {'all': set(ellipse.keys())}
         else:
             raise NotImplementedError
         for (start_v, end_v), vertices in partitions.iteritems():
@@ -1169,31 +1171,31 @@ class CsdpAp:
         served_customers = set()
         # Branch-and-bound optimizes the Hamiltonian path for ONE driver. For this method, the partition must include
         # one driver only.
-        if method == 'BB':
-            (start_v, end_v), shops_customers = partition
-            # Compute the shortest path for this driver as it is used later.
-            self._graph.compute_dist_paths([start_v], [end_v])
-            start_end = tuple(sorted([start_v, end_v]))
-            # Filter out the shops that are not in the partition.
-            shops_dict = dict()
-            if 'shops' in shops_customers:
-                shops_dict = \
-                    {k: self._shops_dict[k]
-                     for k in set(self._shops_dict.keys()).intersection(shops_customers['shops'])}
-            # Filter out the customers who are not in the partition and do not have a shop that can serve them.
-            customers_dict = dict()
-            if 'customers' in shops_customers:
-                local_customers = set(self._customers_dict.keys()).intersection(shops_customers['customers'])
-                for c in local_customers:
-                    for s in shops_dict:
-                        if self._customers_dict[c] == self._shops_dict[s]:
-                            customers_dict[c] = self._customers_dict[c]
-                            break
-            # If there are no shops nor customers, the driver follows her original route.
-            if not shops_dict or not customers_dict:
-                route = self._graph.paths[start_end]
-                cost = self._graph.dist[start_end]
-            else:
+        (start_v, end_v), shops_customers = partition
+        # Compute the shortest path for this driver as it is used later.
+        self._graph.compute_dist_paths([start_v], [end_v])
+        start_end = tuple(sorted([start_v, end_v]))
+        # Filter out the shops that are not in the partition.
+        shops_dict = dict()
+        if 'shops' in shops_customers:
+            shops_dict = \
+                {k: self._shops_dict[k]
+                 for k in set(self._shops_dict.keys()).intersection(shops_customers['shops'])}
+        # Filter out the customers who are not in the partition and do not have a shop that can serve them.
+        customers_dict = dict()
+        if 'customers' in shops_customers:
+            local_customers = set(self._customers_dict.keys()).intersection(shops_customers['customers'])
+            for c in local_customers:
+                for s in shops_dict:
+                    if self._customers_dict[c] == self._shops_dict[s]:
+                        customers_dict[c] = self._customers_dict[c]
+                        break
+        # If there are no shops nor customers, the driver follows her original route.
+        if not shops_dict or not customers_dict:
+            route = self._graph.paths[start_end]
+            cost = self._graph.dist[start_end]
+        else:
+            if method == 'BB':
                 # Otherwise, partial paths' upper bounds are stored into a priority queue.
                 pd = PriorityDictionary()
                 # There are MORE THAN ONE initial path as there are more than one alternative pick-up locations.
@@ -1232,18 +1234,30 @@ class CsdpAp:
                     # TODO: Simple control to avoid prohibitive computation
                     if cost == -1:
                         return None, -1, None
-                    # if bounds == 'both':
-                    #     lb_pd = PriorityDictionary()
-                    #     for partial_path in pd:
-                    #         partial_path.compute_dist_lb()
-                    #         lb_pd[partial_path] = partial_path.dist_lb
-                    #     route, cost, served_customers = self.bb(start_v, end_v, partition_method, lb_pd, bounds='lb',
-                    #                                             ub=cost)
-                    #     # TODO: Simple control to avoid prohibitive computation
-                    #     if cost == -1:
-                    #         return None, -1, None
-        else:
-            raise NotImplementedError
+            elif method == 'NN':
+                PartialPath.init(self._graph, shops_dict, customers_dict, start_v, end_v, build_paths=False)
+                path = [start_v]
+                from_ = path[-1]
+                shops = set(shops_dict.keys())
+                customers = set(customers_dict.keys())
+                cost = 0
+                # self.dist_ub = self.dist
+                while from_ != end_v:
+                    candidates_to = PartialPath.where_to(from_, path, shops, customers)
+                    self._graph.compute_dist_paths([from_], candidates_to, compute_paths=False)
+                    dist = ({v: self._graph.dist[tuple(sorted([from_, v]))] for v in candidates_to})
+                    nn, d = min(dist.iteritems(), key=operator.itemgetter(1))
+                    path.append(nn)
+                    shops.discard(nn)
+                    customers.discard(nn)
+                    # self.dist_ub += d
+                    cost += d
+                    from_ = nn
+                #
+                served_customers = set(customers_dict.keys()).intersection(path)
+                route = self._graph.expand_contracted_path(path)
+            else:
+                raise NotImplementedError
         return route, cost, served_customers
 
     def bb(self, start_v, end_v, partition_method, priority_queue, bounds='both'):
@@ -1405,7 +1419,7 @@ class PartialPath:
     _threshold = None
 
     @staticmethod
-    def init(graph, shops_dict, customers_dict, origin, destination, threshold=None):
+    def init(graph, shops_dict, customers_dict, origin, destination, threshold=None, build_paths=True):
         """
         Parameters
         ----------
@@ -1461,19 +1475,20 @@ class PartialPath:
         # pickup points are mutually exclusive within each group. Therefore, there are as many trees as the sum over all
         # shops where, for each shop, the number of trees is the number of combinations of shops from different groups.
         initial_paths = []
-        # The initial paths all start from the origin and go to a shop.
-        for shop, group_id in PartialPath._shops_dict.iteritems():
-            # For each shop, the shops from the other groups are retrieved as we need the combinations of them.
-            other_group_ids = PartialPath._groups_set.difference([group_id])
-            other_groups = [PartialPath._shops_by_group_id[gi] for gi in other_group_ids]
-            # Compute the combinations of shops where each combination has a shop from each group.
-            combs_shops = set(product(*other_groups))
-            # Create the initial paths as such. Each path starts with the origin. The next vertex in the path is the
-            # current shop.
-            for comb_shops in combs_shops:
-                path = PartialPath([PartialPath._origin], 0, 0, sys.maxint, comb_shops, PartialPath._custs_dict.keys())
-                path._append_vertex(shop)
-                initial_paths.append(path)
+        if build_paths:
+            # The initial paths all start from the origin and go to a shop.
+            for shop, group_id in PartialPath._shops_dict.iteritems():
+                # For each shop, the shops from the other groups are retrieved as we need the combinations of them.
+                other_group_ids = PartialPath._groups_set.difference([group_id])
+                other_groups = [PartialPath._shops_by_group_id[gi] for gi in other_group_ids]
+                # Compute the combinations of shops where each combination has a shop from each group.
+                combs_shops = set(product(*other_groups))
+                # Create the initial paths as such. Each path starts with the origin. The next vertex in the path is the
+                # current shop.
+                for comb_shops in combs_shops:
+                    path = PartialPath([PartialPath._origin], 0, 0, sys.maxint, comb_shops, PartialPath._custs_dict.keys())
+                    path._append_vertex(shop)
+                    initial_paths.append(path)
         return initial_paths
 
     def __init__(self, path, dist, dist_lb, dist_ub, shops, customers):
@@ -1507,7 +1522,7 @@ class PartialPath:
             Offspring.
         """
         offspring = []
-        to_ = self._where_to(self.path[-1])
+        to_ = PartialPath.where_to(self.path[-1], self.path, self.shops, self.customers)
         for vertex in to_:
             child = PartialPath(self.path, self.dist, self.dist_lb, self.dist_ub, self.shops, self.customers)
             child._append_vertex(vertex)
@@ -1609,7 +1624,7 @@ class PartialPath:
         ub = self.dist
         # self.dist_ub = self.dist
         while from_ != self._destination:
-            candidates_to = self._where_to(from_, path, shops, customers)
+            candidates_to = PartialPath.where_to(from_, path, shops, customers)
             PartialPath._graph.compute_dist_paths([from_], candidates_to, compute_paths=False)
             dist = ({v: PartialPath._graph.dist[tuple(sorted([from_, v]))] for v in candidates_to})
             nn, d = min(dist.iteritems(), key=operator.itemgetter(1))
@@ -1632,7 +1647,8 @@ class PartialPath:
         # the number of non-visited customers.
         self.cust_ub = len(visited_customers) + len(self.customers)
 
-    def _where_to(self, from_, path=None, shops=None, customers=None):
+    @staticmethod
+    def where_to(from_, path, shops, customers):
         """
         What are the possible next vertices to visit from a specific vertex?
 
@@ -1642,31 +1658,22 @@ class PartialPath:
             Vertices to visit.
         """
         to_ = set()
-        if path is None:
-            visited_shops = PartialPath._shops_set.intersection(self.path)
-        else:
-            visited_shops = PartialPath._shops_set.intersection(path)
+        visited_shops = PartialPath._shops_set.intersection(path)
         visited_groups = {PartialPath._shops_dict[visited_shop] for visited_shop in visited_shops}
         non_visited_groups = PartialPath._groups_set.difference(visited_groups)
         # Shops in non-visited groups.
         for non_visited_group in non_visited_groups:
             if non_visited_group not in PartialPath._shops_by_group_id:
                 continue
-            if shops is None:
-                to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(self.shops))
-            else:
-                to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(shops))
+            to_.update(PartialPath._shops_by_group_id[non_visited_group].intersection(shops))
         # Non-visited customers in visited groups.
         for visited_group in visited_groups:
             if visited_group not in PartialPath._customers_by_group_id:
                 continue
-            if customers is None:
-                to_.update(PartialPath._customers_by_group_id[visited_group].intersection(self.customers))
-            else:
-                to_.update(PartialPath._customers_by_group_id[visited_group].intersection(customers))
+            to_.update(PartialPath._customers_by_group_id[visited_group].intersection(customers))
         # Is it from a customer?
         if from_ in PartialPath._customers_set:
-            if (customers is None and len(self.customers) == 0) or (customers is not None and len(customers) == 0):
+            if len(customers) == 0:
                 # Then, it is possible to go to the destination.
                 to_.add(PartialPath._destination)
         return to_
