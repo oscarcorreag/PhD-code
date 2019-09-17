@@ -202,11 +202,11 @@ if __name__ == '__main__':
         # ),
     }
     #
-    delta_meters = 3000.0
+    delta_meters = 10000.0
     delta = delta_meters / 111111
     num_samples = 25
     # num_customers_r = [16, 64, 256, 1024]
-    num_customers_r = [20, 16, 12, 8]
+    num_customers_r = [256]
     ratios = [4.0]
     # ratios = [2.0]
     # fractions = [0.1, 0.3, 0.5]
@@ -215,16 +215,17 @@ if __name__ == '__main__':
     thresholds = []
     # driver_locations = ['Z-U', 'U-Z', 'U-U']
     driver_locations = ['Z-U']
-    # max_loads = [4, 6, 8, 10, 12]
-    max_loads = [0]
+    max_loads = [4, 6, 8, 10, 12]
+    # max_loads = [0]
     # bounds = ['both', 'lb', 'ub']
     bounds = ['both']
     #
     # approaches = ['MILP', 'V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
-    approaches = ['MILP', 'IRB-BB']
+    approaches = ['V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
+    # approaches = ['V-NN', 'IRB-NN']
     results = []
     smpl = 0
-    s = 10080
+    s = 0
     for region, info in regions.iteritems():
         while smpl < num_samples:
             #

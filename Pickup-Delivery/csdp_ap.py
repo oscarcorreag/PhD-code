@@ -785,6 +785,12 @@ class CsdpAp:
         cost = 0
         partitions = self._assign(method=assignment_method, max_load=max_load, partition_method=partition_method,
                                   fraction_sd=fraction_sd, threshold_sd=threshold_sd)
+        #
+        if solve_partition_method == 'BB':
+            # TODO: Simple control to avoid prohibitive computation
+            for _, shops_customers in partitions.iteritems():
+                if 'customers' in shops_customers and len(shops_customers['customers']) > 14:
+                    return None, -1
         # Solve each partition
         served_customers = set()
         for partition in partitions.iteritems():
