@@ -76,9 +76,6 @@ def check_constraints(constraints):
 
 class CsdpAp:
     def __init__(self, graph):
-        # self._graph = Digraph(undirected=False)
-        # self._graph = Graph()
-        # self._graph.append_graph(graph)
         self._graph = graph.copy()
         self._working_graph = None
 

@@ -9,7 +9,7 @@ from numpy.random import RandomState
 from csdp_ap import CsdpAp
 
 
-class Experimemt:
+class Experiment:
 
     def __init__(self, city, bbox, meters, market_share, rnd, seed, graph, shops):
         self._city = city
@@ -17,8 +17,6 @@ class Experimemt:
         self._meters = meters
         self._seed = seed
         self._rnd = rnd
-        # self._graph = Graph()
-        # self._graph.append_graph(graph)
         self._graph = graph.copy()
         self._shops = set(shops)
         self._free = set(graph.keys()).difference(shops)
@@ -85,7 +83,7 @@ class Experimemt:
                 self._ds = [((self._u[i], 1, 300), (self._z[i], 1, 300)) for i in range(num_drivers)]
         return self._ds
 
-    def run(self, graph, approach, sample, solve, limit, partition=None, fraction=.5, threshold=1.5):
+    def run(self, graph, approach, sample, solve='BB', limit=0, partition=None, fraction=.5, threshold=1.5):
         csdp_ap = CsdpAp(graph)
         param = 0
         st = time.clock()
@@ -113,7 +111,7 @@ class Experimemt:
                     self._num_shops, self._num_retailers, len(self._rs), self._params['ratio'], len(self._ds),
                     self._params['distr'], sample, et, cost, 0, 0, 0, 0, 0, 0, 0]
         else:
-            stats = self.compute_stats_per_driver_type(routes)
+            stats = Experiment.compute_stats_per_driver_type(graph, routes)
 
             line = [approach, partition, solve, param, self._seed, self._city, self._net_size, self._meters,
                     self._num_shops, self._num_retailers, len(self._rs), self._params['ratio'], len(self._ds),
@@ -123,12 +121,13 @@ class Experimemt:
         print line
         return line
 
-    def compute_stats_per_driver_type(self, routes):
+    @staticmethod
+    def compute_stats_per_driver_type(graph, routes):
         #
         pairs = list()
         for route in routes:
             pairs.append(tuple(sorted([route[0], route[-1]])))
-        self._graph.compute_dist_paths(pairs=pairs, compute_paths=False)
+        graph.compute_dist_paths(pairs=pairs, compute_paths=False)
         #
         no_ad_hoc = 0
         no_dedicated = 0
@@ -143,12 +142,12 @@ class Experimemt:
             end_v = route[-1]
             if start_v == end_v:
                 no_dedicated += 1
-                total_dedicated += self.compute_route_cost(route)
+                total_dedicated += Experiment.compute_route_cost(graph, route)
             else:
                 no_ad_hoc += 1
-                cost_ = self.compute_route_cost(route)
+                cost_ = Experiment.compute_route_cost(graph, route)
                 total_ad_hoc += cost_
-                sd = self._graph.dist[tuple(sorted([start_v, end_v]))]
+                sd = graph.dist[tuple(sorted([start_v, end_v]))]
                 service += cost_ - sd
                 total_sd += sd
                 costs_ad_hoc.append(cost_)
@@ -172,13 +171,14 @@ class Experimemt:
         }
         return stats_
 
-    def compute_route_cost(self, route):
+    @staticmethod
+    def compute_route_cost(graph, route):
         cost = 0
         for i_ in range(len(route) - 1):
             v = route[i_]
             w = route[i_ + 1]
             if v != w:
-                cost += self._graph.get_edges()[tuple(sorted([v, w]))]
+                cost += graph.get_edges()[tuple(sorted([v, w]))]
         return cost
 
 
@@ -202,11 +202,11 @@ if __name__ == '__main__':
         # ),
     }
     #
-    delta_meters = 10000.0
+    delta_meters = 3000.0
     delta = delta_meters / 111111
     num_samples = 25
     # num_customers_r = [16, 64, 256, 1024]
-    num_customers_r = [256]
+    num_customers_r = [20, 16, 12, 8]
     ratios = [4.0]
     # ratios = [2.0]
     # fractions = [0.1, 0.3, 0.5]
@@ -215,14 +215,16 @@ if __name__ == '__main__':
     thresholds = []
     # driver_locations = ['Z-U', 'U-Z', 'U-U']
     driver_locations = ['Z-U']
-    max_loads = [4, 6, 8, 10, 12]
-    # max_loads = [2]
+    # max_loads = [4, 6, 8, 10, 12]
+    max_loads = [0]
     # bounds = ['both', 'lb', 'ub']
     bounds = ['both']
     #
+    # approaches = ['MILP', 'V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
+    approaches = ['MILP', 'IRB-BB']
     results = []
     smpl = 0
-    s = 0
+    s = 10080
     for region, info in regions.iteritems():
         while smpl < num_samples:
             #
@@ -248,7 +250,7 @@ if __name__ == '__main__':
             if len(stores) == 0:
                 continue
 
-            experiment = Experimemt(region, bounding_box, delta_meters, info[1], rnds, s, g, stores)
+            experiment = Experiment(region, bounding_box, delta_meters, info[1], rnds, s, g, stores)
 
             for nc in num_customers_r:
                 custs = experiment.set_customers(nc)
@@ -273,14 +275,25 @@ if __name__ == '__main__':
                         g.compute_dist_paths(origins=custs, destinations=ends, compute_paths=False)
                         time2 = time.clock() - time1
                         print "sps finished", time2
-                        res = experiment.run(g, 'SP-Voronoi', smpl, 'NN', 0)
-                        results.append(res)
-                        # experiment.run(g, 'SP-Voronoi', smpl, 'BB', 0)
-                        # results.append(res)
-                        for max_load in max_loads:
-                            # cProfile.run("experiment.run(g, 'LL-EP', smpl, 'BB', max_load)")
-                            experiment.run(g, 'LL-EP', smpl, 'NN', max_load)
-                            results.append(res)
+
+                        for appr in approaches:
+
+                            if appr == 'MILP':
+                                res = experiment.run(g, 'MILP', smpl)
+                                results.append(res)
+                            elif appr == 'V-NN':
+                                res = experiment.run(g, 'SP-Voronoi', smpl, 'NN')
+                                results.append(res)
+                            elif appr == 'V-BB':
+                                res = experiment.run(g, 'SP-Voronoi', smpl, 'BB')
+                                results.append(res)
+                            elif appr == 'IRB-NN' or appr == 'IRB-BB':
+                                for max_load in max_loads:
+                                    if appr == 'IRB-NN':
+                                        res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load)
+                                    else:
+                                        res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load)
+                                    results.append(res)
             #
             smpl += 1
 
