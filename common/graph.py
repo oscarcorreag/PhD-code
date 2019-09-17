@@ -595,13 +595,16 @@ class Graph(dict):
     def sort_edge_nodes(edge):
         v = edge[0]
         w = edge[1]
-        if not isinstance(v, tuple) and not isinstance(w, tuple):
-            v_w = tuple(sorted([v, w]))
-        elif isinstance(v, tuple):
-            v_w = tuple([v, w])
-        else:
-            v_w = tuple([w, v])
-        return v_w
+        if v < w:
+            return tuple([v, w])
+        return tuple([w, v])
+        # if not isinstance(v, tuple) and not isinstance(w, tuple):
+        #     v_w = tuple(sorted([v, w]))
+        # elif isinstance(v, tuple):
+        #     v_w = tuple([v, w])
+        # else:
+        #     v_w = tuple([w, v])
+        # return v_w
 
     def get_k_closest_destinations(self, origin, k, destinations=None, compute_paths=True):
 

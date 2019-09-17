@@ -77,8 +77,9 @@ def check_constraints(constraints):
 class CsdpAp:
     def __init__(self, graph):
         # self._graph = Digraph(undirected=False)
-        self._graph = Graph()
-        self._graph.append_graph(graph)
+        # self._graph = Graph()
+        # self._graph.append_graph(graph)
+        self._graph = graph.copy()
         self._working_graph = None
 
         self._drivers = list()
@@ -860,7 +861,8 @@ class CsdpAp:
         # SP-Voronoi
         # --------------------------------------------------------------------------------------------------------------
         if method == 'SP-Voronoi':
-            self._graph.compute_dist_paths(pairs=self._ad_hoc_drivers)
+            # TODO: uncomment
+            # self._graph.compute_dist_paths(pairs=self._ad_hoc_drivers)
             # Drivers' paths are gathered as a list to be sent as parameter for Voronoi cells computation.
             paths = list()
             vertices = set()
@@ -903,7 +905,8 @@ class CsdpAp:
                         for customer in customers:
                             group_id = self._customers_dict[customer]
                             shops_customer = self._shops_by_group_id[group_id]
-                            dist, _ = self._graph.get_k_closest_destinations(path, 1, shops_customer, compute_paths=False)
+                            dist, _ = self._graph.get_k_closest_destinations(path, 1, shops_customer,
+                                                                             compute_paths=False)
                             try:
                                 partitions[(start_v, end_v)]['shops'].add(dist.keys()[0])
                             except KeyError:
@@ -973,7 +976,8 @@ class CsdpAp:
     def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
         partitions = {}
         # Drivers' shortest paths are computed.
-        self._graph.compute_dist_paths(pairs=self._ad_hoc_drivers)
+        # TODO: uncomment
+        # self._graph.compute_dist_paths(pairs=self._ad_hoc_drivers)
         # --------------------------------------------------------------------------------------------------------------
         # SP-fraction:  Shortest-path trees are grown from drivers' shortest-path's road intersections.
         #               Drivers' shortest paths are iterated in shortest-distance ascending order as a tie-breaker for
@@ -1107,9 +1111,9 @@ class CsdpAp:
             #     continue
             shops = shops_customers['shops']
             # Distances needed to compute edge weights when they correspond to elementary paths.
-            self._graph.compute_dist_paths(origins=[start_v], destinations=shops, compute_paths=False)
-            # self._graph.compute_dist_paths(origins=shops, destinations=customers, compute_paths=False)
-            self._graph.compute_dist_paths(origins=customers, destinations=[end_v], compute_paths=False)
+            # TODO: uncomment
+            # self._graph.compute_dist_paths(origins=[start_v], destinations=shops, compute_paths=False)
+            # self._graph.compute_dist_paths(origins=customers, destinations=[end_v], compute_paths=False)
             # Create the edges between the customer and the ad hoc driver's start location in the bipartite graph.
             for customer in customers:
                 group_id = self._customers_dict[customer]
@@ -1117,7 +1121,8 @@ class CsdpAp:
                 if len(shops_by_customer) == 0:
                     bipartite.append_edge_2((start_v, customer), weight=sys.maxint)
                     continue
-                self._graph.compute_dist_paths(origins=[customer], destinations=shops_by_customer, compute_paths=False)
+                # TODO: uncomment
+                # self._graph.compute_dist_paths(origins=[customer], destinations=shops_by_customer, compute_paths=False)
                 d = sys.maxint
                 for shop in shops_by_customer:
                     d1 = self._graph.dist[tuple(sorted([start_v, shop]))]
@@ -1173,7 +1178,8 @@ class CsdpAp:
         # one driver only.
         (start_v, end_v), shops_customers = partition
         # Compute the shortest path for this driver as it is used later.
-        self._graph.compute_dist_paths([start_v], [end_v])
+        # TODO: uncomment
+        # self._graph.compute_dist_paths([start_v], [end_v])
         start_end = tuple(sorted([start_v, end_v]))
         # Filter out the shops that are not in the partition.
         shops_dict = dict()
@@ -1244,7 +1250,8 @@ class CsdpAp:
                 # self.dist_ub = self.dist
                 while from_ != end_v:
                     candidates_to = PartialPath.where_to(from_, path, shops, customers)
-                    self._graph.compute_dist_paths([from_], candidates_to, compute_paths=False)
+                    # TODO: uncomment
+                    # self._graph.compute_dist_paths([from_], candidates_to, compute_paths=False)
                     dist = ({v: self._graph.dist[tuple(sorted([from_, v]))] for v in candidates_to})
                     nn, d = min(dist.iteritems(), key=operator.itemgetter(1))
                     path.append(nn)
@@ -1365,7 +1372,6 @@ class CsdpAp:
             route.reverse()
             contracted.append(route)
         for route in contracted:
-            # print route
             routes.append(self._graph.expand_contracted_path(route))
         return routes
 
@@ -1486,7 +1492,8 @@ class PartialPath:
                 # Create the initial paths as such. Each path starts with the origin. The next vertex in the path is the
                 # current shop.
                 for comb_shops in combs_shops:
-                    path = PartialPath([PartialPath._origin], 0, 0, sys.maxint, comb_shops, PartialPath._custs_dict.keys())
+                    path = PartialPath([PartialPath._origin], 0, 0, sys.maxint, comb_shops,
+                                       PartialPath._custs_dict.keys())
                     path._append_vertex(shop)
                     initial_paths.append(path)
         return initial_paths
@@ -1544,7 +1551,8 @@ class PartialPath:
             self.dist = 0  # No distance when there is one vertex in the path.
         else:
             path_end = self.path[-1]
-            PartialPath._graph.compute_dist_paths([path_end], [vertex], compute_paths=False)
+            # TODO: uncomment
+            # PartialPath._graph.compute_dist_paths([path_end], [vertex], compute_paths=False)
             self.path.append(vertex)
             self.dist = self.dist + PartialPath._graph.dist[tuple(sorted([path_end, vertex]))]
         # Update non-visited shops and customers.
@@ -1589,7 +1597,8 @@ class PartialPath:
         for vertex in self._lb_from_where():
             # For each row, the candidate columns are computed.
             candidates_to = self._lb_where_to(vertex)
-            PartialPath._graph.compute_dist_paths([vertex], candidates_to, compute_paths=False)
+            # TODO: uncomment
+            # PartialPath._graph.compute_dist_paths([vertex], candidates_to, compute_paths=False)
             # A list of distances by row is needed to compute the minimum by row after.
             # Here we also fill the distances-by-destination-and-starting-point data structure.
             dist_row_wise = list()
@@ -1625,7 +1634,8 @@ class PartialPath:
         # self.dist_ub = self.dist
         while from_ != self._destination:
             candidates_to = PartialPath.where_to(from_, path, shops, customers)
-            PartialPath._graph.compute_dist_paths([from_], candidates_to, compute_paths=False)
+            # TODO: uncomment
+            # PartialPath._graph.compute_dist_paths([from_], candidates_to, compute_paths=False)
             dist = ({v: PartialPath._graph.dist[tuple(sorted([from_, v]))] for v in candidates_to})
             nn, d = min(dist.iteritems(), key=operator.itemgetter(1))
             path.append(nn)
@@ -1652,6 +1662,9 @@ class PartialPath:
         """
         What are the possible next vertices to visit from a specific vertex?
 
+        :param customers:
+        :param shops:
+        :param path:
         :param from_: graph vertex
             Current vertex for which the possible vertices to visit after are computed.
         :return: set
@@ -1714,20 +1727,3 @@ class PartialPath:
         # Non-visited customers.
         from_.update(self.customers)
         return from_
-
-    # def transform_to_actual_path(self):
-    #     pairs = list()
-    #     for i in range(len(self.path) - 1):
-    #         v = self.path[i]
-    #         w = self.path[i + 1]
-    #         pairs.append((v, w))
-    #     PartialPath._graph.compute_dist_paths(pairs=pairs, recompute=True)
-    #     actual_path = [PartialPath._origin]
-    #     for i in range(len(self.path) - 1):
-    #         v = self.path[i]
-    #         w = self.path[i + 1]
-    #         path = PartialPath._graph.paths[tuple(sorted([v, w]))]
-    #         if w == path[0]:
-    #             path.reverse()
-    #         actual_path.extend(path[1:])
-    #     return actual_path
