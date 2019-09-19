@@ -708,11 +708,12 @@ class Graph(dict):
             generator_by_node[n] = medoid
         return cells, generator_by_node
 
-    def get_voronoi_paths_cells(self, paths, nodes=None):
+    def get_voronoi_paths_cells(self, paths, nodes=None, nodes_by_path=None):
         """
         Compute the Voronoi cells based on the paths as generators. If a path is one vertex, this reduces to compute the
         Voronoi cells with a medoid as generator.
 
+        :param nodes_by_path:
         :param paths: list
             Paths as generators.
         :param nodes: Iterable
@@ -749,7 +750,11 @@ class Graph(dict):
         for node in priority_dict:
             origin, destination = generator_by_node[node]
             # The closest path has been found for the current node.
-            cells[(origin, destination)].append(node)
+            if nodes_by_path is not None:
+                if node in nodes_by_path[(origin, destination)]:
+                    cells[(origin, destination)].append(node)
+            else:
+                cells[(origin, destination)].append(node)
             # Store the associated shortest distance.
             distances[node] = priority_dict[node]
             # How the adjacency list is retrieved depends upon whether the graph is node-weighted or not.
