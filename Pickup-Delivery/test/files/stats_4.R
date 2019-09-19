@@ -1,0 +1,104 @@
+library(data.table)
+library(ggplot2)
+
+setwd("C:/Users/oscarcg/Documents/phd/code/Pickup-Delivery/test/files/final/")
+# setwd("./final")
+
+my_theme <- function(base_size = 11, base_family = "") {
+  # Starts with theme_grey and then modify some parts
+  theme_grey(base_size = base_size, base_family = base_family) %+replace%
+    theme(
+      # white panel with light grey border
+      panel.background = element_rect(fill = "white", colour = NA),
+      panel.border     = element_rect(fill = NA, colour = "grey70", size = 0.5),
+      # light grey, thinner gridlines
+      # => make them slightly darker to keep acceptable contrast
+      #panel.grid.major = element_line(colour = "grey87", size = 0.25),
+      #panel.grid.minor = element_line(colour = "grey87", size = 0.125),
+      
+      # match axes ticks thickness to gridlines and colour to panel border
+      axis.ticks       = element_line(colour = "grey70", size = 0.25),
+      
+      # match legend key to panel.background
+      #legend.key           = element_rect(fill = "white", colour = NA),
+      
+      #legend.position      = "none",
+      
+      legend.background    = element_rect(fill = "white", size = 4, colour = "white"),
+      legend.justification = c(1, 1),
+      legend.position      = c(1, 1),
+      legend.title         = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
+      legend.text          = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
+      
+      #legend.text           = element_text(size = 8, lineheight = 0.9, hjust = 1),
+      #legend.title          = element_text(size = 9),
+      
+      # dark strips with light text (inverse contrast compared to theme_grey)
+      strip.background = element_rect(fill = "grey70", colour = NA),
+      strip.text       = element_text(colour = "white", size = rel(0.8)),
+      
+      #axis.title.x = axis_x_title,
+      #axis.title.y = axis_y_title,
+      axis.title.x = element_text(size = 10, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(size = 10, angle = 90, vjust = 0.5, face="bold"),
+      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
+      
+      complete = TRUE
+    )
+  
+}
+
+# EFFECT OF THE SHORTEST INDEPENDENT-ROUTE DISTANCE
+# -------------------------------------------------
+ird <- fread("IRB.csv")
+ird[, Assignment := as.factor(Assignment)]
+ird[, Partition := as.factor(Partition)]
+ird[, Routing := as.factor(Routing)]
+ird[, Zone := as.factor(Zone)]
+ird[, Distribution := as.factor(Distribution)]
+
+ird <- ird[Dedicated.cost == 0 & Cost != -1]
+
+ird[Assignment == 'SP-Voronoi', Assignment := 'V']
+ird[Assignment == 'LL-EP', Assignment := 'IRD']
+ird[Routing == 'BB', Routing := 'BnB']
+ird[, Approach := paste(Assignment, Routing, sep = "-")]
+ird[, Total.service.cost := Dedicated.cost + Service.cost]
+
+
+p_ird <- ggplot(ird, aes(x = as.factor(Customers), y = Total.service.cost, fill = Approach)) 
+p_ird <- p_ird + geom_boxplot() 
+p_ird <- p_ird + scale_x_discrete()
+p_ird <- p_ird + scale_y_log10()
+p_ird
+
+p_ird <- ggplot(ird, aes(x = as.factor(Customers), y = Elapsed.time, fill = Approach)) 
+p_ird <- p_ird + geom_boxplot() 
+p_ird <- p_ird + scale_x_discrete()
+p_ird <- p_ird + scale_y_log10()
+p_ird
+
+# COMPARISON AGAINST MILP
+# -----------------------
+milp <- fread("MILP.csv")
+milp[, Assignment := as.factor(Assignment)]
+milp[, Partition := as.factor(Partition)]
+milp[, Routing := as.factor(Routing)]
+milp[, Zone := as.factor(Zone)]
+milp[, Distribution := as.factor(Distribution)]
+
+# milp <- milp[(Dedicated.cost == 0 & Assignment == 'IRD') | Assignment == 'MILP']
+
+milp[Assignment == 'LL-EP', Assignment := 'IRD']
+milp[Routing == 'BB', Routing := 'BnB']
+milp[Assignment == 'IRD', Approach := paste(Assignment, Routing, sep = "-")]
+milp[Assignment == 'MILP', Approach := Assignment]
+milp[, Total.service.cost := Dedicated.cost + Service.cost]
+
+
+p_milp <- ggplot(milp, aes(x = as.factor(Customers), y = Total.service.cost, fill = Approach)) 
+p_milp <- p_milp + geom_boxplot() 
+p_milp <- p_milp + scale_x_discrete()
+#p_milp <- p_milp + scale_y_log10()
+p_milp
