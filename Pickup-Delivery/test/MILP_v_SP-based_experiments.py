@@ -1,7 +1,6 @@
 import operator
 import time
 import csv
-import cProfile
 
 from osmmanager import OsmManager
 from suitability import SuitableNodeWeightGenerator
@@ -55,7 +54,8 @@ class Experiment:
             for customer in cust_ret:
                 self._rs.append(([(shop, 1, 300) for shop in shops_ret], (customer, 1, 300)))
             idx += num_customers_retailer
-        self._free = set(self._graph.keys()).difference(customers)
+        # self._free = set(self._graph.keys()).difference(customers)
+        self._free = self._free.difference(customers)
         self._z = None
         self._u = None
         return customers
@@ -210,13 +210,13 @@ if __name__ == '__main__':
     ratios = [4.0]
     # ratios = [2.0]
     # fractions = [0.1, 0.3, 0.5]
-    fractions = []
+    fractions = [0.5]
     # thresholds = [1.1, 1.3, 1.5]
-    thresholds = []
-    # driver_locations = ['Z-U', 'U-Z', 'U-U']
-    driver_locations = ['Z-U']
-    max_loads = [4, 6, 8, 10, 12]
-    # max_loads = [0]
+    thresholds = [1.5]
+    driver_locations = ['Z-U', 'U-Z', 'U-U']
+    # driver_locations = ['Z-U']
+    # max_loads = [4, 6, 8, 10, 12]
+    max_loads = [8]
     # bounds = ['both', 'lb', 'ub']
     bounds = ['both']
     #
@@ -225,7 +225,7 @@ if __name__ == '__main__':
     # approaches = ['V-NN', 'IRB-NN']
     results = []
     smpl = 0
-    s = 0
+    s = 200
     for region, info in regions.iteritems():
         while smpl < num_samples:
             #
@@ -254,6 +254,9 @@ if __name__ == '__main__':
             experiment = Experiment(region, bounding_box, delta_meters, info[1], rnds, s, g, stores)
 
             for nc in num_customers_r:
+                if 2 * nc + len(stores) > len(g.keys()):  # Assuming max. no. drivers = no. customers / 2.0
+                    print "Not enough vertices!"
+                    break
                 custs = experiment.set_customers(nc)
                 for r in ratios:
                     for d_l in driver_locations:
@@ -283,17 +286,17 @@ if __name__ == '__main__':
                                 res = experiment.run(g, 'MILP', smpl)
                                 results.append(res)
                             elif appr == 'V-NN':
-                                res = experiment.run(g, 'SP-Voronoi', smpl, 'NN')
+                                res = experiment.run(g, 'SP-Voronoi', smpl, 'NN', partition='SP-fraction', fraction=0.25)
                                 results.append(res)
                             elif appr == 'V-BB':
-                                res = experiment.run(g, 'SP-Voronoi', smpl, 'BB')
+                                res = experiment.run(g, 'SP-Voronoi', smpl, 'BB', partition='SP-fraction', fraction=0.25)
                                 results.append(res)
                             elif appr == 'IRB-NN' or appr == 'IRB-BB':
                                 for max_load in max_loads:
                                     if appr == 'IRB-NN':
-                                        res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load)
+                                        res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load, partition='SP-fraction', fraction=0.25)
                                     else:
-                                        res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load)
+                                        res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load, partition='SP-fraction', fraction=0.25)
                                     results.append(res)
             #
             smpl += 1

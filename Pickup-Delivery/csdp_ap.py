@@ -789,7 +789,7 @@ class CsdpAp:
         if solve_partition_method == 'BB':
             # TODO: Simple control to avoid prohibitive computation
             for _, shops_customers in partitions.iteritems():
-                if 'customers' in shops_customers and len(shops_customers['customers']) > 14:
+                if 'customers' in shops_customers and len(shops_customers['customers']) > 16:
                     return None, -1
         # Solve each partition
         served_customers = set()
@@ -876,7 +876,8 @@ class CsdpAp:
             # Voronoi cells contain all kinds of vertices, i.e., not only shops and customers. Thus, cells must be
             # sieved.
             if len(vertices) > 0:
-                cells, _ = self._graph.get_voronoi_paths_cells(paths, vertices)
+                nodes_by_path = {(start_v, end_v): info['all'] for (start_v, end_v), info in partitions.iteritems()}
+                cells, _ = self._graph.get_voronoi_paths_cells(paths, nodes=vertices, nodes_by_path=nodes_by_path)
             else:
                 cells, _ = self._graph.get_voronoi_paths_cells(paths)
             for (start_v, end_v), vertices in cells.iteritems():
