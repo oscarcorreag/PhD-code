@@ -289,14 +289,14 @@ if __name__ == '__main__':
                                 res = experiment.run(g, 'SP-Voronoi', smpl, 'NN', partition='SP-fraction', fraction=0.25)
                                 results.append(res)
                             elif appr == 'V-BB':
-                                res = experiment.run(g, 'SP-Voronoi', smpl, 'BB', partition='SP-fraction', fraction=0.25)
+                                res = experiment.run(g, 'SP-Voronoi', smpl, 'BB', partition='SP-fraction', fraction=0.1)
                                 results.append(res)
                             elif appr == 'IRB-NN' or appr == 'IRB-BB':
                                 for max_load in max_loads:
                                     if appr == 'IRB-NN':
-                                        res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load, partition='SP-fraction', fraction=0.25)
+                                        res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load, partition='SP-fraction', fraction=0.1)
                                     else:
-                                        res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load, partition='SP-fraction', fraction=0.25)
+                                        res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load, partition='SP-fraction', fraction=0.1)
                                     results.append(res)
             #
             smpl += 1

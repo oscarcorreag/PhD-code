@@ -875,7 +875,7 @@ class CsdpAp:
                     vertices.update(partitions[(start_v, end_v)]['all'])
             # Voronoi cells contain all kinds of vertices, i.e., not only shops and customers. Thus, cells must be
             # sieved.
-            if len(vertices) > 0:
+            if partition_method is not None:
                 nodes_by_path = {(start_v, end_v): info['all'] for (start_v, end_v), info in partitions.iteritems()}
                 cells, _ = self._graph.get_voronoi_paths_cells(paths, nodes=vertices, nodes_by_path=nodes_by_path)
             else:
