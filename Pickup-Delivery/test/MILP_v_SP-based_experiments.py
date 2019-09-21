@@ -1,6 +1,7 @@
 import operator
 import time
 import csv
+import cProfile
 
 from osmmanager import OsmManager
 from suitability import SuitableNodeWeightGenerator
@@ -96,12 +97,12 @@ class Experiment:
             elif partition == 'SP-fraction':
                 routes, cost = csdp_ap.solve(self._rs, self._ds, method='SP-based', assignment_method=approach,
                                              partition_method=partition, fraction_sd=fraction,
-                                             solve_partition_method=solve, max_load=limit)
+                                             solve_partition_method=solve, max_load=limit, strict=True)
                 param = fraction
             else:
                 routes, cost = csdp_ap.solve(self._rs, self._ds, method='SP-based', assignment_method=approach,
                                              partition_method=partition, threshold_sd=threshold,
-                                             solve_partition_method=solve, max_load=limit)
+                                             solve_partition_method=solve, max_load=limit, strict=True)
                 param = threshold
         et = time.clock() - st
 
@@ -209,23 +210,24 @@ if __name__ == '__main__':
     num_customers_r = [256]
     ratios = [4.0]
     # ratios = [2.0]
-    # fractions = [0.1, 0.3, 0.5]
-    fractions = [0.5]
+    # fractions = [0.01, 0.03, 0.05]
+    fractions = []
     # thresholds = [1.1, 1.3, 1.5]
     thresholds = [1.5]
-    driver_locations = ['Z-U', 'U-Z', 'U-U']
-    # driver_locations = ['Z-U']
+    without_partitioning = False
+    # driver_locations = ['Z-U', 'U-Z', 'U-U']
+    driver_locations = ['Z-U']
     # max_loads = [4, 6, 8, 10, 12]
     max_loads = [8]
     # bounds = ['both', 'lb', 'ub']
     bounds = ['both']
     #
     # approaches = ['MILP', 'V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
-    approaches = ['V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
-    # approaches = ['V-NN', 'IRB-NN']
+    # approaches = ['V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
+    approaches = ['IRB-BB']
     results = []
     smpl = 0
-    s = 200
+    s = 203
     for region, info in regions.iteritems():
         while smpl < num_samples:
             #
@@ -281,23 +283,61 @@ if __name__ == '__main__':
                         print "sps finished", time2
 
                         for appr in approaches:
-
                             if appr == 'MILP':
                                 res = experiment.run(g, 'MILP', smpl)
                                 results.append(res)
-                            elif appr == 'V-NN':
-                                res = experiment.run(g, 'SP-Voronoi', smpl, 'NN', partition='SP-fraction', fraction=0.25)
-                                results.append(res)
-                            elif appr == 'V-BB':
-                                res = experiment.run(g, 'SP-Voronoi', smpl, 'BB', partition='SP-fraction', fraction=0.1)
-                                results.append(res)
-                            elif appr == 'IRB-NN' or appr == 'IRB-BB':
-                                for max_load in max_loads:
-                                    if appr == 'IRB-NN':
-                                        res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load, partition='SP-fraction', fraction=0.1)
-                                    else:
-                                        res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load, partition='SP-fraction', fraction=0.1)
-                                    results.append(res)
+                            else:
+                                if without_partitioning:
+                                    if appr == 'V-NN':
+                                        res = experiment.run(g, 'SP-Voronoi', smpl, 'NN')
+                                        results.append(res)
+                                    elif appr == 'V-BB':
+                                        res = experiment.run(g, 'SP-Voronoi', smpl, 'BB')
+                                        results.append(res)
+                                    elif appr == 'IRB-NN' or appr == 'IRB-BB':
+                                        for max_load in max_loads:
+                                            if appr == 'IRB-NN':
+                                                res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load)
+                                            else:
+                                                res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load)
+                                            results.append(res)
+                                for f in fractions:
+                                    if appr == 'V-NN':
+                                        res = experiment.run(g, 'SP-Voronoi', smpl, 'NN', partition='SP-fraction',
+                                                             fraction=f)
+                                        results.append(res)
+                                    elif appr == 'V-BB':
+                                        res = experiment.run(g, 'SP-Voronoi', smpl, 'BB', partition='SP-fraction',
+                                                             fraction=f)
+                                        results.append(res)
+                                    elif appr == 'IRB-NN' or appr == 'IRB-BB':
+                                        for max_load in max_loads:
+                                            if appr == 'IRB-NN':
+                                                res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load,
+                                                                     partition='SP-fraction', fraction=f)
+                                            else:
+                                                res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load,
+                                                                     partition='SP-fraction', fraction=f)
+                                            results.append(res)
+
+                                for t in thresholds:
+                                    if appr == 'V-NN':
+                                        res = experiment.run(g, 'SP-Voronoi', smpl, 'NN', partition='SP-threshold',
+                                                             threshold=t)
+                                        results.append(res)
+                                    elif appr == 'V-BB':
+                                        res = experiment.run(g, 'SP-Voronoi', smpl, 'BB', partition='SP-threshold',
+                                                             threshold=t)
+                                        results.append(res)
+                                    elif appr == 'IRB-NN' or appr == 'IRB-BB':
+                                        for max_load in max_loads:
+                                            if appr == 'IRB-NN':
+                                                res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load,
+                                                                     partition='SP-threshold', threshold=t)
+                                            else:
+                                                cProfile.run("experiment.run(g, 'LL-EP', smpl, 'BB', max_load, partition='SP-threshold', threshold=t)")
+                                            # results.append(res)
+
             #
             smpl += 1
 
