@@ -1,10 +1,12 @@
 import operator
 import gmplot
+import time
 
 from osmmanager import OsmManager
 from suitability import SuitableNodeWeightGenerator
 from numpy.random import RandomState
 from csdp_ap import CsdpAp
+from graph import Graph
 
 
 element_colors = ['#13E853',
@@ -59,20 +61,24 @@ if __name__ == '__main__':
         # ),
     }
     #
-    delta_meters = 3000.0
+    delta_meters = 10000.0
     delta = delta_meters / 111111
     num_samples = 1
     # num_customers_r = [10, 100, 1000]
-    num_customers_r = [4]
+    num_customers_r = [256]
     # ratios = [1.5, 2.0, 2.5, 3.0]
-    ratios = [2.0]
-    fractions = [0.2, 0.3, 0.4, 0.5]
-    thresholds = [1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
-    driver_locations = ['U-U']
+    ratios = [4.0]
+    fractions = [0.1]
+    # thresholds = [1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+    thresholds = []
+    driver_locations = ['Z-U']
+    max_loads = [8]
+    bounds = 'both'
+    approaches = ['IRB-BB']
     #
     results = []
     sample = 0
-    seed = 8
+    seed = 200
     for region, info in regions.iteritems():
         while sample < num_samples:
             #
@@ -87,7 +93,7 @@ if __name__ == '__main__':
             #
             center_lat = (min_lat + max_lat) / 2
             center_lon = (min_lon + max_lon) / 2
-            gmap = gmplot.GoogleMapPlotter(center_lat, center_lon, 13, apikey='')
+            gmap = gmplot.GoogleMapPlotter(center_lat, center_lon, 13, apikey='AIzaSyApAatZz85dsgZSWQD_L59EmeBt5enPPDE')
             # Generate network sample.
             graph, _, stores, _, _ = osm.generate_graph_for_bbox(min_lon, min_lat, max_lon, max_lat, generator,
                                                                  hotspots=False, poi_names=info[1].keys())
@@ -98,8 +104,6 @@ if __name__ == '__main__':
                 nodes = components[max(sizes.iteritems(), key=operator.itemgetter(1))[0]]
                 graph = graph.extract_node_induced_subgraph(nodes)
                 stores = set(graph.keys()).intersection(stores)
-            #
-            csdp_ap = CsdpAp(graph)
             #
             num_stores = len(stores)
             if num_stores == 0:
@@ -147,7 +151,17 @@ if __name__ == '__main__':
                     idx += num_customers_retailer
                     gmap.scatter(lats, lons, element_colors[i % len(element_colors)], size=25, marker=False)
                 #
-                free = set(graph.keys()).difference(customers)
+                free = free.difference(customers)
+                #
+                # g = Graph()
+                # g = graph.copy()
+                # print "PART 1: SDs started"
+                # time1 = time.clock()
+                # g.compute_dist_paths(origins=customers, destinations=customers, compute_paths=False)
+                # g.compute_dist_paths(origins=customers, destinations=stores, compute_paths=False)
+                # g.compute_dist_paths(origins=stores, destinations=stores, compute_paths=False)
+                # time2 = time.clock() - time1
+                # print "PART 1: SDs finished", time2
                 #
                 for ratio in ratios:
                     num_drivers = int(round(num_customers / ratio))
@@ -170,68 +184,110 @@ if __name__ == '__main__':
                         s_lons = list()
                         e_lats = list()
                         e_lons = list()
+                        starts = list()
+                        ends = list()
+                        paths = list()
                         for ((s, _, _), (e, _, _)) in ds:
                             s_lats.append(graph[s][2]['lat'])
                             s_lons.append(graph[s][2]['lon'])
                             e_lats.append(graph[e][2]['lat'])
                             e_lons.append(graph[e][2]['lon'])
+                            #
+                            starts.append(s)
+                            ends.append(e)
+                            graph.compute_dist_paths(origins=[s], destinations=[e])
+                            paths.append(graph.paths[tuple(sorted([s, e]))])
+
                         gmap.scatter(s_lats, s_lons, '#000000', size=60, marker=False)
                         gmap.scatter(e_lats, e_lons, '#000000', size=40, marker=False)
 
-                        # ----------------------------------------------------------------------------------------------
-                        # SP-based -> Partition='SP-Voronoi'
-                        # ----------------------------------------------------------------------------------------------
-                        routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-Voronoi')
-                        print cost
-                        routes_map = get_routes_map(routes, graph)
-                        gmap.paths = []
-                        for i, (lats, lons) in enumerate(routes_map):
-                            gmap.plot(lats, lons, element_colors[i % len(element_colors)])
-                        gmap.draw("maps/Voronoi_FCFA.html")
+                        gmap.draw("maps/setup.html")
 
-                        # ----------------------------------------------------------------------------------------------
-                        # SP-based -> Partition='SP-fraction'
-                        # ----------------------------------------------------------------------------------------------
-                        for fraction in fractions:
-                            routes, cost = csdp_ap.solve(rs, ds, method='SP-based', fraction_sd=fraction,
-                                                         tiebreaker='FCFA')
-                            print cost
-                            routes_map = get_routes_map(routes, graph)
-                            gmap.paths = []
-                            for i, (lats, lons) in enumerate(routes_map):
-                                gmap.plot(lats, lons, element_colors[i % len(element_colors)])
-                            gmap.draw("maps/Fraction_%s_FCFA.html" % str(fraction))
+                        # print "PART 1: SDs started"
+                        # time1 = time.clock()
+                        # g.compute_dist_paths(origins=starts, destinations=stores, compute_paths=False)
+                        # g.compute_dist_paths(origins=customers, destinations=ends, compute_paths=False)
+                        # time2 = time.clock() - time1
+                        # print "PART 2: SDs finished", time2
+                        #
+                        csdp_ap = CsdpAp(graph)
+                        csdp_ap._requests = rs
+                        csdp_ap._drivers = list(ds)
+                        csdp_ap._pre_process_requests_drivers()
+                        partitions = csdp_ap._compute_partitions(method='SP-fraction', fraction_sd=0.1)
+                        v_lats = list()
+                        v_lons = list()
+                        if len(partitions) > 0:
+                            gmap.shapes = []
+                            s, e = partitions.keys()[0]
+                            shops_customers = partitions[(s, e)]
+                            for v in shops_customers['all']:
+                                try:
+                                    v_lats.append(graph[v][2]['lat'])
+                                    v_lons.append(graph[v][2]['lon'])
+                                except KeyError:
+                                    pass
+                            gmap.scatter([graph[s][2]['lat']], [graph[s][2]['lon']], '#0000FF', size=60, marker=False)
+                            gmap.scatter([graph[e][2]['lat']], [graph[e][2]['lon']], '#0000FF', size=40, marker=False)
+                            gmap.scatter(v_lats, v_lons, '#0000FF', size=15, marker=False)
+                            gmap.draw("maps/partition_0.html")
 
-                            routes, cost = csdp_ap.solve(rs, ds, method='SP-based', fraction_sd=fraction,
-                                                         tiebreaker='B-MST')
-                            print cost
-                            routes_map = get_routes_map(routes, graph)
-                            gmap.paths = []
-                            for i, (lats, lons) in enumerate(routes_map):
-                                gmap.plot(lats, lons, element_colors[i % len(element_colors)])
-                            gmap.draw("maps/Fraction_%s_B-MST.html" % str(fraction))
+                            cells, _ = graph.get_voronoi_paths_cells(paths, nodes=nodes, nodes_by_path=nodes_by_path)
 
-                        for threshold in thresholds:
-                            # ------------------------------------------------------------------------------------------
-                            # SP-based -> Partition='SP-threshold'
-                            # ------------------------------------------------------------------------------------------
-                            routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold',
-                                                         threshold_sd=threshold, tiebreaker='FCFA')
-                            print cost
-                            routes_map = get_routes_map(routes, graph)
-                            gmap.paths = []
-                            for i, (lats, lons) in enumerate(routes_map):
-                                gmap.plot(lats, lons, element_colors[i % len(element_colors)])
-                            gmap.draw("maps/Threshold_%s_FCFA.html" % str(threshold))
-
-                            routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold',
-                                                         threshold_sd=threshold, tiebreaker='B-MST')
-                            print cost
-                            routes_map = get_routes_map(routes, graph)
-                            gmap.paths = []
-                            for i, (lats, lons) in enumerate(routes_map):
-                                gmap.plot(lats, lons, element_colors[i % len(element_colors)])
-                            gmap.draw("maps/Threshold_%s_B-MST.html" % str(threshold))
+                        # # ----------------------------------------------------------------------------------------------
+                        # # SP-based -> Partition='SP-Voronoi'
+                        # # ----------------------------------------------------------------------------------------------
+                        # routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-Voronoi')
+                        # print cost
+                        # routes_map = get_routes_map(routes, graph)
+                        # gmap.paths = []
+                        # for i, (lats, lons) in enumerate(routes_map):
+                        #     gmap.plot(lats, lons, element_colors[i % len(element_colors)])
+                        # gmap.draw("maps/Voronoi_FCFA.html")
+                        #
+                        # # ----------------------------------------------------------------------------------------------
+                        # # SP-based -> Partition='SP-fraction'
+                        # # ----------------------------------------------------------------------------------------------
+                        # for fraction in fractions:
+                        #     routes, cost = csdp_ap.solve(rs, ds, method='SP-based', fraction_sd=fraction,
+                        #                                  tiebreaker='FCFA')
+                        #     print cost
+                        #     routes_map = get_routes_map(routes, graph)
+                        #     gmap.paths = []
+                        #     for i, (lats, lons) in enumerate(routes_map):
+                        #         gmap.plot(lats, lons, element_colors[i % len(element_colors)])
+                        #     gmap.draw("maps/Fraction_%s_FCFA.html" % str(fraction))
+                        #
+                        #     routes, cost = csdp_ap.solve(rs, ds, method='SP-based', fraction_sd=fraction,
+                        #                                  tiebreaker='B-MST')
+                        #     print cost
+                        #     routes_map = get_routes_map(routes, graph)
+                        #     gmap.paths = []
+                        #     for i, (lats, lons) in enumerate(routes_map):
+                        #         gmap.plot(lats, lons, element_colors[i % len(element_colors)])
+                        #     gmap.draw("maps/Fraction_%s_B-MST.html" % str(fraction))
+                        #
+                        # for threshold in thresholds:
+                        #     # ------------------------------------------------------------------------------------------
+                        #     # SP-based -> Partition='SP-threshold'
+                        #     # ------------------------------------------------------------------------------------------
+                        #     routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold',
+                        #                                  threshold_sd=threshold, tiebreaker='FCFA')
+                        #     print cost
+                        #     routes_map = get_routes_map(routes, graph)
+                        #     gmap.paths = []
+                        #     for i, (lats, lons) in enumerate(routes_map):
+                        #         gmap.plot(lats, lons, element_colors[i % len(element_colors)])
+                        #     gmap.draw("maps/Threshold_%s_FCFA.html" % str(threshold))
+                        #
+                        #     routes, cost = csdp_ap.solve(rs, ds, method='SP-based', partition_method='SP-threshold',
+                        #                                  threshold_sd=threshold, tiebreaker='B-MST')
+                        #     print cost
+                        #     routes_map = get_routes_map(routes, graph)
+                        #     gmap.paths = []
+                        #     for i, (lats, lons) in enumerate(routes_map):
+                        #         gmap.plot(lats, lons, element_colors[i % len(element_colors)])
+                        #     gmap.draw("maps/Threshold_%s_B-MST.html" % str(threshold))
             #
             sample += 1
 

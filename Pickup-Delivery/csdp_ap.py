@@ -643,7 +643,7 @@ class CsdpAp:
 
     def solve(self, requests, drivers, method='MILP', verbose=False, assignment_method='LL-EP', partition_method=None,
               fraction_sd=.5, threshold_sd=1.5, solve_partition_method='BB', solve_unserved_method='double-tree',
-              max_load=0, bounds='both'):
+              max_load=0, strict=False, bounds='both'):
 
         self._requests = requests
         self._drivers = list(drivers)
@@ -663,6 +663,7 @@ class CsdpAp:
                                   solve_partition_method=solve_partition_method,
                                   solve_unserved_method=solve_unserved_method,
                                   max_load=max_load,
+                                  strict=strict,
                                   bounds=bounds)
 
     def _define_milp(self, method='MILP', threshold_sd=1.5):
@@ -779,12 +780,14 @@ class CsdpAp:
             self._shop_by_F[end_v] = shop
             self._Fs_by_shop[shop] = (start_v, end_v)
 
-    def _sp_based(self, assignment_method='LL-EP', partition_method=None, fraction_sd=.5, threshold_sd=1.5,
-                  solve_partition_method='BB', solve_unserved_method='double-tree', max_load=0, bounds='both'):
+    def _sp_based(self, assignment_method='LL-EP', partition_method=None, fraction_sd=0.5, threshold_sd=1.5,
+                  solve_partition_method='BB', solve_unserved_method='double-tree', max_load=0, strict=False,
+                  bounds='both'):
         routes = list()
         cost = 0
-        partitions = self._assign(method=assignment_method, max_load=max_load, partition_method=partition_method,
-                                  fraction_sd=fraction_sd, threshold_sd=threshold_sd)
+        partitions = self._assign(method=assignment_method, max_load=max_load, strict=strict,
+                                  partition_method=partition_method, fraction_sd=fraction_sd,
+                                  threshold_sd=threshold_sd)
         #
         if solve_partition_method == 'BB':
             # TODO: Simple control to avoid prohibitive computation
@@ -856,7 +859,8 @@ class CsdpAp:
                 raise NotImplementedError
         return routes, cost
 
-    def _assign(self, method='LL-EP', max_load=0, partition_method=None, fraction_sd=0.5, threshold_sd=1.5):
+    def _assign(self, method='LL-EP', max_load=0, strict=False, partition_method=None, fraction_sd=0.5,
+                threshold_sd=1.5):
         partitions = {}
         if partition_method is not None:
             partitions = self._compute_partitions(partition_method, fraction_sd=fraction_sd, threshold_sd=threshold_sd)
@@ -868,62 +872,58 @@ class CsdpAp:
             # self._graph.compute_dist_paths(pairs=self._ad_hoc_drivers)
             # Drivers' paths are gathered as a list to be sent as parameter for Voronoi cells computation.
             paths = list()
-            vertices = set()
             for start_v, end_v in self._ad_hoc_drivers:
-                paths.append(self._graph.paths[tuple(sorted([start_v, end_v]))])
-                if partition_method is not None:
-                    vertices.update(partitions[(start_v, end_v)]['all'])
-            # Voronoi cells contain all kinds of vertices, i.e., not only shops and customers. Thus, cells must be
-            # sieved.
-            if len(vertices) > 0:
-                nodes_by_path = {(start_v, end_v): info['all'] for (start_v, end_v), info in partitions.iteritems()}
-                cells, _ = self._graph.get_voronoi_paths_cells(paths, nodes=vertices, nodes_by_path=nodes_by_path)
+                path = self._graph.paths[tuple(sorted([start_v, end_v]))]
+                if path[-1] == start_v:
+                    path.reverse()
+                paths.append(path)
+            #
+            if partition_method is not None:
+                nodes_by_path = dict()
+                nodes = set()
+                for (start_v, end_v), info in partitions.iteritems():
+                    nodes.update(info['all'])
+                    nodes_by_path[start_v, end_v] = info['all']
+                cells, _ = self._graph.get_voronoi_paths_cells(paths, nodes=nodes, nodes_by_path=nodes_by_path)
             else:
                 cells, _ = self._graph.get_voronoi_paths_cells(paths)
+            # Classify vertices in the cells.
             for (start_v, end_v), vertices in cells.iteritems():
-                partitions[(start_v, end_v)] = dict()
+                partitions[(start_v, end_v)] = {'shops': set(), 'customers': set(), 'all': set(vertices)}
                 for vertex in vertices:
                     if vertex in self._shops:
-                        try:
-                            partitions[(start_v, end_v)]['shops'].add(vertex)
-                        except KeyError:
-                            partitions[(start_v, end_v)]['shops'] = {vertex}
+                        partitions[(start_v, end_v)]['shops'].add(vertex)
                     elif vertex in self._customers:
-                        try:
-                            partitions[(start_v, end_v)]['customers'].add(vertex)
-                        except KeyError:
-                            partitions[(start_v, end_v)]['customers'] = {vertex}
+                        partitions[(start_v, end_v)]['customers'].add(vertex)
             #
             if partition_method is None:
-                # Are there customers without a corresponding shop?
+                # Are there customers without a corresponding shop? Let's find one for each of the customers.
                 for (start_v, end_v), shops_customers in partitions.iteritems():
-                    try:
-                        if len(shops_customers['customers']) == 0:
-                            continue
-                    except KeyError:
-                        continue
                     customers = shops_customers['customers']
+                    if len(customers) == 0:
+                        continue
                     path = self._graph.paths[tuple(sorted([start_v, end_v]))]
-                    if ('shops' in shops_customers and len(shops_customers['shops']) == 0) \
-                            or 'shops' not in shops_customers:
+                    shops = shops_customers['shops']
+                    if len(shops) == 0:
                         for customer in customers:
                             group_id = self._customers_dict[customer]
                             shops_customer = self._shops_by_group_id[group_id]
                             dist, _ = self._graph.get_k_closest_destinations(path, 1, shops_customer,
                                                                              compute_paths=False)
-                            try:
-                                partitions[(start_v, end_v)]['shops'].add(dist.keys()[0])
-                            except KeyError:
-                                partitions[(start_v, end_v)]['shops'] = {dist.keys()[0]}
+                            shop = dist.keys()[0]
+                            partitions[(start_v, end_v)]['shops'].add(shop)
+                            partitions[(start_v, end_v)]['all'].add(shop)
                         continue
-                    shops = shops_customers['shops']
                     for customer in customers:
                         group_id = self._customers_dict[customer]
                         shops_customer = self._shops_by_group_id[group_id]
                         if shops.intersection(self._shops_by_group_id[group_id]):
                             continue
                         dist, _ = self._graph.get_k_closest_destinations(path, 1, shops_customer, compute_paths=False)
-                        partitions[(start_v, end_v)]['shops'].add(dist.keys()[0])
+                        shop = dist.keys()[0]
+                        partitions[(start_v, end_v)]['shops'].add(shop)
+                        partitions[(start_v, end_v)]['all'].add(shop)
+
         # --------------------------------------------------------------------------------------------------------------
         # LL-EP: Limited-Load Elementary Path assignment
         # --------------------------------------------------------------------------------------------------------------
@@ -933,9 +933,8 @@ class CsdpAp:
                 for start_v, end_v in self._ad_hoc_drivers:
                     partitions[(start_v, end_v)] = {'shops': self._shops, 'customers': self._customers}
             for (start_v, _), shops_customers in partitions.iteritems():
-                if 'customers' not in shops_customers:
-                    continue
-                for customer in shops_customers['customers']:
+                customers = shops_customers['customers']
+                for customer in customers:
                     try:
                         starts_by_customer[customer].append(start_v)
                     except KeyError:
@@ -945,36 +944,15 @@ class CsdpAp:
             to_downgrade = self._compute_amortized_edge_weights(mst, best_shop_per_driver_cust)
             mst.update_edge_weights(to_downgrade)
             if max_load > 0:
-                self._decrease_degree_mst(mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load)
+                self._decrease_degree_mst(mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load,
+                                          strict=strict)
             # Set customers in partitions according to the final limited MST.
             driver_starts = set(self.H_s)
             for v, adj in mst.iteritems():
                 if v in driver_starts:
                     partitions[self._drivers_by_start[v]]['customers'] = {w for w in adj if w not in driver_starts}
-        # Are there shops without customers within each partition?
-        to_remove = dict()
-        for (start_v, end_v), shops_customers in partitions.iteritems():
-            if ('customers' in shops_customers and len(shops_customers['customers']) == 0) \
-                    or 'customers' not in shops_customers:
-                partitions[(start_v, end_v)]['shops'] = set()
-                continue
-            customers = shops_customers['customers']
-            try:
-                if len(shops_customers['shops']) == 0:
-                    continue
-            except KeyError:
-                continue
-            shops = set(shops_customers['shops'])
-            for shop in shops:
-                group_id = self._shops_dict[shop]
-                if customers.intersection(self._customers_by_group_id[group_id]):
-                    continue
-                try:
-                    to_remove[(start_v, end_v)].append(shop)
-                except KeyError:
-                    to_remove[(start_v, end_v)] = [shop]
-        for (start_v, end_v), shops in to_remove.iteritems():
-            partitions[(start_v, end_v)]['shops'] = partitions[(start_v, end_v)]['shops'].difference(shops)
+        # Clean unmatched shops and customers from the partitions.
+        self._clean_partitions(partitions)
         return partitions
 
     def _compute_partitions(self, method='SP-fraction', fraction_sd=.5, threshold_sd=1.5):
@@ -1011,21 +989,49 @@ class CsdpAp:
                 partitions[(start_v, end_v)] = {'all': set(ellipse.keys())}
         else:
             raise NotImplementedError
+        # Classify vertices in the partitions.
         for (start_v, end_v), vertices in partitions.iteritems():
+            partitions[(start_v, end_v)]['shops'] = set()
+            partitions[(start_v, end_v)]['customers'] = set()
             for vertex in vertices['all']:
                 if vertex in self._shops:
-                    try:
-                        partitions[(start_v, end_v)]['shops'].add(vertex)
-                    except KeyError:
-                        partitions[(start_v, end_v)]['shops'] = {vertex}
+                    partitions[(start_v, end_v)]['shops'].add(vertex)
                 elif vertex in self._customers:
-                    try:
-                        partitions[(start_v, end_v)]['customers'].add(vertex)
-                    except KeyError:
-                        partitions[(start_v, end_v)]['customers'] = {vertex}
+                    partitions[(start_v, end_v)]['customers'].add(vertex)
+        # Clean unmatched shops and customers from the partitions.
+        self._clean_partitions(partitions)
         return partitions
 
-    def _decrease_degree_mst(self, mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load):
+    def _clean_partitions(self, partitions):
+        for (start_v, end_v), shops_customers in partitions.iteritems():
+            shops = partitions[(start_v, end_v)]['shops']
+            customers = partitions[(start_v, end_v)]['customers']
+            if len(shops) == 0:
+                partitions[(start_v, end_v)]['customers'] = set()
+                partitions[(start_v, end_v)]['all'] = partitions[(start_v, end_v)]['all'].difference(customers)
+                continue
+            if len(customers) == 0:
+                partitions[(start_v, end_v)]['shops'] = set()
+                partitions[(start_v, end_v)]['all'] = partitions[(start_v, end_v)]['all'].difference(shops)
+                continue
+            shops_to_keep = set()
+            customers_to_keep = set()
+            for customer in customers:
+                group_id = self._customers_dict[customer]
+                shops_group = self._shops_by_group_id[group_id]
+                matching_shops = shops.intersection(shops_group)
+                if len(matching_shops) > 0:
+                    shops_to_keep.update(matching_shops)
+                    customers_to_keep.add(customer)
+            shops_to_remove = shops.difference(shops_to_keep)
+            customers_to_remove = customers.difference(customers_to_keep)
+            to_remove = shops_to_remove.union(customers_to_remove)
+            partitions[(start_v, end_v)]['shops'] = shops_to_keep
+            partitions[(start_v, end_v)]['customers'] = customers_to_keep
+            partitions[(start_v, end_v)]['all'] = partitions[(start_v, end_v)]['all'].difference(to_remove)
+
+    def _decrease_degree_mst(self, mst, bipartite, best_shop_per_driver_cust, starts_by_customer, max_load,
+                             strict=False):
         # Decrease the degree of the MST upto max_load.
         quarantine = set()
         moves = 0
@@ -1036,11 +1042,9 @@ class CsdpAp:
             degree_by_start = dict()
             highest_degree = 0
             for v, adj in mst.iteritems():
-                # if isinstance(v, tuple):  # If it is tuple, then it is a driver.
                 if v in driver_starts:
                     if v in quarantine:
                         continue
-                    # degree = sum([1 for w in adj if not isinstance(w, tuple)])
                     degree = sum([1 for w in adj if w not in driver_starts])
                     try:
                         starts_by_degree[degree].append(v)
@@ -1091,6 +1095,18 @@ class CsdpAp:
                     break
                 else:
                     sup = most_expensive[1]
+        #
+        if strict:
+            to_drop = list()
+            for v, adj in mst.iteritems():
+                if v in driver_starts:
+                    degree = sum([1 for w in adj if w not in driver_starts])
+                    if degree > max_load:
+                        most_expensive = \
+                            sorted(adj.iteritems(), key=operator.itemgetter(1), reverse=True)[:degree - max_load]
+                        to_drop.extend([tuple(sorted([c, v])) for c, _ in most_expensive])
+            for td in to_drop:
+                mst.drop_edge(td)
 
     def _create_bipartite_graph(self, partitions):
         # Build weighted bipartite graph and compute its MST.
@@ -1098,20 +1114,12 @@ class CsdpAp:
         best_shop_per_driver_cust = dict()
         # For each ad hoc driver...
         for (start_v, end_v), shops_customers in partitions.iteritems():
-            try:
-                if len(shops_customers['customers']) == 0:
-                    continue
-            except KeyError:
-                continue
             customers = shops_customers['customers']
-            if ('shops' in shops_customers and len(shops_customers['shops']) == 0) or 'shops' not in shops_customers:
-                for customer in customers:
-                    bipartite.append_edge_2((start_v, customer), weight=sys.maxint)
+            if len(customers) == 0:
                 continue
-            # try:
-            #     if len(shops_customers['shops']) == 0:
-            #         continue
-            # except KeyError:
+            # if ('shops' in shops_customers and len(shops_customers['shops']) == 0) or 'shops' not in shops_customers:
+            #     for customer in customers:
+            #         bipartite.append_edge_2((start_v, customer), weight=sys.maxint)
             #     continue
             shops = shops_customers['shops']
             # Distances needed to compute edge weights when they correspond to elementary paths.
@@ -1122,9 +1130,9 @@ class CsdpAp:
             for customer in customers:
                 group_id = self._customers_dict[customer]
                 shops_by_customer = shops.intersection(self._shops_by_group_id[group_id])
-                if len(shops_by_customer) == 0:
-                    bipartite.append_edge_2((start_v, customer), weight=sys.maxint)
-                    continue
+                # if len(shops_by_customer) == 0:
+                #     bipartite.append_edge_2((start_v, customer), weight=sys.maxint)
+                #     continue
                 # TODO: uncomment
                 # self._graph.compute_dist_paths(origins=[customer], destinations=shops_by_customer, compute_paths=False)
                 d = sys.maxint
@@ -1194,12 +1202,15 @@ class CsdpAp:
         # Filter out the customers who are not in the partition and do not have a shop that can serve them.
         customers_dict = dict()
         if 'customers' in shops_customers:
-            local_customers = set(self._customers_dict.keys()).intersection(shops_customers['customers'])
-            for c in local_customers:
-                for s in shops_dict:
-                    if self._customers_dict[c] == self._shops_dict[s]:
-                        customers_dict[c] = self._customers_dict[c]
-                        break
+            customers_dict = \
+                {k: self._customers_dict[k]
+                 for k in set(self._customers_dict.keys()).intersection(shops_customers['customers'])}
+            # local_customers = set(self._customers_dict.keys()).intersection(shops_customers['customers'])
+            # for c in local_customers:
+            #     for s in shops_dict:
+            #         if self._customers_dict[c] == self._shops_dict[s]:
+            #             customers_dict[c] = self._customers_dict[c]
+            #             break
         # If there are no shops nor customers, the driver follows her original route.
         if not shops_dict or not customers_dict:
             route = self._graph.paths[start_end]
@@ -1251,18 +1262,42 @@ class CsdpAp:
                 shops = set(shops_dict.keys())
                 customers = set(customers_dict.keys())
                 cost = 0
-                # self.dist_ub = self.dist
+                threshold = 0
+                if partition_method == 'SP-threshold':
+                    threshold = self._graph.dist[start_end] * threshold_sd
                 while from_ != end_v:
                     candidates_to = PartialPath.where_to(from_, path, shops, customers)
+                    if partition_method == 'SP-threshold' and len(candidates_to) == 0:
+                        while from_ in shops_dict:
+                            f = path.pop()
+                            from_ = path[-1]
+                            cost -= self._graph.dist[tuple(sorted([from_, f]))]
+                        candidates_to.add(end_v)
                     # TODO: uncomment
                     # self._graph.compute_dist_paths([from_], candidates_to, compute_paths=False)
                     dist = ({v: self._graph.dist[tuple(sorted([from_, v]))] for v in candidates_to})
                     nn, d = min(dist.iteritems(), key=operator.itemgetter(1))
                     path.append(nn)
-                    shops.discard(nn)
-                    customers.discard(nn)
-                    # self.dist_ub += d
                     cost += d
+
+                    if partition_method == 'SP-threshold':
+                        ellipse = self._graph.nodes_within_ellipse(nn, end_v, threshold - cost)
+                        non_visited = set(ellipse.keys()).difference(path)
+                        shops = shops.intersection(non_visited)
+                        customers_bck = customers.intersection(non_visited)
+                        customers = set()
+                        visited_shops = set(shops_dict.keys()).intersection(path)
+                        all_shops = set(visited_shops)
+                        all_shops.update(shops)
+                        groups = {shops_dict[shop] for shop in all_shops}
+                        for group in groups:
+                            if group not in self._customers_by_group_id:
+                                continue
+                            customers.update(self._customers_by_group_id[group].intersection(customers_bck))
+                    else:
+                        shops.discard(nn)
+                        customers.discard(nn)
+
                     from_ = nn
                 #
                 served_customers = set(customers_dict.keys()).intersection(path)
@@ -1279,6 +1314,8 @@ class CsdpAp:
         actual_cust_ub = 0
         tightest_ub = sys.maxint
         for p in priority_queue:
+            if partition_method == 'SP-threshold' and p.cust_ub < actual_cust_ub:
+                break
             # Check whether ALL customers have been served. This is the termination condition.
             if len(p.customers) == 0 and p.path[-1] == end_v:
                 if partition_method == 'SP-threshold':
@@ -1291,6 +1328,7 @@ class CsdpAp:
                         # serving the same maximum number of customers.
                         if p.cust_ub == actual_cust_ub and p.dist < partial_path.dist:
                             partial_path = p
+                    continue
                 else:
                     partial_path = p
                     break
@@ -1558,7 +1596,7 @@ class PartialPath:
             # TODO: uncomment
             # PartialPath._graph.compute_dist_paths([path_end], [vertex], compute_paths=False)
             self.path.append(vertex)
-            self.dist = self.dist + PartialPath._graph.dist[tuple(sorted([path_end, vertex]))]
+            self.dist += PartialPath._graph.dist[tuple(sorted([path_end, vertex]))]
         # Update non-visited shops and customers.
         if PartialPath._threshold:
             # Shops and customers that may be visited within a threshold are computed.
