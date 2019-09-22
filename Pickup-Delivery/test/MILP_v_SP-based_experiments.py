@@ -211,9 +211,9 @@ if __name__ == '__main__':
     ratios = [4.0]
     # ratios = [2.0]
     # fractions = [0.01, 0.03, 0.05]
-    fractions = []
+    fractions = [0.1]
     # thresholds = [1.1, 1.3, 1.5]
-    thresholds = [1.5]
+    thresholds = []
     without_partitioning = False
     # driver_locations = ['Z-U', 'U-Z', 'U-U']
     driver_locations = ['Z-U']
@@ -224,10 +224,10 @@ if __name__ == '__main__':
     #
     # approaches = ['MILP', 'V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
     # approaches = ['V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
-    approaches = ['IRB-BB']
+    approaches = ['V-NN', 'IRB-NN', 'V-BB', 'IRB-BB']
     results = []
     smpl = 0
-    s = 203
+    s = 200
     for region, info in regions.iteritems():
         while smpl < num_samples:
             #
@@ -260,6 +260,15 @@ if __name__ == '__main__':
                     print "Not enough vertices!"
                     break
                 custs = experiment.set_customers(nc)
+
+                print "PART 1: SDs started"
+                time1 = time.clock()
+                g.compute_dist_paths(origins=custs, destinations=custs, compute_paths=False)
+                g.compute_dist_paths(origins=custs, destinations=stores, compute_paths=False)
+                g.compute_dist_paths(origins=stores, destinations=stores, compute_paths=False)
+                time2 = time.clock() - time1
+                print "PART 1: SDs finished", time2
+
                 for r in ratios:
                     for d_l in driver_locations:
                         ds = experiment.set_drivers(r, d_l)
@@ -272,15 +281,12 @@ if __name__ == '__main__':
                             starts.append(start)
                             ends.append(end)
 
-                        print "sps started"
+                        print "PART 2: SDs started"
                         time1 = time.clock()
                         g.compute_dist_paths(origins=starts, destinations=stores, compute_paths=False)
-                        g.compute_dist_paths(origins=custs, destinations=custs, compute_paths=False)
-                        g.compute_dist_paths(origins=custs, destinations=stores, compute_paths=False)
-                        g.compute_dist_paths(origins=stores, destinations=stores, compute_paths=False)
                         g.compute_dist_paths(origins=custs, destinations=ends, compute_paths=False)
                         time2 = time.clock() - time1
-                        print "sps finished", time2
+                        print "PART 2: SDs finished", time2
 
                         for appr in approaches:
                             if appr == 'MILP':
