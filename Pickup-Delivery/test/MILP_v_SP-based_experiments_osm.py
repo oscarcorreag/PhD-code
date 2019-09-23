@@ -93,7 +93,7 @@ if __name__ == '__main__':
             #
             center_lat = (min_lat + max_lat) / 2
             center_lon = (min_lon + max_lon) / 2
-            gmap = gmplot.GoogleMapPlotter(center_lat, center_lon, 13, apikey='')
+            gmap = gmplot.GoogleMapPlotter(center_lat, center_lon, 13, apikey='AIzaSyApAatZz85dsgZSWQD_L59EmeBt5enPPDE')
             # Generate network sample.
             graph, _, stores, _, _ = osm.generate_graph_for_bbox(min_lon, min_lat, max_lon, max_lat, generator,
                                                                  hotspots=False, poi_names=info[1].keys())
@@ -215,24 +215,60 @@ if __name__ == '__main__':
                         csdp_ap._drivers = list(ds)
                         csdp_ap._pre_process_requests_drivers()
                         partitions = csdp_ap._compute_partitions(method='SP-fraction', fraction_sd=0.1)
-                        v_lats = list()
-                        v_lons = list()
                         if len(partitions) > 0:
-                            gmap.shapes = []
-                            s, e = partitions.keys()[0]
+                            # Scatter nodes within partition.
+                            s, e = partitions.keys()[1]
                             shops_customers = partitions[(s, e)]
-                            for v in shops_customers['all']:
+                            v_lats = list()
+                            v_lons = list()
+                            for v in shops_customers['customers']:
                                 try:
                                     v_lats.append(graph[v][2]['lat'])
                                     v_lons.append(graph[v][2]['lon'])
                                 except KeyError:
                                     pass
-                            gmap.scatter([graph[s][2]['lat']], [graph[s][2]['lon']], '#0000FF', size=60, marker=False)
-                            gmap.scatter([graph[e][2]['lat']], [graph[e][2]['lon']], '#0000FF', size=40, marker=False)
+                            gmap.shapes = []
+                            gmap.scatter([graph[s][2]['lat']], [graph[s][2]['lon']], '#000000', size=60, marker=False)
+                            gmap.scatter([graph[e][2]['lat']], [graph[e][2]['lon']], '#000000', size=40, marker=False)
                             gmap.scatter(v_lats, v_lons, '#0000FF', size=15, marker=False)
-                            gmap.draw("maps/partition_0.html")
-
+                            gmap.draw("maps/partition_1.html")
+                            # Scatter nodes within Voronoi cell.
+                            cells, _ = graph.get_voronoi_paths_cells(paths)
+                            v_lats = list()
+                            v_lons = list()
+                            for v in cells[(s, e)]:
+                                if v in customers:
+                                    try:
+                                        v_lats.append(graph[v][2]['lat'])
+                                        v_lons.append(graph[v][2]['lon'])
+                                    except KeyError:
+                                        pass
+                            gmap.shapes = []
+                            gmap.scatter([graph[s][2]['lat']], [graph[s][2]['lon']], '#000000', size=60, marker=False)
+                            gmap.scatter([graph[e][2]['lat']], [graph[e][2]['lon']], '#000000', size=40, marker=False)
+                            gmap.scatter(v_lats, v_lons, '#FF0000', size=15, marker=False)
+                            gmap.draw("maps/voronoi_1.html")
+                            #
+                            nodes_by_path = dict()
+                            nodes = set()
+                            for (start_v, end_v), sc in partitions.iteritems():
+                                nodes.update(sc['all'])
+                                nodes_by_path[start_v, end_v] = sc['all']
                             cells, _ = graph.get_voronoi_paths_cells(paths, nodes=nodes, nodes_by_path=nodes_by_path)
+                            v_lats = list()
+                            v_lons = list()
+                            for v in cells[(s, e)]:
+                                if v in customers:
+                                    try:
+                                        v_lats.append(graph[v][2]['lat'])
+                                        v_lons.append(graph[v][2]['lon'])
+                                    except KeyError:
+                                        pass
+                            gmap.shapes = []
+                            gmap.scatter([graph[s][2]['lat']], [graph[s][2]['lon']], '#000000', size=60, marker=False)
+                            gmap.scatter([graph[e][2]['lat']], [graph[e][2]['lon']], '#000000', size=40, marker=False)
+                            gmap.scatter(v_lats, v_lons, '#FF0000', size=15, marker=False)
+                            gmap.draw("maps/partition_voronoi_1.html")
 
                         # # ----------------------------------------------------------------------------------------------
                         # # SP-based -> Partition='SP-Voronoi'

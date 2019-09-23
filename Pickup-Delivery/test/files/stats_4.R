@@ -56,6 +56,7 @@ ird[, Assignment := as.factor(Assignment)]
 ird[, Partition := as.factor(Partition)]
 ird[, Routing := as.factor(Routing)]
 ird[, Zone := as.factor(Zone)]
+ird[, Customers := as.factor(Customers)]
 ird[, Distribution := as.factor(Distribution)]
 
 ird <- ird[Dedicated.cost == 0 & Cost != -1]
@@ -64,20 +65,27 @@ ird[Assignment == 'SP-Voronoi', Assignment := 'V']
 ird[Assignment == 'LL-EP', Assignment := 'IRD']
 ird[Routing == 'BB', Routing := 'BnB']
 ird[, Approach := paste(Assignment, Routing, sep = "-")]
+ird$Approach <- factor(ird$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-BnB'))
 ird[, Total.service.cost := Dedicated.cost + Service.cost]
 
 
-p_ird <- ggplot(ird, aes(x = as.factor(Customers), y = Total.service.cost, fill = Approach)) 
-p_ird <- p_ird + geom_boxplot() 
-p_ird <- p_ird + scale_x_discrete()
-p_ird <- p_ird + scale_y_log10()
-p_ird
+p_ird_c <- ggplot(ird, aes(x = Customers, y = Total.service.cost, fill = Approach)) 
+p_ird_c <- p_ird_c + geom_boxplot() 
+p_ird_c <- p_ird_c + scale_x_discrete()
+p_ird_c <- p_ird_c + scale_y_log10()
+p_ird_c
 
-p_ird <- ggplot(ird, aes(x = as.factor(Customers), y = Elapsed.time, fill = Approach)) 
-p_ird <- p_ird + geom_boxplot() 
-p_ird <- p_ird + scale_x_discrete()
-p_ird <- p_ird + scale_y_log10()
-p_ird
+p_ird_t <- ggplot(ird, aes(x = Customers, y = Elapsed.time, fill = Approach)) 
+p_ird_t <- p_ird_t + geom_boxplot() 
+p_ird_t <- p_ird_t + scale_x_discrete()
+p_ird_t <- p_ird_t + scale_y_log10()
+p_ird_t
+
+p_ird_d <- ggplot(ird, aes(x = Customers, y = Avg.detour, fill = Approach)) 
+p_ird_d <- p_ird_d + geom_boxplot() 
+p_ird_d <- p_ird_d + scale_x_discrete()
+p_ird_d
+
 
 # COMPARISON AGAINST MILP
 # -----------------------
@@ -86,19 +94,72 @@ milp[, Assignment := as.factor(Assignment)]
 milp[, Partition := as.factor(Partition)]
 milp[, Routing := as.factor(Routing)]
 milp[, Zone := as.factor(Zone)]
+milp[, Customers := as.factor(Customers)]
 milp[, Distribution := as.factor(Distribution)]
 
-# milp <- milp[(Dedicated.cost == 0 & Assignment == 'IRD') | Assignment == 'MILP']
+milp <- milp[Customers %in% c(8, 12, 16)]
+milp <- milp[Cost != -1]
 
 milp[Assignment == 'LL-EP', Assignment := 'IRD']
 milp[Routing == 'BB', Routing := 'BnB']
 milp[Assignment == 'IRD', Approach := paste(Assignment, Routing, sep = "-")]
 milp[Assignment == 'MILP', Approach := Assignment]
+milp$Approach <- factor(milp$Approach, levels = c('MILP', 'IRD-BnB'))
 milp[, Total.service.cost := Dedicated.cost + Service.cost]
 
 
-p_milp <- ggplot(milp, aes(x = as.factor(Customers), y = Total.service.cost, fill = Approach)) 
-p_milp <- p_milp + geom_boxplot() 
-p_milp <- p_milp + scale_x_discrete()
-#p_milp <- p_milp + scale_y_log10()
-p_milp
+milp_prop_f <- function(sd) {
+  baseline <- sd[Approach == "MILP", -1, with = FALSE]
+  other <- sd[Approach != "MILP", -1, with = FALSE]
+  if(nrow(baseline) == 1 & nrow(other) == 1){
+    other[1] / baseline[1]
+  }
+}
+
+sd_cols_milp <- c("Approach", "Cost", "Service.cost", "Total.service.cost", "Elapsed.time")
+
+milp_prop_dt <- milp[, milp_prop_f(.SD), by = list(Seed, Customers), .SDcols = sd_cols_milp]
+
+p_milp_c <- ggplot(milp_prop_dt, aes(x = Customers, y = Total.service.cost)) 
+p_milp_c <- p_milp_c + geom_boxplot() 
+p_milp_c <- p_milp_c + scale_x_discrete()
+p_milp_c
+
+p_milp_t <- ggplot(milp_prop_dt, aes(x = Customers, y = Elapsed.time)) 
+p_milp_t <- p_milp_t + geom_boxplot() 
+p_milp_t <- p_milp_t + scale_x_discrete()
+p_milp_t <- p_milp_t + scale_y_log10()
+p_milp_t
+
+
+# MAX LOADS
+# ---------
+lim <- fread("Limits_64C.csv")
+lim[, Assignment := as.factor(Assignment)]
+lim[, Partition := as.factor(Partition)]
+lim[, Routing := as.factor(Routing)]
+lim[, Zone := as.factor(Zone)]
+lim[, Customers := as.factor(Customers)]
+lim[, Distribution := as.factor(Distribution)]
+lim[, Limit := as.factor(Limit)]
+
+lim <- lim[Dedicated.cost == 0 & Cost != -1 & Limit %in% c(4, 6, 8, 10, 12)]
+
+lim[Assignment == 'SP-Voronoi', Assignment := 'V']
+lim[Assignment == 'LL-EP', Assignment := 'IRD']
+lim[Routing == 'BB', Routing := 'BnB']
+lim[, Approach := paste(Assignment, Routing, sep = "-")]
+lim$Approach <- factor(lim$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-BnB'))
+lim[, Total.service.cost := Dedicated.cost + Service.cost]
+
+p_lim_c <- ggplot(lim, aes(x = Limit, y = Total.service.cost, fill = Approach)) 
+p_lim_c <- p_lim_c + geom_boxplot() 
+p_lim_c <- p_lim_c + scale_x_discrete()
+#p_lim_c <- p_lim_c + scale_y_log10()
+p_lim_c
+
+p_lim_t <- ggplot(lim, aes(x = Limit, y = Elapsed.time, fill = Approach)) 
+p_lim_t <- p_lim_t + geom_boxplot() 
+p_lim_t <- p_lim_t + scale_x_discrete()
+p_lim_t <- p_lim_t + scale_y_log10()
+p_lim_t
