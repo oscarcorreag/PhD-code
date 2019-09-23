@@ -153,13 +153,19 @@ lim$Approach <- factor(lim$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-
 lim[, Total.service.cost := Dedicated.cost + Service.cost]
 
 p_lim_c <- ggplot(lim, aes(x = Limit, y = Total.service.cost, fill = Approach)) 
-p_lim_c <- p_lim_c + geom_boxplot() 
+p_lim_c <- p_lim_c + geom_boxplot()
 p_lim_c <- p_lim_c + scale_x_discrete()
 #p_lim_c <- p_lim_c + scale_y_log10()
 p_lim_c
 
-p_lim_t <- ggplot(lim, aes(x = Limit, y = Elapsed.time, fill = Approach)) 
+p_lim_t <- ggplot(lim, aes(x = Limit, y = Elapsed.time, fill = Approach))
 p_lim_t <- p_lim_t + geom_boxplot() 
 p_lim_t <- p_lim_t + scale_x_discrete()
 p_lim_t <- p_lim_t + scale_y_log10()
 p_lim_t
+
+p_lim_d <- ggplot(lim, aes(x = Limit, y = Avg.detour, fill = Approach))
+p_lim_d <- p_lim_d + geom_boxplot() 
+p_lim_d <- p_lim_d + scale_x_discrete()
+p_lim_d <- p_lim_d + scale_y_log10()
+p_lim_d

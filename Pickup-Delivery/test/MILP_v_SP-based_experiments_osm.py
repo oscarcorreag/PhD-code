@@ -214,7 +214,7 @@ if __name__ == '__main__':
                         csdp_ap._requests = rs
                         csdp_ap._drivers = list(ds)
                         csdp_ap._pre_process_requests_drivers()
-                        partitions = csdp_ap._compute_partitions(method='SP-fraction', fraction_sd=0.1)
+                        partitions = csdp_ap._compute_partitions(method='SP-fraction', fraction_sd=0.2)
                         if len(partitions) > 0:
                             # Scatter nodes within partition.
                             s, e = partitions.keys()[1]
