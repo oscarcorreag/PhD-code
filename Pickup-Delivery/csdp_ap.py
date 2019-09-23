@@ -793,7 +793,7 @@ class CsdpAp:
             # TODO: Simple control to avoid prohibitive computation
             for _, shops_customers in partitions.iteritems():
                 if 'customers' in shops_customers and len(shops_customers['customers']) > 16:
-                    return None, -1
+                    return None, -1, None
         # Solve each partition
         served_customers = set()
         for partition in partitions.iteritems():
@@ -804,7 +804,7 @@ class CsdpAp:
                                                 bounds=bounds)
             # TODO: Simple control to avoid prohibitive computation
             if c == -1:
-                return None, -1
+                return None, -1, None
             routes.append(path)
             cost += c
             served_customers.update(sc)

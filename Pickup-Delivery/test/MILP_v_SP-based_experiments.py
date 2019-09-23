@@ -227,7 +227,7 @@ if __name__ == '__main__':
     # approaches = ['IRB-NN', 'IRB-BB']
     results = []
     smpl = 0
-    s = 200
+    s = 242
     for region, info in regions.iteritems():
         while smpl < num_samples:
             #
