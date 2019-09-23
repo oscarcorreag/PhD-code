@@ -653,7 +653,7 @@ class CsdpAp:
         if method == 'MILP' or method == 'MILP-threshold':
             self._solver = pywraplp.Solver("SolveIntegerProblem", pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
             self._build_working_graph()
-            return self._solve_milp(method, threshold_sd, verbose)
+            return self._solve_milp(method, threshold_sd, verbose), None
 
         if method == 'SP-based':
             return self._sp_based(assignment_method=assignment_method,
@@ -857,7 +857,7 @@ class CsdpAp:
                 raise NotImplementedError
             else:
                 raise NotImplementedError
-        return routes, cost
+        return routes, cost, served_customers
 
     def _assign(self, method='LL-EP', max_load=0, strict=False, partition_method=None, fraction_sd=0.5,
                 threshold_sd=1.5):

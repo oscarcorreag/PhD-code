@@ -89,20 +89,20 @@ class Experiment:
         param = 0
         st = time.clock()
         if approach == 'MILP':
-            routes, cost = csdp_ap.solve(self._rs, self._ds)
+            routes, cost, _ = csdp_ap.solve(self._rs, self._ds)
         else:
             if partition is None:
-                routes, cost = csdp_ap.solve(self._rs, self._ds, method='SP-based', assignment_method=approach,
-                                             solve_partition_method=solve, max_load=limit)
+                routes, cost, sc = csdp_ap.solve(self._rs, self._ds, method='SP-based', assignment_method=approach,
+                                                 solve_partition_method=solve, max_load=limit)
             elif partition == 'SP-fraction':
-                routes, cost = csdp_ap.solve(self._rs, self._ds, method='SP-based', assignment_method=approach,
-                                             partition_method=partition, fraction_sd=fraction,
-                                             solve_partition_method=solve, max_load=limit, strict=True)
+                routes, cost, sc = csdp_ap.solve(self._rs, self._ds, method='SP-based', assignment_method=approach,
+                                                 partition_method=partition, fraction_sd=fraction,
+                                                 solve_partition_method=solve, max_load=limit, strict=True)
                 param = fraction
             else:
-                routes, cost = csdp_ap.solve(self._rs, self._ds, method='SP-based', assignment_method=approach,
-                                             partition_method=partition, threshold_sd=threshold,
-                                             solve_partition_method=solve, max_load=limit, strict=True)
+                routes, cost, sc = csdp_ap.solve(self._rs, self._ds, method='SP-based', assignment_method=approach,
+                                                 partition_method=partition, threshold_sd=threshold,
+                                                 solve_partition_method=solve, max_load=limit, strict=True)
                 param = threshold
         et = time.clock() - st
 
@@ -110,7 +110,7 @@ class Experiment:
         if cost == -1:
             line = [approach, partition, solve, param, self._seed, self._city, self._net_size, self._meters,
                     self._num_shops, self._num_retailers, len(self._rs), self._params['ratio'], len(self._ds),
-                    self._params['distr'], sample, et, cost, 0, 0, 0, 0, 0, 0, 0]
+                    self._params['distr'], sample, et, cost, 0, 0, 0, 0, 0, 0, 0, 0]
         else:
             stats = Experiment.compute_stats_per_driver_type(graph, routes)
 
@@ -118,7 +118,7 @@ class Experiment:
                     self._num_shops, self._num_retailers, len(self._rs), self._params['ratio'], len(self._ds),
                     self._params['distr'], sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['service'], stats['ad hoc']['no'], stats['dedicated']['no'],
-                    stats['ad hoc']['avg detour'], limit]
+                    stats['ad hoc']['avg detour'], limit, len(sc)]
         print line
         return line
 
@@ -217,14 +217,14 @@ if __name__ == '__main__':
     without_partitioning = False
     # driver_locations = ['Z-U', 'U-Z', 'U-U']
     driver_locations = ['Z-U']
-    max_loads = [4, 6, 8, 10, 12]
-    # max_loads = [8]
+    # max_loads = [4, 6, 8, 10, 12]
+    max_loads = [8]
     # bounds = ['both', 'lb', 'ub']
     bounds = ['both']
     #
     # approaches = ['MILP', 'V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
-    # approaches = ['V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
-    approaches = ['IRB-NN', 'IRB-BB']
+    approaches = ['V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
+    # approaches = ['IRB-NN', 'IRB-BB']
     results = []
     smpl = 0
     s = 200
