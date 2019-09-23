@@ -210,21 +210,21 @@ if __name__ == '__main__':
     num_customers_r = [256]
     ratios = [4.0]
     # ratios = [2.0]
-    # fractions = [0.01, 0.03, 0.05]
-    fractions = [0.1]
-    # thresholds = [1.1, 1.3, 1.5]
-    thresholds = []
+    fractions = [0.05, 0.1, 0.15, 0.2]
+    # fractions = []
+    thresholds = [1.05, 1.1, 1.15, 1.2]
+    # thresholds = []
     without_partitioning = False
     # driver_locations = ['Z-U', 'U-Z', 'U-U']
     driver_locations = ['Z-U']
-    # max_loads = [4, 6, 8, 10, 12]
-    max_loads = [8]
+    max_loads = [4, 6, 8, 10, 12]
+    # max_loads = [8]
     # bounds = ['both', 'lb', 'ub']
     bounds = ['both']
     #
     # approaches = ['MILP', 'V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
     # approaches = ['V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
-    approaches = ['V-NN', 'IRB-NN', 'V-BB', 'IRB-BB']
+    approaches = ['IRB-NN', 'IRB-BB']
     results = []
     smpl = 0
     s = 200
@@ -341,8 +341,9 @@ if __name__ == '__main__':
                                                 res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load,
                                                                      partition='SP-threshold', threshold=t)
                                             else:
-                                                cProfile.run("experiment.run(g, 'LL-EP', smpl, 'BB', max_load, partition='SP-threshold', threshold=t)")
-                                            # results.append(res)
+                                                res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load,
+                                                                     partition='SP-threshold', threshold=t)
+                                            results.append(res)
 
             #
             smpl += 1
