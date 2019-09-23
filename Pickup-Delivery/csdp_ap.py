@@ -931,7 +931,8 @@ class CsdpAp:
             starts_by_customer = dict()
             if partition_method is None:
                 for start_v, end_v in self._ad_hoc_drivers:
-                    partitions[(start_v, end_v)] = {'shops': self._shops, 'customers': self._customers}
+                    partitions[(start_v, end_v)] = {'shops': self._shops, 'customers': self._customers,
+                                                    'all': set(self._graph.keys())}
             for (start_v, _), shops_customers in partitions.iteritems():
                 customers = shops_customers['customers']
                 for customer in customers:
