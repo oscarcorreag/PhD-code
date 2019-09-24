@@ -169,3 +169,76 @@ p_lim_d <- p_lim_d + geom_boxplot()
 p_lim_d <- p_lim_d + scale_x_discrete()
 p_lim_d <- p_lim_d + scale_y_log10()
 p_lim_d
+
+
+# SPACE PARTITIONING
+# ------------------
+spar <- fread("Fr_Thr.csv")
+spar[, Assignment := as.factor(Assignment)]
+spar[, Partition := as.factor(Partition)]
+spar[, Routing := as.factor(Routing)]
+spar[, Zone := as.factor(Zone)]
+spar[, Customers := as.factor(Customers)]
+spar[, Distribution := as.factor(Distribution)]
+spar[, Limit := as.factor(Limit)]
+spar[, Parameter := as.factor(Parameter)]
+
+spar <- spar[Cost != -1]
+
+spar[Assignment == 'SP-Voronoi', Assignment := 'V']
+spar[Assignment == 'LL-EP', Assignment := 'IRD']
+spar[Routing == 'BB', Routing := 'BnB']
+spar[, Approach := paste(Assignment, Routing, sep = "-")]
+spar$Approach <- factor(spar$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-BnB'))
+spar[, Total.service.cost := Dedicated.cost + Service.cost]
+
+p_spar_c <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Total.service.cost, fill = Approach))
+p_spar_c <- p_spar_c + geom_boxplot()
+p_spar_c <- p_spar_c + scale_x_discrete()
+#p_lim_c <- p_lim_c + scale_y_log10()
+p_spar_c
+
+p_spar_t <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Elapsed.time, fill = Approach))
+p_spar_t <- p_spar_t + geom_boxplot()
+p_spar_t <- p_spar_t + scale_x_discrete()
+p_spar_t <- p_spar_t + scale_y_log10()
+p_spar_t
+
+p_spar_d <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Avg.detour, fill = Approach))
+p_spar_d <- p_spar_d + geom_boxplot()
+p_spar_d <- p_spar_d + scale_x_discrete()
+#p_spar_d <- p_spar_d + scale_y_log10()
+p_spar_d
+
+p_spar_sc <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Served, fill = Approach))
+p_spar_sc <- p_spar_sc + geom_boxplot()
+p_spar_sc <- p_spar_sc + scale_x_discrete()
+#p_spar_d <- p_spar_d + scale_y_log10()
+p_spar_sc
+
+
+
+p_spar_c <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Total.service.cost, fill = Approach))
+p_spar_c <- p_spar_c + geom_boxplot()
+p_spar_c <- p_spar_c + scale_x_discrete()
+#p_lim_c <- p_lim_c + scale_y_log10()
+p_spar_c
+
+p_spar_t <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Elapsed.time, fill = Approach))
+p_spar_t <- p_spar_t + geom_boxplot()
+p_spar_t <- p_spar_t + scale_x_discrete()
+p_spar_t <- p_spar_t + scale_y_log10()
+p_spar_t
+
+p_spar_d <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Avg.detour, fill = Approach))
+p_spar_d <- p_spar_d + geom_boxplot()
+p_spar_d <- p_spar_d + scale_x_discrete()
+#p_spar_d <- p_spar_d + scale_y_log10()
+p_spar_d
+
+p_spar_sc <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Served, fill = Approach))
+p_spar_sc <- p_spar_sc + geom_boxplot()
+p_spar_sc <- p_spar_sc + scale_x_discrete()
+#p_spar_d <- p_spar_d + scale_y_log10()
+p_spar_sc
+
