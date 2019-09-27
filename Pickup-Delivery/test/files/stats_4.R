@@ -22,13 +22,15 @@ my_theme <- function(base_size = 11, base_family = "") {
       # match legend key to panel.background
       #legend.key           = element_rect(fill = "white", colour = NA),
       
-      #legend.position      = "none",
+      legend.position      = "none",
       
-      legend.background    = element_rect(fill = "white", size = 4, colour = "white"),
-      legend.justification = c(1, 1),
-      legend.position      = c(1, 1),
-      legend.title         = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
-      legend.text          = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
+      #legend.background    = element_rect(fill = "white", size = 4, colour = "white"),
+      legend.background    = element_rect(color = "grey"),
+      legend.justification = c(1, 0),
+      #legend.position      = c(1, 0),
+      #legend.title         = element_text(size = 9, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
+      legend.title         = element_blank(),
+      legend.text          = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
       
       #legend.text           = element_text(size = 8, lineheight = 0.9, hjust = 1),
       #legend.title          = element_text(size = 9),
@@ -39,15 +41,53 @@ my_theme <- function(base_size = 11, base_family = "") {
       
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
-      axis.title.x = element_text(size = 10, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(size = 10, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 8, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 8, angle = 90, vjust = 0.5, face="bold"),
       #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
+      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
   
 }
+
+
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
 
 # EFFECT OF THE SHORTEST INDEPENDENT-ROUTE DISTANCE
 # -------------------------------------------------
@@ -73,6 +113,8 @@ p_ird_c <- ggplot(ird, aes(x = Customers, y = Total.service.cost, fill = Approac
 p_ird_c <- p_ird_c + geom_boxplot() 
 p_ird_c <- p_ird_c + scale_x_discrete()
 p_ird_c <- p_ird_c + scale_y_log10()
+p_ird_c <- p_ird_c + my_theme()
+p_ird_c <- p_ird_c + labs(y = "Service Cost")
 p_ird_c
 
 p_ird_t <- ggplot(ird, aes(x = Customers, y = Elapsed.time, fill = Approach)) 
@@ -123,12 +165,18 @@ milp_prop_dt <- milp[, milp_prop_f(.SD), by = list(Seed, Customers), .SDcols = s
 p_milp_c <- ggplot(milp_prop_dt, aes(x = Customers, y = Total.service.cost)) 
 p_milp_c <- p_milp_c + geom_boxplot() 
 p_milp_c <- p_milp_c + scale_x_discrete()
+p_milp_c <- p_milp_c + scale_y_continuous(breaks = c(1.0, 1.25, 1.5, 1.75, 2.0))
+p_milp_c <- p_milp_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_milp_c <- p_milp_c + my_theme()
+p_milp_c <- p_milp_c + labs(y = "Proportion MILP Service Cost")
 p_milp_c
 
 p_milp_t <- ggplot(milp_prop_dt, aes(x = Customers, y = Elapsed.time)) 
 p_milp_t <- p_milp_t + geom_boxplot() 
 p_milp_t <- p_milp_t + scale_x_discrete()
 p_milp_t <- p_milp_t + scale_y_log10()
+p_milp_t <- p_milp_t + my_theme()
+p_milp_t <- p_milp_t + labs(y = "Proportion MILP Processing Time")
 p_milp_t
 
 
@@ -153,15 +201,22 @@ lim$Approach <- factor(lim$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-
 lim[, Total.service.cost := Dedicated.cost + Service.cost]
 
 p_lim_c <- ggplot(lim, aes(x = Limit, y = Total.service.cost, fill = Approach)) 
-p_lim_c <- p_lim_c + geom_boxplot()
+p_lim_c <- p_lim_c + geom_boxplot(color = "grey", alpha = 1/10)
+p_lim_c <- p_lim_c + geom_smooth(method = "loess", se=FALSE, aes(group = Approach, color = Approach))
 p_lim_c <- p_lim_c + scale_x_discrete()
-#p_lim_c <- p_lim_c + scale_y_log10()
+p_lim_c <- p_lim_c + my_theme()
+p_lim_c <- p_lim_c + labs(x = "Max. Degree m")
+p_lim_c <- p_lim_c + labs(y = "Service Cost")
 p_lim_c
 
 p_lim_t <- ggplot(lim, aes(x = Limit, y = Elapsed.time, fill = Approach))
-p_lim_t <- p_lim_t + geom_boxplot() 
+p_lim_t <- p_lim_t + geom_boxplot(color = "grey", alpha = 1/10) 
+p_lim_t <- p_lim_t + geom_smooth(method = "loess", se=FALSE, aes(group = Approach, color = Approach))
 p_lim_t <- p_lim_t + scale_x_discrete()
 p_lim_t <- p_lim_t + scale_y_log10()
+p_lim_t <- p_lim_t + my_theme()
+p_lim_t <- p_lim_t + labs(x = "Max. Degree m")
+p_lim_t <- p_lim_t + labs(y = "Processing Time")
 p_lim_t
 
 p_lim_d <- ggplot(lim, aes(x = Limit, y = Avg.detour, fill = Approach))
@@ -192,53 +247,79 @@ spar[, Approach := paste(Assignment, Routing, sep = "-")]
 spar$Approach <- factor(spar$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-BnB'))
 spar[, Total.service.cost := Dedicated.cost + Service.cost]
 
-p_spar_c <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Total.service.cost, fill = Approach))
-p_spar_c <- p_spar_c + geom_boxplot()
-p_spar_c <- p_spar_c + scale_x_discrete()
+p_spar_f_c <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Total.service.cost, fill = Approach))
+p_spar_f_c <- p_spar_f_c + geom_boxplot()
+p_spar_f_c <- p_spar_f_c + scale_x_discrete()
 #p_lim_c <- p_lim_c + scale_y_log10()
-p_spar_c
+p_spar_f_c <- p_spar_f_c + my_theme()
+p_spar_f_c <- p_spar_f_c + labs(x = "Fraction f")
+p_spar_f_c <- p_spar_f_c + labs(y = "Service Cost")
+p_spar_f_c
 
-p_spar_t <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Elapsed.time, fill = Approach))
-p_spar_t <- p_spar_t + geom_boxplot()
-p_spar_t <- p_spar_t + scale_x_discrete()
-p_spar_t <- p_spar_t + scale_y_log10()
-p_spar_t
+p_spar_f_t <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Elapsed.time, fill = Approach))
+p_spar_f_t <- p_spar_f_t + geom_boxplot()
+p_spar_f_t <- p_spar_f_t + scale_x_discrete()
+p_spar_f_t <- p_spar_f_t + scale_y_log10()
+p_spar_f_t <- p_spar_f_t + my_theme()
+p_spar_f_t <- p_spar_f_t + labs(x = "Fraction f")
+p_spar_f_t <- p_spar_f_t + labs(y = "Processing Time")
+p_spar_f_t
 
-p_spar_d <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Avg.detour, fill = Approach))
-p_spar_d <- p_spar_d + geom_boxplot()
-p_spar_d <- p_spar_d + scale_x_discrete()
+p_spar_f_d <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Avg.detour, fill = Approach))
+p_spar_f_d <- p_spar_f_d + geom_boxplot()
+p_spar_f_d <- p_spar_f_d + scale_x_discrete()
 #p_spar_d <- p_spar_d + scale_y_log10()
-p_spar_d
+p_spar_f_d <- p_spar_f_d + my_theme()
+p_spar_f_d <- p_spar_f_d + labs(x = "Fraction f")
+p_spar_f_d <- p_spar_f_d + labs(y = "Average Detour")
+p_spar_f_d
 
-p_spar_sc <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Served, fill = Approach))
-p_spar_sc <- p_spar_sc + geom_boxplot()
-p_spar_sc <- p_spar_sc + scale_x_discrete()
+p_spar_f_sc <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Served, fill = Approach))
+p_spar_f_sc <- p_spar_f_sc + geom_boxplot()
+p_spar_f_sc <- p_spar_f_sc + scale_x_discrete()
 #p_spar_d <- p_spar_d + scale_y_log10()
-p_spar_sc
+p_spar_f_sc <- p_spar_f_sc + my_theme()
+p_spar_f_sc <- p_spar_f_sc + labs(x = "Fraction f")
+p_spar_f_sc <- p_spar_f_sc + labs(y = "Served Customers")
+p_spar_f_sc
 
+
+multiplot(p_spar_f_c, p_spar_f_t, p_spar_f_d, p_spar_f_sc, cols = 4)
 
 
 p_spar_c <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Total.service.cost, fill = Approach))
 p_spar_c <- p_spar_c + geom_boxplot()
 p_spar_c <- p_spar_c + scale_x_discrete()
 #p_lim_c <- p_lim_c + scale_y_log10()
+p_spar_c <- p_spar_c + my_theme()
+p_spar_c <- p_spar_c + labs(x = "Threshold t")
+p_spar_c <- p_spar_c + labs(y = "Service Cost")
 p_spar_c
 
 p_spar_t <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Elapsed.time, fill = Approach))
 p_spar_t <- p_spar_t + geom_boxplot()
 p_spar_t <- p_spar_t + scale_x_discrete()
 p_spar_t <- p_spar_t + scale_y_log10()
+p_spar_t <- p_spar_t + my_theme()
+p_spar_t <- p_spar_t + labs(x = "Threshold t")
+p_spar_t <- p_spar_t + labs(y = "Processing Time")
 p_spar_t
 
 p_spar_d <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Avg.detour, fill = Approach))
 p_spar_d <- p_spar_d + geom_boxplot()
 p_spar_d <- p_spar_d + scale_x_discrete()
 #p_spar_d <- p_spar_d + scale_y_log10()
+p_spar_d <- p_spar_d + my_theme()
+p_spar_d <- p_spar_d + labs(x = "Threshold t")
+p_spar_d <- p_spar_d + labs(y = "Average Detour")
 p_spar_d
 
 p_spar_sc <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Served, fill = Approach))
 p_spar_sc <- p_spar_sc + geom_boxplot()
 p_spar_sc <- p_spar_sc + scale_x_discrete()
 #p_spar_d <- p_spar_d + scale_y_log10()
+p_spar_sc <- p_spar_sc + my_theme()
+p_spar_sc <- p_spar_sc + labs(x = "Threshold t")
+p_spar_sc <- p_spar_sc + labs(y = "Served Customers")
 p_spar_sc
 
