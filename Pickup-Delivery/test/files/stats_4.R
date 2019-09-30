@@ -22,12 +22,12 @@ my_theme <- function(base_size = 11, base_family = "") {
       # match legend key to panel.background
       #legend.key           = element_rect(fill = "white", colour = NA),
       
-      legend.position      = "none",
+      #legend.position      = "none",
       
       #legend.background    = element_rect(fill = "white", size = 4, colour = "white"),
       legend.background    = element_rect(color = "grey"),
-      legend.justification = c(1, 0),
-      #legend.position      = c(1, 0),
+      legend.justification = c(0, 1),
+      legend.position      = c(0, 1),
       #legend.title         = element_text(size = 9, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
       legend.title         = element_blank(),
       legend.text          = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
@@ -123,10 +123,43 @@ p_ird_t <- p_ird_t + scale_x_discrete()
 p_ird_t <- p_ird_t + scale_y_log10()
 p_ird_t
 
-p_ird_d <- ggplot(ird, aes(x = Customers, y = Avg.detour, fill = Approach)) 
-p_ird_d <- p_ird_d + geom_boxplot() 
-p_ird_d <- p_ird_d + scale_x_discrete()
-p_ird_d
+
+ird_r <- fread("Ratios.csv")
+ird_r[, Assignment := as.factor(Assignment)]
+ird_r[, Partition := as.factor(Partition)]
+ird_r[, Routing := as.factor(Routing)]
+ird_r[, Zone := as.factor(Zone)]
+ird_r[, Customers := as.factor(Customers)]
+ird_r[, Ratio := as.factor(Ratio)]
+ird_r[, Distribution := as.factor(Distribution)]
+ird_r[, Limit := as.factor(Limit)]
+ird_r[, Parameter := as.factor(Parameter)]
+
+ird_r <- ird_r[Cost != -1]
+
+ird_r[Assignment == 'SP-Voronoi', Assignment := 'V']
+ird_r[Assignment == 'LL-EP', Assignment := 'IRD']
+ird_r[Routing == 'BB', Routing := 'BnB']
+ird_r[, Approach := paste(Assignment, Routing, sep = "-")]
+ird_r$Approach <- factor(ird_r$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-BnB'))
+ird_r[, Total.service.cost := Dedicated.cost + Service.cost]
+
+
+p_ird_r_c <- ggplot(ird_r, aes(x = Ratio, y = Total.service.cost, fill = Approach)) 
+p_ird_r_c <- p_ird_r_c + geom_boxplot() 
+p_ird_r_c <- p_ird_r_c + scale_x_discrete()
+#p_ird_r_c <- p_ird_r_c + scale_y_log10()
+p_ird_r_c <- p_ird_r_c + my_theme()
+p_ird_r_c <- p_ird_r_c + labs(y = "Service Cost")
+p_ird_r_c
+
+p_ird_r_t <- ggplot(ird_r, aes(x = Ratio, y = Elapsed.time, fill = Approach)) 
+p_ird_r_t <- p_ird_r_t + geom_boxplot() 
+p_ird_r_t <- p_ird_r_t + scale_x_discrete()
+p_ird_r_t <- p_ird_r_t + scale_y_log10()
+p_ird_r_t <- p_ird_r_t + my_theme()
+p_ird_r_t <- p_ird_r_t + labs(y = "Processing Time")
+p_ird_r_t
 
 
 # COMPARISON AGAINST MILP
@@ -138,6 +171,7 @@ milp[, Routing := as.factor(Routing)]
 milp[, Zone := as.factor(Zone)]
 milp[, Customers := as.factor(Customers)]
 milp[, Distribution := as.factor(Distribution)]
+milp[, Limit := as.factor(Limit)]
 
 milp <- milp[Customers %in% c(8, 12, 16)]
 milp <- milp[Cost != -1]
@@ -148,6 +182,8 @@ milp[Assignment == 'IRD', Approach := paste(Assignment, Routing, sep = "-")]
 milp[Assignment == 'MILP', Approach := Assignment]
 milp$Approach <- factor(milp$Approach, levels = c('MILP', 'IRD-BnB'))
 milp[, Total.service.cost := Dedicated.cost + Service.cost]
+
+
 
 
 milp_prop_f <- function(sd) {
@@ -163,7 +199,7 @@ sd_cols_milp <- c("Approach", "Cost", "Service.cost", "Total.service.cost", "Ela
 milp_prop_dt <- milp[, milp_prop_f(.SD), by = list(Seed, Customers), .SDcols = sd_cols_milp]
 
 p_milp_c <- ggplot(milp_prop_dt, aes(x = Customers, y = Total.service.cost)) 
-p_milp_c <- p_milp_c + geom_boxplot() 
+p_milp_c <- p_milp_c + geom_boxplot(fill = "#56B4E9") 
 p_milp_c <- p_milp_c + scale_x_discrete()
 p_milp_c <- p_milp_c + scale_y_continuous(breaks = c(1.0, 1.25, 1.5, 1.75, 2.0))
 p_milp_c <- p_milp_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
@@ -172,12 +208,14 @@ p_milp_c <- p_milp_c + labs(y = "Proportion MILP Service Cost")
 p_milp_c
 
 p_milp_t <- ggplot(milp_prop_dt, aes(x = Customers, y = Elapsed.time)) 
-p_milp_t <- p_milp_t + geom_boxplot() 
+p_milp_t <- p_milp_t + geom_boxplot(fill = "#56B4E9") 
 p_milp_t <- p_milp_t + scale_x_discrete()
 p_milp_t <- p_milp_t + scale_y_log10()
 p_milp_t <- p_milp_t + my_theme()
 p_milp_t <- p_milp_t + labs(y = "Proportion MILP Processing Time")
 p_milp_t
+
+multiplot(p_milp_c, p_milp_t, cols = 1)
 
 
 # MAX LOADS
@@ -205,6 +243,8 @@ p_lim_c <- p_lim_c + geom_boxplot(color = "grey", alpha = 1/10)
 p_lim_c <- p_lim_c + geom_smooth(method = "loess", se=FALSE, aes(group = Approach, color = Approach))
 p_lim_c <- p_lim_c + scale_x_discrete()
 p_lim_c <- p_lim_c + my_theme()
+p_lim_c <- p_lim_c + scale_fill_manual(values = c("#D55E00", "#56B4E9"))
+p_lim_c <- p_lim_c + scale_color_manual(values = c("#D55E00", "#56B4E9"))
 p_lim_c <- p_lim_c + labs(x = "Max. Degree m")
 p_lim_c <- p_lim_c + labs(y = "Service Cost")
 p_lim_c
@@ -215,16 +255,13 @@ p_lim_t <- p_lim_t + geom_smooth(method = "loess", se=FALSE, aes(group = Approac
 p_lim_t <- p_lim_t + scale_x_discrete()
 p_lim_t <- p_lim_t + scale_y_log10()
 p_lim_t <- p_lim_t + my_theme()
+p_lim_t <- p_lim_t + scale_fill_manual(values = c("#D55E00", "#56B4E9"))
+p_lim_t <- p_lim_t + scale_color_manual(values = c("#D55E00", "#56B4E9"))
 p_lim_t <- p_lim_t + labs(x = "Max. Degree m")
 p_lim_t <- p_lim_t + labs(y = "Processing Time")
 p_lim_t
 
-p_lim_d <- ggplot(lim, aes(x = Limit, y = Avg.detour, fill = Approach))
-p_lim_d <- p_lim_d + geom_boxplot() 
-p_lim_d <- p_lim_d + scale_x_discrete()
-p_lim_d <- p_lim_d + scale_y_log10()
-p_lim_d
-
+multiplot(p_lim_c, p_lim_t, cols = 1)
 
 # SPACE PARTITIONING
 # ------------------
@@ -252,6 +289,7 @@ p_spar_f_c <- p_spar_f_c + geom_boxplot()
 p_spar_f_c <- p_spar_f_c + scale_x_discrete()
 #p_lim_c <- p_lim_c + scale_y_log10()
 p_spar_f_c <- p_spar_f_c + my_theme()
+p_spar_f_c <- p_spar_f_c + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_f_c <- p_spar_f_c + labs(x = "Fraction f")
 p_spar_f_c <- p_spar_f_c + labs(y = "Service Cost")
 p_spar_f_c
@@ -261,6 +299,7 @@ p_spar_f_t <- p_spar_f_t + geom_boxplot()
 p_spar_f_t <- p_spar_f_t + scale_x_discrete()
 p_spar_f_t <- p_spar_f_t + scale_y_log10()
 p_spar_f_t <- p_spar_f_t + my_theme()
+p_spar_f_t <- p_spar_f_t + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_f_t <- p_spar_f_t + labs(x = "Fraction f")
 p_spar_f_t <- p_spar_f_t + labs(y = "Processing Time")
 p_spar_f_t
@@ -270,6 +309,7 @@ p_spar_f_d <- p_spar_f_d + geom_boxplot()
 p_spar_f_d <- p_spar_f_d + scale_x_discrete()
 #p_spar_d <- p_spar_d + scale_y_log10()
 p_spar_f_d <- p_spar_f_d + my_theme()
+p_spar_f_d <- p_spar_f_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_f_d <- p_spar_f_d + labs(x = "Fraction f")
 p_spar_f_d <- p_spar_f_d + labs(y = "Average Detour")
 p_spar_f_d
@@ -279,6 +319,7 @@ p_spar_f_sc <- p_spar_f_sc + geom_boxplot()
 p_spar_f_sc <- p_spar_f_sc + scale_x_discrete()
 #p_spar_d <- p_spar_d + scale_y_log10()
 p_spar_f_sc <- p_spar_f_sc + my_theme()
+p_spar_f_sc <- p_spar_f_sc + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_f_sc <- p_spar_f_sc + labs(x = "Fraction f")
 p_spar_f_sc <- p_spar_f_sc + labs(y = "Served Customers")
 p_spar_f_sc
@@ -292,6 +333,7 @@ p_spar_c <- p_spar_c + geom_boxplot()
 p_spar_c <- p_spar_c + scale_x_discrete()
 #p_lim_c <- p_lim_c + scale_y_log10()
 p_spar_c <- p_spar_c + my_theme()
+p_spar_c <- p_spar_c + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_c <- p_spar_c + labs(x = "Threshold t")
 p_spar_c <- p_spar_c + labs(y = "Service Cost")
 p_spar_c
@@ -301,6 +343,7 @@ p_spar_t <- p_spar_t + geom_boxplot()
 p_spar_t <- p_spar_t + scale_x_discrete()
 p_spar_t <- p_spar_t + scale_y_log10()
 p_spar_t <- p_spar_t + my_theme()
+p_spar_t <- p_spar_t + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_t <- p_spar_t + labs(x = "Threshold t")
 p_spar_t <- p_spar_t + labs(y = "Processing Time")
 p_spar_t
@@ -310,6 +353,7 @@ p_spar_d <- p_spar_d + geom_boxplot()
 p_spar_d <- p_spar_d + scale_x_discrete()
 #p_spar_d <- p_spar_d + scale_y_log10()
 p_spar_d <- p_spar_d + my_theme()
+p_spar_d <- p_spar_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_d <- p_spar_d + labs(x = "Threshold t")
 p_spar_d <- p_spar_d + labs(y = "Average Detour")
 p_spar_d
@@ -319,9 +363,50 @@ p_spar_sc <- p_spar_sc + geom_boxplot()
 p_spar_sc <- p_spar_sc + scale_x_discrete()
 #p_spar_d <- p_spar_d + scale_y_log10()
 p_spar_sc <- p_spar_sc + my_theme()
+p_spar_sc <- p_spar_sc + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_sc <- p_spar_sc + labs(x = "Threshold t")
 p_spar_sc <- p_spar_sc + labs(y = "Served Customers")
 p_spar_sc
 
 multiplot(p_spar_c, p_spar_t, p_spar_d, p_spar_sc, cols = 4)
 
+
+
+p_lim_d <- ggplot(lim, aes(x = Limit, y = Avg.detour, fill = Approach))
+p_lim_d <- p_lim_d + geom_boxplot() 
+p_lim_d <- p_lim_d + scale_x_discrete()
+p_lim_d <- p_lim_d + my_theme()
+p_lim_d <- p_lim_d + scale_fill_manual(values = c("#D55E00", "#56B4E9"))
+p_lim_d <- p_lim_d + labs(x = "Max. Degree m")
+p_lim_d <- p_lim_d + labs(y = "Average Detour")
+p_lim_d
+
+a <- rbind(milp, ird)
+
+p_milp_d <- ggplot(a[Avg.detour < 30], aes(x = Customers, y = Avg.detour, fill = Approach))
+p_milp_d <- p_milp_d + geom_boxplot() 
+p_milp_d <- p_milp_d + scale_x_discrete()
+p_milp_d <- p_milp_d + scale_fill_manual(values=c("#999999", "#F0E442", "#D55E00", "#009E73", "#56B4E9"))
+p_milp_d <- p_milp_d + my_theme()
+p_milp_d <- p_milp_d + labs(y = "Average Detour")
+p_milp_d
+
+p_ird_r_d <- ggplot(ird_r, aes(x = Ratio, y = Avg.detour, fill = Approach)) 
+p_ird_r_d <- p_ird_r_d + geom_boxplot() 
+p_ird_r_d <- p_ird_r_d + scale_x_discrete()
+p_ird_r_d <- p_ird_r_d + my_theme()
+p_ird_r_d <- p_ird_r_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
+p_ird_r_d <- p_ird_r_d + labs(y = "Average Detour")
+p_ird_r_d
+
+p_ird_d <- ggplot(ird, aes(x = Customers, y = Avg.detour, fill = Approach)) 
+p_ird_d <- p_ird_d + geom_boxplot() 
+p_ird_d <- p_ird_d + scale_x_discrete()
+p_ird_d <- p_ird_d + my_theme()
+p_ird_d <- p_ird_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
+p_ird_d <- p_ird_d + labs(y = "Average Detour")
+p_ird_d
+
+
+multiplot(p_lim_d, p_ird_r_d, p_milp_d, cols = 3)
+multiplot(p_spar_f_c, p_spar_c, p_spar_f_t, p_spar_t, p_spar_f_sc, p_spar_sc, p_spar_f_d, p_spar_d, cols = 4)
