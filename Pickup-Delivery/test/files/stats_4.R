@@ -323,3 +323,5 @@ p_spar_sc <- p_spar_sc + labs(x = "Threshold t")
 p_spar_sc <- p_spar_sc + labs(y = "Served Customers")
 p_spar_sc
 
+multiplot(p_spar_c, p_spar_t, p_spar_d, p_spar_sc, cols = 4)
+
