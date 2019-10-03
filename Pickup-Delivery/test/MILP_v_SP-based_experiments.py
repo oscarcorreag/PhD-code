@@ -206,7 +206,7 @@ if __name__ == '__main__':
     delta_meters = 10000.0
     delta = delta_meters / 111111
     num_samples = 25
-    num_customers_r = [16, 64, 256, 1024]
+    num_customers_r = [16, 64, 256, 1024, 4096]
     # num_customers_r = [256]
     # ratios = [1.0, 2.0, 4.0, 8.0]
     ratios = [4.0]
@@ -227,7 +227,7 @@ if __name__ == '__main__':
     # approaches = ['IRB-NN', 'IRB-BB']
     results = []
     smpl = 0
-    s = 242
+    s = 1000
     for region, info in regions.iteritems():
         while smpl < num_samples:
             #
