@@ -203,11 +203,11 @@ if __name__ == '__main__':
         # ),
     }
     #
-    delta_meters = 10000.0
+    delta_meters = 12000.0
     delta = delta_meters / 111111
     num_samples = 25
-    num_customers_r = [16, 64, 256, 1024, 4096]
-    # num_customers_r = [256]
+    num_customers_r = [2048]
+    # num_customers_r = [4096]
     # ratios = [1.0, 2.0, 4.0, 8.0]
     ratios = [4.0]
     # fractions = [0.05, 0.1, 0.15, 0.2]
