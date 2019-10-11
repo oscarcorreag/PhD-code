@@ -653,7 +653,9 @@ class CsdpAp:
         if method == 'MILP' or method == 'MILP-threshold':
             self._solver = pywraplp.Solver("SolveIntegerProblem", pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
             self._build_working_graph()
-            return self._solve_milp(method, threshold_sd, verbose), None
+            routes, cost = self._solve_milp(method, threshold_sd, verbose)
+            # TODO: Compute the actual number of served customers
+            return routes, cost, []
 
         if method == 'SP-based':
             return self._sp_based(assignment_method=assignment_method,
