@@ -302,10 +302,10 @@ lim[, Parameter := as.factor(Parameter)]
 lim <- lim[Dedicated.cost == 0 & Cost != -1 & Limit %in% c(4, 6, 8, 10, 12)]
 
 lim[Assignment == 'SP-Voronoi', Assignment := 'V']
-lim[Assignment == 'LL-EP', Assignment := 'IRD']
+lim[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
 lim[Routing == 'BB', Routing := 'BnB']
 lim[, Approach := paste(Assignment, Routing, sep = "-")]
-lim$Approach <- factor(lim$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-BnB'))
+lim$Approach <- factor(lim$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
 lim[, Total.service.cost := Dedicated.cost + Service.cost]
 
 p_lim_c <- ggplot(lim, aes(x = Limit, y = Total.service.cost, fill = Approach)) 
@@ -350,17 +350,17 @@ ird[, Parameter := as.factor(Parameter)]
 ird <- ird[Dedicated.cost == 0 & Cost != -1]
 
 ird[Assignment == 'SP-Voronoi', Assignment := 'V']
-ird[Assignment == 'LL-EP', Assignment := 'IRD']
+ird[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
 ird[Routing == 'BB', Routing := 'BnB']
 ird[, Approach := paste(Assignment, Routing, sep = "-")]
-ird$Approach <- factor(ird$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-BnB'))
+ird$Approach <- factor(ird$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
 ird[, Total.service.cost := Dedicated.cost + Service.cost]
 
 p_ird_c <- ggplot(ird, aes(x = Customers, y = Total.service.cost, fill = Approach)) 
 p_ird_c <- p_ird_c + geom_boxplot() 
 p_ird_c <- p_ird_c + scale_x_discrete()
 p_ird_c <- p_ird_c + scale_y_log10()
-p_ird_c <- p_ird_c + my_theme_none()
+p_ird_c <- p_ird_c + my_theme_10()
 p_ird_c <- p_ird_c + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_ird_c <- p_ird_c + labs(y = "Service Cost (m)")
 p_ird_c
@@ -379,21 +379,30 @@ ird_r[, Parameter := as.factor(Parameter)]
 ird_r <- ird_r[Cost != -1]
 
 ird_r[Assignment == 'SP-Voronoi', Assignment := 'V']
-ird_r[Assignment == 'LL-EP', Assignment := 'IRD']
+ird_r[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
 ird_r[Routing == 'BB', Routing := 'BnB']
 ird_r[, Approach := paste(Assignment, Routing, sep = "-")]
-ird_r$Approach <- factor(ird_r$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-BnB'))
+ird_r$Approach <- factor(ird_r$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
 ird_r[, Total.service.cost := Dedicated.cost + Service.cost]
 
 p_ird_r_c <- ggplot(ird_r, aes(x = Ratio, y = Total.service.cost, fill = Approach)) 
 p_ird_r_c <- p_ird_r_c + geom_boxplot() 
 p_ird_r_c <- p_ird_r_c + scale_x_discrete()
-p_ird_r_c <- p_ird_r_c + my_theme_11()
+p_ird_r_c <- p_ird_r_c + my_theme_none()
 p_ird_r_c <- p_ird_r_c + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_ird_r_c <- p_ird_r_c + labs(y = "Service Cost (m)")
 p_ird_r_c
 
-multiplot(p_ird_c, p_ird_r_c, cols = 2)
+multiplot(p_ird_c, p_ird_r_c, cols = 1)
+
+
+p_ird_r_d <- ggplot(ird_r, aes(x = Ratio, y = Avg.detour, fill = Approach)) 
+p_ird_r_d <- p_ird_r_d + geom_boxplot() 
+p_ird_r_d <- p_ird_r_d + scale_x_discrete()
+p_ird_r_d <- p_ird_r_d + my_theme_01()
+p_ird_r_d <- p_ird_r_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
+p_ird_r_d <- p_ird_r_d + labs(y = "Avg. Detour (times orig. dist.)")
+p_ird_r_d
 
 
 # COMPARISON AGAINST MILP
@@ -412,11 +421,11 @@ milp[, Parameter := as.factor(Parameter)]
 milp <- milp[Customers %in% c(8, 12, 16)]
 milp <- milp[Cost != -1]
 
-milp[Assignment == 'LL-EP', Assignment := 'IRD']
+milp[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
 milp[Routing == 'BB', Routing := 'BnB']
-milp[Assignment == 'IRD', Approach := paste(Assignment, Routing, sep = "-")]
+milp[Assignment == 'DIST(ra)', Approach := paste(Assignment, Routing, sep = "-")]
 milp[Assignment == 'MILP', Approach := Assignment]
-milp$Approach <- factor(milp$Approach, levels = c('MILP', 'IRD-BnB'))
+milp$Approach <- factor(milp$Approach, levels = c('MILP', 'DIST(ra)-BnB'))
 milp[, Total.service.cost := Dedicated.cost + Service.cost]
 
 milp_prop_f <- function(sd) {
@@ -467,10 +476,10 @@ spar[, Parameter := as.factor(Parameter)]
 spar <- spar[Cost != -1]
 
 spar[Assignment == 'SP-Voronoi', Assignment := 'V']
-spar[Assignment == 'LL-EP', Assignment := 'IRD']
+spar[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
 spar[Routing == 'BB', Routing := 'BnB']
 spar[, Approach := paste(Assignment, Routing, sep = "-")]
-spar$Approach <- factor(spar$Approach, levels = c('V-NN', 'IRD-NN', 'V-BnB', 'IRD-BnB'))
+spar$Approach <- factor(spar$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
 spar[, Total.service.cost := Dedicated.cost + Service.cost]
 
 p_spar_f_c <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Total.service.cost, fill = Approach))
