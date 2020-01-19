@@ -1,4 +1,5 @@
-setwd("C:/Users/oscarcg/Dropbox/Education/Unimelb PhD/code/Experiments/files/Ride-sharing_is_About_Agreeing_on_a_Destination_TSAS_2018/V2/")
+# setwd("C:/Users/oscarcg/Dropbox/Education/Unimelb PhD/code/Experiments/files/Ride-sharing_is_About_Agreeing_on_a_Destination_TSAS_2018/V2/")
+setwd("../Experiments/files/Ride-sharing_is_About_Agreeing_on_a_Destination_TSAS_2018/V2/")
 
 # DATA PRE-PROCESSING ---------------------------------------------------------------------------------------------------------------------
 

@@ -675,7 +675,7 @@ class Graph(dict):
             for w in nodes:
                 if self.undirected:
                     # sum_ += self.dist[tuple(sorted([v, w]))]
-                    sum += self.dist[self.sort_edge_nodes((v, w))]
+                    sum_ += self.dist[self.sort_edge_nodes((v, w))]
                 else:
                     sum_ += self.dist[(v, w)]
             sums[v] = sum_
