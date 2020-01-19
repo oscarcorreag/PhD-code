@@ -42,11 +42,11 @@ my_theme_11 <- function(base_size = 11, base_family = "") {
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
       #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5),
       #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
-      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5),
+      #axis.text    = element_text(size = 10, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
@@ -91,11 +91,11 @@ my_theme_10 <- function(base_size = 11, base_family = "") {
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
       #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5),
       #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
-      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5),
+      #axis.text    = element_text(size = 10, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
@@ -140,11 +140,11 @@ my_theme_01 <- function(base_size = 11, base_family = "") {
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
       #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5),
       #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
-      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5),
+      #axis.text    = element_text(size = 10, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
@@ -189,11 +189,11 @@ my_theme_00 <- function(base_size = 11, base_family = "") {
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
       #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5),
       #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
-      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5),
+      #axis.text    = element_text(size = 10, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
@@ -238,11 +238,11 @@ my_theme_none <- function(base_size = 11, base_family = "") {
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
       #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5),
       #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
-      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5),
+      #axis.text    = element_text(size = 10, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
@@ -390,6 +390,7 @@ p_ird_r_c <- p_ird_r_c + geom_boxplot()
 p_ird_r_c <- p_ird_r_c + scale_x_discrete()
 p_ird_r_c <- p_ird_r_c + my_theme_none()
 p_ird_r_c <- p_ird_r_c + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
+p_ird_r_c <- p_ird_r_c + labs(x = "Ratio customers / drivers")
 p_ird_r_c <- p_ird_r_c + labs(y = "Service Cost (m)")
 p_ird_r_c
 
@@ -401,7 +402,8 @@ p_ird_r_d <- p_ird_r_d + geom_boxplot()
 p_ird_r_d <- p_ird_r_d + scale_x_discrete()
 p_ird_r_d <- p_ird_r_d + my_theme_01()
 p_ird_r_d <- p_ird_r_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
-p_ird_r_d <- p_ird_r_d + labs(y = "Avg. Detour (times orig. dist.)")
+p_ird_r_d <- p_ird_r_d + labs(x = "Ratio customers / drivers")
+p_ird_r_d <- p_ird_r_d + labs(y = "Avg. Detour")
 p_ird_r_d
 
 
@@ -452,7 +454,8 @@ p_milp_c
 p_milp_t <- ggplot(milp_prop_dt, aes(x = Customers, y = Elapsed.time)) 
 p_milp_t <- p_milp_t + geom_boxplot(fill = "#56B4E9") 
 p_milp_t <- p_milp_t + scale_x_discrete()
-p_milp_t <- p_milp_t + scale_y_log10()
+p_milp_t <- p_milp_t + scale_y_log10(breaks = c(1, 1e-1, 1e-2, 1e-3))
+p_milp_t <- p_milp_t + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
 p_milp_t <- p_milp_t + my_theme_none()
 p_milp_t <- p_milp_t + labs(y = "Proportion MILP Processing Time")
 p_milp_t
@@ -467,6 +470,7 @@ spar[, Assignment := as.factor(Assignment)]
 spar[, Partition := as.factor(Partition)]
 spar[, Routing := as.factor(Routing)]
 spar[, Zone := as.factor(Zone)]
+spar[, Prop.served := Served / Customers]
 spar[, Customers := as.factor(Customers)]
 spar[, Ratio := as.factor(Ratio)]
 spar[, Distribution := as.factor(Distribution)]
@@ -507,16 +511,16 @@ p_spar_f_d <- p_spar_f_d + scale_x_discrete()
 p_spar_f_d <- p_spar_f_d + my_theme_none()
 p_spar_f_d <- p_spar_f_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_f_d <- p_spar_f_d + labs(x = "Fraction f")
-p_spar_f_d <- p_spar_f_d + labs(y = "Avg. Detour (times orig. dist.)")
+p_spar_f_d <- p_spar_f_d + labs(y = "Avg. Detour")
 p_spar_f_d
 
-p_spar_f_sc <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Served, fill = Approach))
+p_spar_f_sc <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Prop.served, fill = Approach))
 p_spar_f_sc <- p_spar_f_sc + geom_boxplot()
 p_spar_f_sc <- p_spar_f_sc + scale_x_discrete()
 p_spar_f_sc <- p_spar_f_sc + my_theme_none()
 p_spar_f_sc <- p_spar_f_sc + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_f_sc <- p_spar_f_sc + labs(x = "Fraction f")
-p_spar_f_sc <- p_spar_f_sc + labs(y = "Served Customers")
+p_spar_f_sc <- p_spar_f_sc + labs(y = "Prop. Customers Served")
 p_spar_f_sc
 
 p_spar_c <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Total.service.cost, fill = Approach))
@@ -544,16 +548,17 @@ p_spar_d <- p_spar_d + scale_x_discrete()
 p_spar_d <- p_spar_d + my_theme_none()
 p_spar_d <- p_spar_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_d <- p_spar_d + labs(x = "Threshold t")
-p_spar_d <- p_spar_d + labs(y = "Avg. Detour (times orig. dist.)")
+p_spar_d <- p_spar_d + labs(y = "Avg. Detour")
 p_spar_d
 
-p_spar_sc <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Served, fill = Approach))
+p_spar_sc <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Prop.served, fill = Approach))
 p_spar_sc <- p_spar_sc + geom_boxplot()
 p_spar_sc <- p_spar_sc + scale_x_discrete()
 p_spar_sc <- p_spar_sc + my_theme_none()
 p_spar_sc <- p_spar_sc + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_sc <- p_spar_sc + labs(x = "Threshold t")
-p_spar_sc <- p_spar_sc + labs(y = "Served Customers")
+p_spar_sc <- p_spar_sc + labs(y = "Prop. Customers Served")
 p_spar_sc
 
-multiplot(p_spar_f_c, p_spar_f_t, p_spar_f_d, p_spar_f_sc, p_spar_c, p_spar_t, p_spar_d, p_spar_sc, cols = 2)
+#multiplot(p_spar_f_c, p_spar_f_t, p_spar_f_d, p_spar_f_sc, p_spar_c, p_spar_t, p_spar_d, p_spar_sc, cols = 2)
+multiplot(p_spar_f_d, p_spar_f_sc, p_spar_d, p_spar_sc, cols = 2)
