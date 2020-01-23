@@ -406,6 +406,28 @@ p_ird_r_d <- p_ird_r_d + labs(x = "Ratio customers / drivers")
 p_ird_r_d <- p_ird_r_d + labs(y = "Avg. Detour")
 p_ird_r_d
 
+ird_prop_f <- function(sd) {
+  baseline <- sd[Assignment == "V", -1, with = FALSE]
+  other <- sd[Assignment == "DIST(ra)", -1, with = FALSE]
+  if(nrow(baseline) == 1 & nrow(other) == 1){
+    other[1] / baseline[1]
+  }
+}
+
+sd_cols_ird <- c("Assignment", "Cost", "Service.cost", "Total.service.cost")
+
+ird_prop_dt <- ird[, ird_prop_f(.SD), by = list(Seed, Customers, Routing), .SDcols = sd_cols_ird]
+
+p_ird_prop_c <- ggplot(ird_prop_dt, aes(x = Customers, y = Total.service.cost, fill = Routing)) 
+p_ird_prop_c <- p_ird_prop_c + geom_boxplot() 
+p_ird_prop_c <- p_ird_prop_c + scale_x_discrete()
+# p_ird_prop_c <- p_ird_prop_c + scale_y_continuous(breaks = c(1.0, 1.25, 1.5, 1.75, 2.0))
+# p_ird_prop_c <- p_ird_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_ird_prop_c <- p_ird_prop_c + my_theme_11()
+#p_ird_prop_c <- p_ird_prop_c + labs(y = "Proportion MILP Service Cost")
+p_ird_prop_c
+
+
 
 # COMPARISON AGAINST MILP
 # -----------------------

@@ -1,3 +1,4 @@
+import sys
 import operator
 import time
 import csv
@@ -55,7 +56,6 @@ class Experiment:
             for customer in cust_ret:
                 self._rs.append(([(shop, 1, 300) for shop in shops_ret], (customer, 1, 300)))
             idx += num_customers_retailer
-        # self._free = set(self._graph.keys()).difference(customers)
         self._free = self._free.difference(customers)
         self._z = None
         self._u = None
@@ -84,9 +84,30 @@ class Experiment:
                 self._ds = [((self._u[i], 1, 300), (self._z[i], 1, 300)) for i in range(num_drivers)]
         return self._ds
 
-    def run(self, graph, approach, sample, solve='BB', limit=0, partition=None, fraction=.5, threshold=1.5):
+    def run(self, graph, approach, sample, solve='BB', limit=0, partition=None, fraction=.5, threshold=1.5,
+            classical=False):
         csdp_ap = CsdpAp(graph)
         param = 0
+        #
+        if classical:
+
+            self._graph.compute_dist_paths(origins=cust_ret, destinations=shops_ret, compute_paths=False)
+            for customer in cust_ret:
+                if classical:
+                    nearest = None
+                    sd = sys.maxint
+                    for shop in shops_ret:
+                        d = self._graph.dist[tuple(sorted([customer, shop]))]
+                        if d < sd:
+                            sd = d
+                            nearest = shop
+                    self._rs.append(([(nearest, 1, 300)], (customer, 1, 300)))
+                else:
+                    self._rs.append(([(shop, 1, 300) for shop in shops_ret], (customer, 1, 300)))
+
+
+
+
         st = time.clock()
         if approach == 'MILP':
             routes, cost, _ = csdp_ap.solve(self._rs, self._ds)
@@ -203,10 +224,13 @@ if __name__ == '__main__':
         # ),
     }
     #
-    delta_meters = 12000.0
+    delta_meters = 5000.0
     delta = delta_meters / 111111
-    num_samples = 25
-    num_customers_r = [2048]
+    num_samples = 2
+    #
+    models = [True, False]  # True: classical CD, False: CD-CRSS
+    #
+    num_customers_r = [256]
     # num_customers_r = [4096]
     # ratios = [1.0, 2.0, 4.0, 8.0]
     ratios = [4.0]
