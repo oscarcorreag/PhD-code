@@ -1,5 +1,6 @@
 # setwd("C:/Users/oscarcg/Dropbox/Education/Unimelb PhD/code/Experiments/files/Ride-sharing_is_About_Agreeing_on_a_Destination_TSAS_2018/V2/")
-setwd("../Experiments/files/Ride-sharing_is_About_Agreeing_on_a_Destination_TSAS_2018/V2/")
+# setwd("../Experiments/files/Ride-sharing_is_About_Agreeing_on_a_Destination_TSAS_2018/V2/")
+setwd("C:/Users/oscarcg/Documents/phd/code/Experiments/files/Ride-sharing_is_About_Agreeing_on_a_Destination_TSAS_2018/V2/")
 
 # DATA PRE-PROCESSING ---------------------------------------------------------------------------------------------------------------------
 
@@ -433,10 +434,11 @@ my_theme <- function(base_size = 11, base_family = "") {
       
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
-      axis.title.x = element_text(size = 10, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(size = 10, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.x = element_text(size = 12, vjust = 0.5),
+      #axis.title.y = element_text(size = 12, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(size = 12, angle = 90, vjust = 0.5),
       #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
+      axis.text    = element_text(size = 12, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )

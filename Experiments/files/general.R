@@ -1,4 +1,4 @@
-setwd("C:/Users/oscarcg/Dropbox/Education/Unimelb PhD/code/Experiments/files/")
+setwd("C:/Users/oscarcg/Documents/phd/code/Experiments/files/")
 
 users <- read.csv("50 samples/users.csv", header = FALSE)
 names(users) <- c("alg", "seed", "n_size", "hs_size", "u", "p", "cap", "samp", "e_time", "cost", "gr", "avg_dr", "num_cars", "avg_or")
