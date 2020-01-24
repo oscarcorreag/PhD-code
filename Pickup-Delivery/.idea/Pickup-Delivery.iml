@@ -2,11 +2,7 @@
 <module version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$" />
-<<<<<<< HEAD
     <orderEntry type="jdk" jdkName="Python 2.7 (2)" jdkType="Python SDK" />
-=======
-    <orderEntry type="jdk" jdkName="Python 2.7.11 (C:\Anaconda2\python.exe)" jdkType="Python SDK" />
->>>>>>> 4c80a7bc31a0caf22f93c0ca0d15a67fe63eb7b1
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="R User Library" level="project" />
     <orderEntry type="library" name="R Skeletons" level="application" />
