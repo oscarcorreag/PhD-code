@@ -365,6 +365,15 @@ p_ird_c <- p_ird_c + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73
 p_ird_c <- p_ird_c + labs(y = "Service Cost (m)")
 p_ird_c
 
+p_ird_t <- ggplot(ird, aes(x = Customers, y = Elapsed.time, fill = Approach)) 
+p_ird_t <- p_ird_t + geom_boxplot() 
+p_ird_t <- p_ird_t + scale_x_discrete()
+p_ird_t <- p_ird_t + scale_y_log10()
+p_ird_t <- p_ird_t + my_theme_10()
+p_ird_t <- p_ird_t + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
+p_ird_t <- p_ird_t + labs(y = "Elapsed time (s)")
+p_ird_t
+
 ird_r <- fread("Ratios.csv")
 ird_r[, Assignment := as.factor(Assignment)]
 ird_r[, Partition := as.factor(Partition)]
@@ -584,3 +593,59 @@ p_spar_sc
 
 #multiplot(p_spar_f_c, p_spar_f_t, p_spar_f_d, p_spar_f_sc, p_spar_c, p_spar_t, p_spar_d, p_spar_sc, cols = 2)
 multiplot(p_spar_f_d, p_spar_f_sc, p_spar_d, p_spar_sc, cols = 2)
+
+
+# EFFECT OF CD-CRSS
+# -----------------
+cdcrss <- fread("Model.csv")
+cdcrss[, Assignment := as.factor(Assignment)]
+cdcrss[, Partition := as.factor(Partition)]
+cdcrss[, Routing := as.factor(Routing)]
+cdcrss[, Zone := as.factor(Zone)]
+cdcrss[, Prop.served := Served / Customers]
+cdcrss[, Customers := as.factor(Customers)]
+cdcrss[, Ratio := as.factor(Ratio)]
+cdcrss[, Distribution := as.factor(Distribution)]
+cdcrss[, Limit := as.factor(Limit)]
+cdcrss[, Parameter := as.factor(Parameter)]
+cdcrss[, Classical := as.factor(Classical)]
+
+cdcrss <- cdcrss[Cost != -1]
+
+cdcrss[Assignment == 'SP-Voronoi', Assignment := 'V']
+cdcrss[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+cdcrss[Routing == 'BB', Routing := 'BnB']
+cdcrss[, Approach := paste(Assignment, Routing, sep = "-")]
+cdcrss$Approach <- factor(cdcrss$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+cdcrss[, Total.service.cost := Dedicated.cost + Service.cost]
+
+cdcrss_prop_f <- function(sd) {
+  baseline <- sd[Classical == 1, -1, with = FALSE]
+  other <- sd[Classical == 0, -1, with = FALSE]
+  if(nrow(baseline) == 1 & nrow(other) == 1){
+    other[1] / baseline[1]
+  }
+}
+
+sd_cols_cdcrss <- c("Classical", "Cost", "Service.cost", "Total.service.cost")
+
+cdcrss_prop_dt <- cdcrss[, cdcrss_prop_f(.SD), by = list(Seed, Customers, Approach, Stores), .SDcols = sd_cols_cdcrss]
+
+p_cdcrss_prop_c <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB"], aes(x = as.factor(Stores), y = Total.service.cost, fill = Approach)) 
+p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_boxplot(varwidth = TRUE) 
+p_cdcrss_prop_c <- p_cdcrss_prop_c + scale_x_discrete()
+p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_cdcrss_prop_c <- p_cdcrss_prop_c + my_theme_11()
+p_cdcrss_prop_c <- p_cdcrss_prop_c + labs(y = "Proportion Service Cost")
+p_cdcrss_prop_c
+
+p_cdcrss_prop_c_2 <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 8], aes(x = Customers, y = Total.service.cost, fill = Approach)) 
+p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + geom_boxplot(varwidth = TRUE) 
+p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + scale_x_discrete()
+p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + my_theme_11()
+p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + labs(y = "Proportion Service Cost")
+p_cdcrss_prop_c_2
+
+summary(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 8, Total.service.cost])
+hist(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 8, Total.service.cost])
