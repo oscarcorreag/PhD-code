@@ -1,8 +1,8 @@
 library(data.table)
 library(ggplot2)
 
-setwd("C:/Users/oscarcg/Documents/phd/code/Pickup-Delivery/test/files/final/")
-# setwd("./final")
+# setwd("C:/Users/oscarcg/Documents/phd/code/Pickup-Delivery/test/files/final/")
+setwd("../Pickup-Delivery/test/files.final/")
 
 my_theme_11 <- function(base_size = 11, base_family = "") {
   # Starts with theme_grey and then modify some parts

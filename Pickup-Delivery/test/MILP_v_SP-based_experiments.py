@@ -225,11 +225,11 @@ if __name__ == '__main__':
     #
     delta_meters = 10000.0
     delta = delta_meters / 111111
-    num_samples = 30
+    num_samples = 20
     #
     models = [True, False]  # True: classical CD, False: CD-CRSS
     #
-    num_customers_r = [512, 1024, 2048]
+    num_customers_r = [1024, 2048]
     # num_customers_r = [4096]
     # ratios = [1.0, 2.0, 4.0, 8.0]
     ratios = [4.0]
@@ -250,7 +250,7 @@ if __name__ == '__main__':
     # approaches = ['IRB-NN', 'IRB-BB']
     results = []
     smpl = 0
-    s = 1032
+    s = 1077
     for region, info in regions.iteritems():
         while smpl < num_samples:
             #
