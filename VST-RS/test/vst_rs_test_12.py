@@ -10,16 +10,16 @@ from utils import distribute_pois_in_queries
 
 if __name__ == '__main__':
 
-    m = n = 30
-    capacities = (7, 8)
-    nq = 16
+    m = n = 10
+    capacities = (2, 4)
+    nq = 2
     npq = 1
-    nuq = 8
+    nuq = 6
 
     gh = GridDigraphGenerator()
-    graph = GridDigraphGenerator().generate(m, n, edge_weighted=True, capacitated=True, capacities_range=capacities)
+    graph = GridDigraphGenerator().generate(m, n, edge_weighted=False, capacitated=True, capacities_range=capacities)
 
-    ppq = distribute_pois_in_queries((m, n), nq, npq, seed=0)
+    ppq = distribute_pois_in_queries((m, n), nq, npq, seed=2)
     # queries_u = []
     queries_z = []
     #
@@ -28,19 +28,19 @@ if __name__ == '__main__':
         all_pois.extend(ps)
     free_nodes = set(range(m * n)).difference(all_pois)
     #
-    # special = []
+    special = []
     occupied_t = set()
-    # occupied_p = set()
+    occupied_p = set()
     for i, pois_z in ppq.iteritems():
-        np.random.seed(0)
+        np.random.seed(2)
         #
         where_t = set(free_nodes).difference(occupied_t)
         terminals = np.random.choice(a=list(where_t), size=nuq, replace=False)
         queries_z.append((terminals, pois_z))
         occupied_t.update(terminals)
-        # occupied_p.update(terminals)
-        # special.append((terminals, None, 25))
-        # special.append((pois_z, None, 65))
+        occupied_p.update(terminals)
+        special.append((terminals, None, 25))
+        special.append((pois_z, None, 65))
         #
         # where_p = set(range(m * n)).difference(occupied_p)
         # pois_u = np.random.choice(a=list(where_p), size=1, replace=False)
@@ -63,20 +63,48 @@ if __name__ == '__main__':
 
     print c, warl, mwrl, mrl1, mrl2, entropy, et
 
-    # ngh = NetworkXGraphHelper(graph)
-    # # labels = {e: vst_rs.load[e] for e in graph.get_edges()}
-    # ngh.draw_graph(special_subgraphs=[(plan, None) for _, plan in plans], special_nodes=special)
+    ngh = NetworkXGraphHelper(graph)
+    labels = {e: vst_rs.load[e] for e in graph.get_edges() if vst_rs.load[e] > 1}
+    ngh.draw_graph(
+        special_subgraphs=[(plan, None) for _, plan, _ in plans],
+        special_nodes=special,
+        edge_labels=labels,
+        print_edge_labels=True,
+        title_2="Cost: {:.2f}".format(c)
+    )
 
     # CA +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     vst_rs = VST_RS(graph)
     st = time.clock()
-    plans, c, warl, mwrl, mrl1, mrl2, entropy, ni = \
+    plans, c, warl, mwrl, mrl1, mrl2, entropy, ni, list_plans = \
         vst_rs.congestion_aware(queries_z, 4, 8, bpr, merge_users=merge_users, max_iter=max_iter, alpha=alpha,
                                 beta=beta, verbose=True, randomize=False)
     et = time.clock() - st
 
     print c, warl, mwrl, mrl1, mrl2, entropy, et
 
-    # ngh = NetworkXGraphHelper(graph)
-    # # labels = {e: vst_rs.load[e] for e in graph.get_edges()}
-    # ngh.draw_graph(special_subgraphs=[(plan, None) for _, plan in plans], special_nodes=special)
+    ngh = NetworkXGraphHelper(graph)
+    for plans, c, weights in list_plans:
+        loads = dict()
+        for _, (_, _, load) in plans.iteritems():
+            for e, l in load.iteritems():
+                try:
+                    loads[e] += l
+                except KeyError:
+                    loads[e] = l
+        labels = {e: l for e, l in loads.iteritems() if l > 1}
+        ngh.draw_graph(
+            special_subgraphs=[(plan, None) for _, (plan, _, _) in plans.iteritems()],
+            special_nodes=special,
+            edge_labels=labels,
+            print_edge_labels=True,
+            title_2="Cost: {:.2f}".format(c)
+        )
+        labels = {e: round(w, 2) for e, w in weights.iteritems() if w > 1.}
+        ngh.draw_graph(
+            special_subgraphs=[(plan, None) for _, (plan, _, _) in plans.iteritems()],
+            special_nodes=special,
+            edge_labels=labels,
+            print_edge_labels=True,
+            title_2="Cost: {:.2f}".format(c)
+        )

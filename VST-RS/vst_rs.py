@@ -368,6 +368,7 @@ class VST_RS:
 
     def congestion_aware(self, queries, z, S, f, merge_users=True, alpha=0.15, beta=4.0, max_iter=100, randomize=True,
                          log_history=False, parallelise=True, p_method="pp", verbose=True):
+        list_plans = list()
         plans = dict()
         previous = None
         no_iter = 0
@@ -392,6 +393,9 @@ class VST_RS:
             # Compute new weights based on the current load and the WEIGHTS OF THE PREVIOUS ITERATION.
             weights = f(self.graph.get_edges(), self.load, self.cap, alpha=alpha, beta=beta)
             self.graph.update_edge_weights(weights)
+            #
+            cost, _, _, _, _, _ = self.compute_congestion_statistics(f, alpha=alpha, beta=beta)
+            list_plans.append((plans, cost, weights))
             # Store the history of loads as they are needed to check convergence.
             self.append_to_history(f, log_history=log_history, alpha=alpha, beta=beta)
             # Check stop condition. Either convergence or maximum number of iterations reached.
@@ -415,7 +419,7 @@ class VST_RS:
                 job_server.print_stats()
             job_server.destroy()
         return [(ord_, plan, sts) for ord_, (plan, sts, _) in
-                plans.iteritems()], cost, warl, mwrl, mrl1, mrl2, entropy, no_iter
+                plans.iteritems()], cost, warl, mwrl, mrl1, mrl2, entropy, no_iter, list_plans
 
     def non_congestion_aware(self, queries, z, S, f, merge_users=True, alpha=0.15, beta=4.0, parallelise=True,
                              p_method="pp", verbose=True):

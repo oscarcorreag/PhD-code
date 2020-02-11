@@ -1,8 +1,8 @@
 library(data.table)
 library(ggplot2)
 
-# setwd("C:/Users/oscarcg/Documents/phd/code/Pickup-Delivery/test/files/final/")
-setwd("../Pickup-Delivery/test/files.final/")
+setwd("C:/Users/oscarcg/Documents/phd/code/Pickup-Delivery/test/files/final/")
+# setwd("../Pickup-Delivery/test/files.final/")
 
 my_theme_11 <- function(base_size = 11, base_family = "") {
   # Starts with theme_grey and then modify some parts
@@ -41,12 +41,12 @@ my_theme_11 <- function(base_size = 11, base_family = "") {
       
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
-      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5),
-      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5),
-      #axis.text    = element_text(size = 10, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
+      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5, face="bold"),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
+      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
+      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
@@ -90,12 +90,12 @@ my_theme_10 <- function(base_size = 11, base_family = "") {
       
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
-      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5),
-      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5),
-      #axis.text    = element_text(size = 10, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
+      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5, face="bold"),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
+      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
+      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
@@ -139,12 +139,12 @@ my_theme_01 <- function(base_size = 11, base_family = "") {
       
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
-      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5),
-      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5),
-      #axis.text    = element_text(size = 10, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
+      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5, face="bold"),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
+      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
+      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
@@ -188,12 +188,12 @@ my_theme_00 <- function(base_size = 11, base_family = "") {
       
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
-      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5),
-      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5),
-      #axis.text    = element_text(size = 10, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
+      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5, face="bold"),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
+      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
+      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
@@ -237,12 +237,12 @@ my_theme_none <- function(base_size = 11, base_family = "") {
       
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
-      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5),
-      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5),
-      #axis.text    = element_text(size = 10, lineheight = 0.9, colour = "grey50", hjust = 1),
-      axis.text    = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
+      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5, face="bold"),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
+      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
+      #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
+      axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
       
       complete = TRUE
     )
@@ -356,23 +356,58 @@ ird[, Approach := paste(Assignment, Routing, sep = "-")]
 ird$Approach <- factor(ird$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
 ird[, Total.service.cost := Dedicated.cost + Service.cost]
 
-p_ird_c <- ggplot(ird, aes(x = Customers, y = Total.service.cost, fill = Approach)) 
-p_ird_c <- p_ird_c + geom_boxplot() 
-p_ird_c <- p_ird_c + scale_x_discrete()
-p_ird_c <- p_ird_c + scale_y_log10()
-p_ird_c <- p_ird_c + my_theme_10()
-p_ird_c <- p_ird_c + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
-p_ird_c <- p_ird_c + labs(y = "Service Cost (m)")
-p_ird_c
+#p_ird_c <- ggplot(ird, aes(x = Customers, y = Total.service.cost, fill = Approach)) 
+#p_ird_c <- p_ird_c + geom_boxplot() 
+#p_ird_c <- p_ird_c + scale_x_discrete()
+#p_ird_c <- p_ird_c + scale_y_log10()
+#p_ird_c <- p_ird_c + my_theme_10()
+#p_ird_c <- p_ird_c + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
+#p_ird_c <- p_ird_c + labs(y = "Service Cost (m)")
+#p_ird_c
+
+ird_prop_f <- function(sd) {
+  baseline <- sd[Assignment == "V", -1, with = FALSE]
+  other <- sd[Assignment == "DIST(ra)", -1, with = FALSE]
+  if(nrow(baseline) == 1 & nrow(other) == 1){
+    other[1] / baseline[1]
+  }
+}
+
+sd_cols_ird <- c("Assignment", "Cost", "Service.cost", "Total.service.cost")
+
+ird_prop_dt <- ird[, ird_prop_f(.SD), by = list(Seed, Customers, Routing), .SDcols = sd_cols_ird]
+
+p_ird_prop_c <- ggplot(ird_prop_dt, aes(x = Customers, y = Total.service.cost, fill = Routing)) 
+p_ird_prop_c <- p_ird_prop_c + geom_boxplot() 
+p_ird_prop_c <- p_ird_prop_c + scale_x_discrete()
+p_ird_prop_c <- p_ird_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_ird_prop_c <- p_ird_prop_c + my_theme_11()
+p_ird_prop_c <- p_ird_prop_c + scale_fill_manual(values = c("cyan", "green"))
+p_ird_prop_c <- p_ird_prop_c + labs(y = "Times Voronoi Service Cost")
+p_ird_prop_c
+
+
+#ird_r_prop_dt <- ird_r[, ird_prop_f(.SD), by = list(Seed, Ratio, Routing), .SDcols = sd_cols_ird]
+
+#p_ird_r_prop_c <- ggplot(ird_r_prop_dt, aes(x = Ratio, y = Total.service.cost, fill = Routing)) 
+#p_ird_r_prop_c <- p_ird_r_prop_c + geom_boxplot() 
+#p_ird_r_prop_c <- p_ird_r_prop_c + scale_x_discrete()
+#p_ird_r_prop_c <- p_ird_r_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+#p_ird_r_prop_c <- p_ird_r_prop_c + my_theme_11()
+#p_ird_r_prop_c <- p_ird_r_prop_c + labs(y = "Times Voronoi Service Cost")
+#p_ird_r_prop_c
 
 p_ird_t <- ggplot(ird, aes(x = Customers, y = Elapsed.time, fill = Approach)) 
 p_ird_t <- p_ird_t + geom_boxplot() 
 p_ird_t <- p_ird_t + scale_x_discrete()
-p_ird_t <- p_ird_t + scale_y_log10()
+p_ird_t <- p_ird_t + scale_y_log10(breaks = c(1e-01, 1, 1e+01, 1e+02, 1e+03))
 p_ird_t <- p_ird_t + my_theme_10()
 p_ird_t <- p_ird_t + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_ird_t <- p_ird_t + labs(y = "Elapsed time (s)")
 p_ird_t
+
+multiplot(p_ird_prop_c, p_ird_t, cols = 1)
+
 
 ird_r <- fread("Ratios.csv")
 ird_r[, Assignment := as.factor(Assignment)]
@@ -394,47 +429,27 @@ ird_r[, Approach := paste(Assignment, Routing, sep = "-")]
 ird_r$Approach <- factor(ird_r$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
 ird_r[, Total.service.cost := Dedicated.cost + Service.cost]
 
-p_ird_r_c <- ggplot(ird_r, aes(x = Ratio, y = Total.service.cost, fill = Approach)) 
-p_ird_r_c <- p_ird_r_c + geom_boxplot() 
-p_ird_r_c <- p_ird_r_c + scale_x_discrete()
-p_ird_r_c <- p_ird_r_c + my_theme_none()
-p_ird_r_c <- p_ird_r_c + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
-p_ird_r_c <- p_ird_r_c + labs(x = "Ratio customers / drivers")
-p_ird_r_c <- p_ird_r_c + labs(y = "Service Cost (m)")
-p_ird_r_c
+#p_ird_r_c <- ggplot(ird_r, aes(x = Ratio, y = Total.service.cost, fill = Approach)) 
+#p_ird_r_c <- p_ird_r_c + geom_boxplot() 
+#p_ird_r_c <- p_ird_r_c + scale_x_discrete()
+#p_ird_r_c <- p_ird_r_c + my_theme_none()
+#p_ird_r_c <- p_ird_r_c + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
+#p_ird_r_c <- p_ird_r_c + labs(x = "Ratio customers / drivers")
+#p_ird_r_c <- p_ird_r_c + labs(y = "Service Cost (m)")
+#p_ird_r_c
 
-multiplot(p_ird_c, p_ird_r_c, cols = 1)
+#multiplot(p_ird_c, p_ird_r_c, cols = 1)
 
 
 p_ird_r_d <- ggplot(ird_r, aes(x = Ratio, y = Avg.detour, fill = Approach)) 
 p_ird_r_d <- p_ird_r_d + geom_boxplot() 
 p_ird_r_d <- p_ird_r_d + scale_x_discrete()
 p_ird_r_d <- p_ird_r_d + my_theme_01()
+p_ird_r_d <- p_ird_r_d + theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
 p_ird_r_d <- p_ird_r_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_ird_r_d <- p_ird_r_d + labs(x = "Ratio customers / drivers")
-p_ird_r_d <- p_ird_r_d + labs(y = "Avg. Detour")
+p_ird_r_d <- p_ird_r_d + labs(y = "Avg. Detour (times original distance)")
 p_ird_r_d
-
-ird_prop_f <- function(sd) {
-  baseline <- sd[Assignment == "V", -1, with = FALSE]
-  other <- sd[Assignment == "DIST(ra)", -1, with = FALSE]
-  if(nrow(baseline) == 1 & nrow(other) == 1){
-    other[1] / baseline[1]
-  }
-}
-
-sd_cols_ird <- c("Assignment", "Cost", "Service.cost", "Total.service.cost")
-
-ird_prop_dt <- ird[, ird_prop_f(.SD), by = list(Seed, Customers, Routing), .SDcols = sd_cols_ird]
-
-p_ird_prop_c <- ggplot(ird_prop_dt, aes(x = Customers, y = Total.service.cost, fill = Routing)) 
-p_ird_prop_c <- p_ird_prop_c + geom_boxplot() 
-p_ird_prop_c <- p_ird_prop_c + scale_x_discrete()
-# p_ird_prop_c <- p_ird_prop_c + scale_y_continuous(breaks = c(1.0, 1.25, 1.5, 1.75, 2.0))
-# p_ird_prop_c <- p_ird_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
-p_ird_prop_c <- p_ird_prop_c + my_theme_11()
-#p_ird_prop_c <- p_ird_prop_c + labs(y = "Proportion MILP Service Cost")
-p_ird_prop_c
 
 
 
@@ -479,7 +494,7 @@ p_milp_c <- p_milp_c + scale_x_discrete()
 p_milp_c <- p_milp_c + scale_y_continuous(breaks = c(1.0, 1.25, 1.5, 1.75, 2.0))
 p_milp_c <- p_milp_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
 p_milp_c <- p_milp_c + my_theme_none()
-p_milp_c <- p_milp_c + labs(y = "Proportion MILP Service Cost")
+p_milp_c <- p_milp_c + labs(y = "Times MILP Service Cost")
 p_milp_c
 
 p_milp_t <- ggplot(milp_prop_dt, aes(x = Customers, y = Elapsed.time)) 
@@ -488,7 +503,7 @@ p_milp_t <- p_milp_t + scale_x_discrete()
 p_milp_t <- p_milp_t + scale_y_log10(breaks = c(1, 1e-1, 1e-2, 1e-3))
 p_milp_t <- p_milp_t + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
 p_milp_t <- p_milp_t + my_theme_none()
-p_milp_t <- p_milp_t + labs(y = "Proportion MILP Processing Time")
+p_milp_t <- p_milp_t + labs(y = "Times MILP Processing Time")
 p_milp_t
 
 multiplot(p_milp_c, p_milp_t, cols = 2)
@@ -540,9 +555,10 @@ p_spar_f_d <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Av
 p_spar_f_d <- p_spar_f_d + geom_boxplot()
 p_spar_f_d <- p_spar_f_d + scale_x_discrete()
 p_spar_f_d <- p_spar_f_d + my_theme_none()
+p_spar_f_d <- p_spar_f_d + theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
 p_spar_f_d <- p_spar_f_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_f_d <- p_spar_f_d + labs(x = "Fraction f")
-p_spar_f_d <- p_spar_f_d + labs(y = "Avg. Detour")
+p_spar_f_d <- p_spar_f_d + labs(y = "Avg. Detour (times original distance)")
 p_spar_f_d
 
 p_spar_f_sc <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Prop.served, fill = Approach))
@@ -577,9 +593,10 @@ p_spar_d <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Avg
 p_spar_d <- p_spar_d + geom_boxplot()
 p_spar_d <- p_spar_d + scale_x_discrete()
 p_spar_d <- p_spar_d + my_theme_none()
+p_spar_d <- p_spar_d + theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
 p_spar_d <- p_spar_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_d <- p_spar_d + labs(x = "Threshold t")
-p_spar_d <- p_spar_d + labs(y = "Avg. Detour")
+p_spar_d <- p_spar_d + labs(y = "Avg. Detour (times original distance)")
 p_spar_d
 
 p_spar_sc <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Prop.served, fill = Approach))
@@ -609,6 +626,8 @@ cdcrss[, Distribution := as.factor(Distribution)]
 cdcrss[, Limit := as.factor(Limit)]
 cdcrss[, Parameter := as.factor(Parameter)]
 cdcrss[, Classical := as.factor(Classical)]
+cdcrss[Classical == 1, Classical := "Current"]
+cdcrss[Classical == 0, Classical := "CD-CRSS"]
 
 cdcrss <- cdcrss[Cost != -1]
 
@@ -620,8 +639,8 @@ cdcrss$Approach <- factor(cdcrss$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-
 cdcrss[, Total.service.cost := Dedicated.cost + Service.cost]
 
 cdcrss_prop_f <- function(sd) {
-  baseline <- sd[Classical == 1, -1, with = FALSE]
-  other <- sd[Classical == 0, -1, with = FALSE]
+  baseline <- sd[Classical == "Current", -1, with = FALSE]
+  other <- sd[Classical == "CD-CRSS", -1, with = FALSE]
   if(nrow(baseline) == 1 & nrow(other) == 1){
     other[1] / baseline[1]
   }
@@ -632,20 +651,51 @@ sd_cols_cdcrss <- c("Classical", "Cost", "Service.cost", "Total.service.cost")
 cdcrss_prop_dt <- cdcrss[, cdcrss_prop_f(.SD), by = list(Seed, Customers, Approach, Stores), .SDcols = sd_cols_cdcrss]
 
 p_cdcrss_prop_c <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB"], aes(x = as.factor(Stores), y = Total.service.cost, fill = Approach)) 
-p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_boxplot(varwidth = TRUE) 
+p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_boxplot(fill = "#56B4E9") 
 p_cdcrss_prop_c <- p_cdcrss_prop_c + scale_x_discrete()
 p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
 p_cdcrss_prop_c <- p_cdcrss_prop_c + my_theme_11()
-p_cdcrss_prop_c <- p_cdcrss_prop_c + labs(y = "Proportion Service Cost")
+p_cdcrss_prop_c <- p_cdcrss_prop_c + theme(axis.text = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1), axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
+p_cdcrss_prop_c <- p_cdcrss_prop_c + labs(x = "Stores")
+p_cdcrss_prop_c <- p_cdcrss_prop_c + labs(y = "Times Current Model Service Cost")
 p_cdcrss_prop_c
 
-p_cdcrss_prop_c_2 <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 8], aes(x = Customers, y = Total.service.cost, fill = Approach)) 
-p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + geom_boxplot(varwidth = TRUE) 
+p_cdcrss_prop_c_2 <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 5], aes(x = Customers, y = Total.service.cost, fill = Approach)) 
+p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + geom_boxplot(fill = "#56B4E9") 
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + scale_x_discrete()
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + my_theme_11()
-p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + labs(y = "Proportion Service Cost")
+p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
+p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + labs(y = "Times Current Model Service Cost")
 p_cdcrss_prop_c_2
 
-summary(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 8, Total.service.cost])
-hist(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 8, Total.service.cost])
+summary(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 5, Total.service.cost])
+
+p_cdcrss_prop_c_3 <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 5], aes(x = Total.service.cost)) 
+p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + geom_histogram(binwidth = .1, alpha = 0.2, col = I("black"))
+#p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + scale_x_discrete()
+p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + geom_vline(aes(xintercept=mean(Total.service.cost)), linetype="twodash", color = "red", size = 1)
+p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + geom_text(aes(label=round(mean(Total.service.cost),2),y=0,x=mean(Total.service.cost)), vjust=-1,col='red',size=5)
+p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + my_theme_11()
+p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + theme(axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 10, vjust = 0.5))
+p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + labs(x = "Times Current Model Service Cost")
+p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + labs(y = "Frequency")
+p_cdcrss_prop_c_3
+
+
+#hist(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 5, Total.service.cost])
+
+p_cdcrss_t <- ggplot(cdcrss[Approach == "DIST(ra)-BnB"], aes(x = Customers, y = Elapsed.time, fill = Classical)) 
+p_cdcrss_t <- p_cdcrss_t + geom_boxplot() 
+p_cdcrss_t <- p_cdcrss_t + scale_x_discrete()
+#p_cdcrss_t <- p_cdcrss_t + scale_y_log10()
+#p_cdcrss_t <- p_cdcrss_t + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_cdcrss_t <- p_cdcrss_t + my_theme_01()
+p_cdcrss_t <- p_cdcrss_t + scale_fill_manual(values = c("pink", "violet"))
+p_cdcrss_t <- p_cdcrss_t + labs(y = "Processing time (s)")
+p_cdcrss_t
+
+
+multiplot(p_cdcrss_prop_c, p_cdcrss_prop_c_3, p_cdcrss_prop_c_2, p_cdcrss_t, cols = 2)
+
+summary(cdcrss[Approach == "DIST(ra)-BnB" & Customers == 256, Elapsed.time])
