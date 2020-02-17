@@ -653,7 +653,8 @@ cdcrss_prop_dt <- cdcrss[, cdcrss_prop_f(.SD), by = list(Seed, Customers, Approa
 p_cdcrss_prop_c <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB"], aes(x = as.factor(Stores), y = Total.service.cost, fill = Approach)) 
 p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_boxplot(fill = "#56B4E9") 
 p_cdcrss_prop_c <- p_cdcrss_prop_c + scale_x_discrete()
-p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+#p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_hline(yintercept=.65, linetype="twodash", color = "red", size = 1)
 p_cdcrss_prop_c <- p_cdcrss_prop_c + my_theme_11()
 p_cdcrss_prop_c <- p_cdcrss_prop_c + theme(axis.text = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1), axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
 p_cdcrss_prop_c <- p_cdcrss_prop_c + labs(x = "Stores")
@@ -663,7 +664,7 @@ p_cdcrss_prop_c
 p_cdcrss_prop_c_2 <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 5], aes(x = Customers, y = Total.service.cost, fill = Approach)) 
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + geom_boxplot(fill = "#56B4E9") 
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + scale_x_discrete()
-p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + geom_hline(yintercept=.80, linetype="twodash", color = "red", size = 1)
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + my_theme_11()
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + labs(y = "Times Current Model Service Cost")
@@ -696,6 +697,7 @@ p_cdcrss_t <- p_cdcrss_t + labs(y = "Processing time (s)")
 p_cdcrss_t
 
 
-multiplot(p_cdcrss_prop_c, p_cdcrss_prop_c_3, p_cdcrss_prop_c_2, p_cdcrss_t, cols = 2)
+#multiplot(p_cdcrss_prop_c, p_cdcrss_prop_c_3, p_cdcrss_prop_c_2, p_cdcrss_t, cols = 2)
+multiplot(p_cdcrss_prop_c_2, p_cdcrss_t, cols = 2)
 
 summary(cdcrss[Approach == "DIST(ra)-BnB" & Customers == 256, Elapsed.time])
