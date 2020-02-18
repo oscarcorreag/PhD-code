@@ -30,7 +30,7 @@ my_theme_11 <- function(base_size = 11, base_family = "") {
       legend.position      = c(1, 1),
       #legend.title         = element_text(size = 9, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
       legend.title         = element_blank(),
-      legend.text          = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
+      legend.text          = element_text(size = 11, lineheight = 0.9, colour = "black", hjust = 1),
       
       #legend.text           = element_text(size = 8, lineheight = 0.9, hjust = 1),
       #legend.title          = element_text(size = 9),
@@ -79,7 +79,7 @@ my_theme_10 <- function(base_size = 11, base_family = "") {
       legend.position      = c(1, 0),
       #legend.title         = element_text(size = 9, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
       legend.title         = element_blank(),
-      legend.text          = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
+      legend.text          = element_text(size = 11, lineheight = 0.9, colour = "black", hjust = 1),
       
       #legend.text           = element_text(size = 8, lineheight = 0.9, hjust = 1),
       #legend.title          = element_text(size = 9),
@@ -128,7 +128,7 @@ my_theme_01 <- function(base_size = 11, base_family = "") {
       legend.position      = c(0, 1),
       #legend.title         = element_text(size = 9, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
       legend.title         = element_blank(),
-      legend.text          = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
+      legend.text          = element_text(size = 11, lineheight = 0.9, colour = "black", hjust = 1),
       
       #legend.text           = element_text(size = 8, lineheight = 0.9, hjust = 1),
       #legend.title          = element_text(size = 9),
@@ -177,7 +177,7 @@ my_theme_00 <- function(base_size = 11, base_family = "") {
       legend.position      = c(0, 0),
       #legend.title         = element_text(size = 9, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
       legend.title         = element_blank(),
-      legend.text          = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
+      legend.text          = element_text(size = 11, lineheight = 0.9, colour = "black", hjust = 1),
       
       #legend.text           = element_text(size = 8, lineheight = 0.9, hjust = 1),
       #legend.title          = element_text(size = 9),
@@ -226,7 +226,7 @@ my_theme_none <- function(base_size = 11, base_family = "") {
       #legend.position      = c(1, 1),
       #legend.title         = element_text(size = 9, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
       legend.title         = element_blank(),
-      legend.text          = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1),
+      legend.text          = element_text(size = 11, lineheight = 0.9, colour = "black", hjust = 1),
       
       #legend.text           = element_text(size = 8, lineheight = 0.9, hjust = 1),
       #legend.title          = element_text(size = 9),
@@ -302,19 +302,21 @@ lim[, Parameter := as.factor(Parameter)]
 lim <- lim[Dedicated.cost == 0 & Cost != -1 & Limit %in% c(4, 6, 8, 10, 12)]
 
 lim[Assignment == 'SP-Voronoi', Assignment := 'V']
-lim[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+lim[Assignment == 'LL-EP', Assignment := 'DIST[ra]']
 lim[Routing == 'BB', Routing := 'BnB']
 lim[, Approach := paste(Assignment, Routing, sep = "-")]
-lim$Approach <- factor(lim$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+lim$Approach <- factor(lim$Approach, levels = c('V-NN', 'DIST[ra]-NN', 'V-BnB', 'DIST[ra]-BnB'))
 lim[, Total.service.cost := Dedicated.cost + Service.cost]
+
+lab1 <- c(expression(dist[ra]-NN), expression(dist[ra]-BnB))
 
 p_lim_c <- ggplot(lim, aes(x = Limit, y = Total.service.cost, fill = Approach)) 
 p_lim_c <- p_lim_c + geom_boxplot(color = "grey", alpha = 1/10)
 p_lim_c <- p_lim_c + geom_smooth(method = "loess", se=FALSE, aes(group = Approach, color = Approach))
 p_lim_c <- p_lim_c + scale_x_discrete()
 p_lim_c <- p_lim_c + my_theme_11()
-p_lim_c <- p_lim_c + scale_fill_manual(values = c("#D55E00", "#56B4E9"))
-p_lim_c <- p_lim_c + scale_color_manual(values = c("#D55E00", "#56B4E9"))
+p_lim_c <- p_lim_c + scale_fill_manual(values = c("#D55E00", "#56B4E9"), labels = lab1)
+p_lim_c <- p_lim_c + scale_color_manual(values = c("#D55E00", "#56B4E9"), labels= lab1)
 p_lim_c <- p_lim_c + labs(x = "Max. Degree m")
 p_lim_c <- p_lim_c + labs(y = "Service Cost (m)")
 p_lim_c
@@ -325,8 +327,8 @@ p_lim_t <- p_lim_t + geom_smooth(method = "loess", se=FALSE, aes(group = Approac
 p_lim_t <- p_lim_t + scale_x_discrete()
 p_lim_t <- p_lim_t + scale_y_log10()
 p_lim_t <- p_lim_t + my_theme_none()
-p_lim_t <- p_lim_t + scale_fill_manual(values = c("#D55E00", "#56B4E9"))
-p_lim_t <- p_lim_t + scale_color_manual(values = c("#D55E00", "#56B4E9"))
+p_lim_t <- p_lim_t + scale_fill_manual(values = c("#D55E00", "#56B4E9"), labels = lab1)
+p_lim_t <- p_lim_t + scale_color_manual(values = c("#D55E00", "#56B4E9"), labels = lab1)
 p_lim_t <- p_lim_t + labs(x = "Max. Degree m")
 p_lim_t <- p_lim_t + labs(y = "Processing Time (s)")
 p_lim_t
@@ -380,10 +382,11 @@ ird_prop_dt <- ird[, ird_prop_f(.SD), by = list(Seed, Customers, Routing), .SDco
 p_ird_prop_c <- ggplot(ird_prop_dt, aes(x = Customers, y = Total.service.cost, fill = Routing)) 
 p_ird_prop_c <- p_ird_prop_c + geom_boxplot() 
 p_ird_prop_c <- p_ird_prop_c + scale_x_discrete()
-p_ird_prop_c <- p_ird_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_ird_prop_c <- p_ird_prop_c + scale_y_continuous(breaks = c(.3, .5, .6, .9, 1.2, 1.5))
+p_ird_prop_c <- p_ird_prop_c + geom_hline(yintercept=0.5, linetype="twodash", color = "red", size = 1)
 p_ird_prop_c <- p_ird_prop_c + my_theme_11()
 p_ird_prop_c <- p_ird_prop_c + scale_fill_manual(values = c("cyan", "green"))
-p_ird_prop_c <- p_ird_prop_c + labs(y = "Times Voronoi Service Cost")
+p_ird_prop_c <- p_ird_prop_c + labs(y = expression(atop("Times Path-Generator", paste("Voronoi-based Service Cost"))))
 p_ird_prop_c
 
 
@@ -441,12 +444,14 @@ ird_r[, Total.service.cost := Dedicated.cost + Service.cost]
 #multiplot(p_ird_c, p_ird_r_c, cols = 1)
 
 
+lab1 <- c(expression(V-NN), expression(dist[ra]-NN), expression(V-BnB), expression(dist[ra]-BnB))
+
 p_ird_r_d <- ggplot(ird_r, aes(x = Ratio, y = Avg.detour, fill = Approach)) 
 p_ird_r_d <- p_ird_r_d + geom_boxplot() 
 p_ird_r_d <- p_ird_r_d + scale_x_discrete()
 p_ird_r_d <- p_ird_r_d + my_theme_01()
 p_ird_r_d <- p_ird_r_d + theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
-p_ird_r_d <- p_ird_r_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
+p_ird_r_d <- p_ird_r_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"), labels = lab1)
 p_ird_r_d <- p_ird_r_d + labs(x = "Ratio customers / drivers")
 p_ird_r_d <- p_ird_r_d + labs(y = "Avg. Detour (times original distance)")
 p_ird_r_d
@@ -492,7 +497,7 @@ p_milp_c <- ggplot(milp_prop_dt, aes(x = Customers, y = Total.service.cost))
 p_milp_c <- p_milp_c + geom_boxplot(fill = "#56B4E9") 
 p_milp_c <- p_milp_c + scale_x_discrete()
 p_milp_c <- p_milp_c + scale_y_continuous(breaks = c(1.0, 1.25, 1.5, 1.75, 2.0))
-p_milp_c <- p_milp_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_milp_c <- p_milp_c + geom_hline(yintercept=1.5, linetype="twodash", color = "red", size = 1)
 p_milp_c <- p_milp_c + my_theme_none()
 p_milp_c <- p_milp_c + labs(y = "Times MILP Service Cost")
 p_milp_c
@@ -501,7 +506,7 @@ p_milp_t <- ggplot(milp_prop_dt, aes(x = Customers, y = Elapsed.time))
 p_milp_t <- p_milp_t + geom_boxplot(fill = "#56B4E9") 
 p_milp_t <- p_milp_t + scale_x_discrete()
 p_milp_t <- p_milp_t + scale_y_log10(breaks = c(1, 1e-1, 1e-2, 1e-3))
-p_milp_t <- p_milp_t + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_milp_t <- p_milp_t + geom_hline(yintercept=1e-3, linetype="twodash", color = "red", size = 1)
 p_milp_t <- p_milp_t + my_theme_none()
 p_milp_t <- p_milp_t + labs(y = "Times MILP Processing Time")
 p_milp_t
@@ -701,3 +706,45 @@ p_cdcrss_t
 multiplot(p_cdcrss_prop_c_2, p_cdcrss_t, cols = 2)
 
 summary(cdcrss[Approach == "DIST(ra)-BnB" & Customers == 256, Elapsed.time])
+
+
+
+# EFFECT OF TRUE CD
+# -----------------
+truecd <- fread("TrueCD.csv")
+truecd[, Assignment := as.factor(Assignment)]
+truecd[, Partition := as.factor(Partition)]
+truecd[, Routing := as.factor(Routing)]
+truecd[, Zone := as.factor(Zone)]
+truecd[, Prop.served := Served / Customers]
+truecd[, Customers := as.factor(Customers)]
+truecd[, Ratio := as.factor(Ratio)]
+truecd[, Distribution := as.factor(Distribution)]
+truecd[, Limit := as.factor(Limit)]
+truecd[, Parameter := as.factor(Parameter)]
+truecd[, Prop.true.cd := as.factor(Prop.true.cd)]
+
+truecd <- truecd[Cost != -1]
+
+truecd[Assignment == 'SP-Voronoi', Assignment := 'V']
+truecd[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+truecd[Routing == 'BB', Routing := 'BnB']
+truecd[, Approach := paste(Assignment, Routing, sep = "-")]
+truecd$Approach <- factor(truecd$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+truecd[, Total.service.cost := Dedicated.cost + Service.cost]
+
+p_truecd_f_c <- ggplot(truecd[Partition == 'SP-fraction'], aes(x = Prop.true.cd, y = Total.service.cost))
+p_truecd_f_c <- p_truecd_f_c + geom_boxplot()
+p_truecd_f_c <- p_truecd_f_c + scale_x_discrete()
+p_truecd_f_c <- p_truecd_f_c + my_theme_none()
+p_truecd_f_c <- p_truecd_f_c + labs(x = "Prop. true CD")
+p_truecd_f_c <- p_truecd_f_c + labs(y = "Service Cost (m)")
+p_truecd_f_c
+
+p_truecd_c <- ggplot(truecd[Partition != 'SP-fraction'], aes(x = Prop.true.cd, y = Total.service.cost))
+p_truecd_c <- p_truecd_c + geom_boxplot()
+p_truecd_c <- p_truecd_c + scale_x_discrete()
+p_truecd_c <- p_truecd_c + my_theme_none()
+p_truecd_c <- p_truecd_c + labs(x = "Prop. true CD")
+p_truecd_c <- p_truecd_c + labs(y = "Service Cost (m)")
+p_truecd_c
