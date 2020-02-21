@@ -18,7 +18,7 @@ class Experiment:
         self._meters = meters
         self._seed = seed
         self._rnd = rnd
-        self._graph = graph.copy()
+        # self._graph = graph.copy()
         self._shops = set(shops)
         self._free = set(graph.keys()).difference(shops)
         self._net_size = len(graph.keys())
@@ -39,29 +39,30 @@ class Experiment:
         self._params = dict()
         self._rs = None
         self._rs_bck = None
+        self._customers = None
         self._ds = None
         self._z = None
         self._u = None
 
     def set_customers(self, num_customers):
         self._params['num_customers'] = num_customers
-        customers = self._rnd.choice(a=list(self._free), size=num_customers, replace=False)
-        self._rs = list()
-        idx = 0
-        for i, (retailer, shops_ret) in enumerate(self._shops_per_ret.iteritems()):
-            num_customers_retailer = int(round(num_customers * self._market_share[retailer]))
-            if i < self._num_retailers - 1:
-                cust_ret = customers[idx:idx + num_customers_retailer]
-            else:
-                cust_ret = customers[idx:num_customers]
-            for customer in cust_ret:
-                self._rs.append(([(shop, 1, 300) for shop in shops_ret], (customer, 1, 300)))
-            idx += num_customers_retailer
-        self._rs_bck = list(self._rs)
-        self._free = self._free.difference(customers)
+        self._customers = self._rnd.choice(a=list(self._free), size=num_customers, replace=False)
+        # self._rs = list()
+        # idx = 0
+        # for i, (retailer, shops_ret) in enumerate(self._shops_per_ret.iteritems()):
+        #     num_customers_retailer = int(round(num_customers * self._market_share[retailer]))
+        #     if i < self._num_retailers - 1:
+        #         cust_ret = customers[idx:idx + num_customers_retailer]
+        #     else:
+        #         cust_ret = customers[idx:num_customers]
+        #     for customer in cust_ret:
+        #         self._rs.append(([(shop, 1, 300) for shop in shops_ret], (customer, 1, 300)))
+        #     idx += num_customers_retailer
+        # self._rs_bck = list(self._rs)
+        self._free = self._free.difference(self._customers)
         self._z = None
         self._u = None
-        return customers
+        return self._customers
 
     def set_drivers(self, ratio, distr):
         # Drivers
@@ -86,11 +87,70 @@ class Experiment:
                 self._ds = [((self._u[i], 1, 300), (self._z[i], 1, 300)) for i in range(num_drivers)]
         return self._ds
 
+    # def setup_true_cd_scenario(self, graph):
+    #     ends_ = list()
+    #     best_shop_by_driver_end = dict()
+    #     for (start_v, _, _), (end_v, _, _) in self._ds:
+    #         ends_.append(end_v)
+    #         sd = sys.maxint
+    #         for shop in self._shops:
+    #             d1 = graph.dist[tuple(sorted([start_v, shop]))]
+    #             d2 = graph.dist[tuple(sorted([shop, end_v]))]
+    #             if d1 + d2 < sd:
+    #                 sd = d1 + d2
+    #                 best_shop_by_driver_end[end_v] = shop
+    #     custs_ = [cust for _, (cust, _, _) in self._rs]
+    #     cells, _ = graph.get_voronoi_medoids_cells(ends_, custs_)
+    #     self._rs = list()
+    #     for end_v, customers in cells.iteritems():
+    #         best_shop = best_shop_by_driver_end[end_v]
+    #         retailer = graph[best_shop][2]['name']
+    #         shops_ret = self._shops_per_ret[retailer]
+    #         for customer in customers:
+    #             self._rs.append(([(shop, 1, 300) for shop in shops_ret], (customer, 1, 300)))
+    #     self._rs_bck = list(self._rs)
+
     def run(self, graph, approach, sample, solve='BB', limit=0, partition=None, fraction=.5, threshold=1.5,
-            classical=False):
+            retailer_preference='market_share', classical=False):
         csdp_ap = CsdpAp(graph)
         param = 0
-        #
+        # Setup requests.
+        self._rs = list()
+        if retailer_preference == 'market_share':
+            idx = 0
+            num_customers = self._params['num_customers']
+            for i, (retailer, shops_ret) in enumerate(self._shops_per_ret.iteritems()):
+                num_customers_retailer = int(round(num_customers * self._market_share[retailer]))
+                if i < self._num_retailers - 1:
+                    cust_ret = self._customers[idx:idx + num_customers_retailer]
+                else:
+                    cust_ret = self._customers[idx:num_customers]
+                for customer in cust_ret:
+                    self._rs.append(([(shop, 1, 300) for shop in shops_ret], (customer, 1, 300)))
+                idx += num_customers_retailer
+            # self._rs_bck = list(self._rs)
+        elif retailer_preference == 'neighbour_driver_pref':
+            ends_ = list()
+            best_shop_by_driver_end = dict()
+            for (start_v, _, _), (end_v, _, _) in self._ds:
+                ends_.append(end_v)
+                sd = sys.maxint
+                for shop in self._shops:
+                    d1 = graph.dist[tuple(sorted([start_v, shop]))]
+                    d2 = graph.dist[tuple(sorted([shop, end_v]))]
+                    if d1 + d2 < sd:
+                        sd = d1 + d2
+                        best_shop_by_driver_end[end_v] = shop
+            # custs_ = [cust for _, (cust, _, _) in self._rs]
+            cells, _ = graph.get_voronoi_medoids_cells(ends_, self._customers)
+            self._rs = list()
+            for end_v, customers in cells.iteritems():
+                best_shop = best_shop_by_driver_end[end_v]
+                retailer = graph[best_shop][2]['name']
+                shops_ret = self._shops_per_ret[retailer]
+                for customer in customers:
+                    self._rs.append(([(shop, 1, 300) for shop in shops_ret], (customer, 1, 300)))
+        # If model is classical or CD-CRSS...
         if classical:
             new_rs = list()
             for shops_tws, (customer, _, _) in self._rs:
@@ -104,12 +164,12 @@ class Experiment:
                         nearest = shop
                 new_rs.append(([(nearest, 1, 300)], (customer, 1, 300)))
             self._rs = list(new_rs)
-        else:
-            self._rs = list(self._rs_bck)
+        # else:
+        #     self._rs = list(self._rs_bck)
         #
         st = time.clock()
         if approach == 'MILP':
-            routes, cost, _ = csdp_ap.solve(self._rs, self._ds)
+            routes, cost, sc = csdp_ap.solve(self._rs, self._ds)
         else:
             if partition is None:
                 routes, cost, sc = csdp_ap.solve(self._rs, self._ds, method='SP-based', assignment_method=approach,
@@ -130,7 +190,7 @@ class Experiment:
         if cost == -1:
             line = [approach, partition, solve, param, self._seed, self._city, self._net_size, self._meters,
                     self._num_shops, self._num_retailers, len(self._rs), self._params['ratio'], len(self._ds),
-                    self._params['distr'], sample, et, cost, 0, 0, 0, 0, 0, 0, 0, 0]
+                    self._params['distr'], sample, et, cost, 0, 0, 0, 0, 0, 0, 0, 0, retailer_preference, classical]
         else:
             stats = Experiment.compute_stats_per_driver_type(graph, routes)
 
@@ -138,7 +198,7 @@ class Experiment:
                     self._num_shops, self._num_retailers, len(self._rs), self._params['ratio'], len(self._ds),
                     self._params['distr'], sample, et, cost, stats['ad hoc']['total'], stats['dedicated']['total'],
                     stats['ad hoc']['service'], stats['ad hoc']['no'], stats['dedicated']['no'],
-                    stats['ad hoc']['avg detour'], limit, len(sc)]
+                    stats['ad hoc']['avg detour'], limit, len(sc), retailer_preference, classical]
         print line
         return line
 
@@ -225,32 +285,38 @@ if __name__ == '__main__':
     #
     delta_meters = 10000.0
     delta = delta_meters / 111111
-    num_samples = 20
+    num_samples = 50
     #
-    models = [True, False]  # True: classical CD, False: CD-CRSS
+    # models = [False]  # True: classical CD, False: CD-CRSS
+    models = [True, False]
     #
-    num_customers_r = [1024, 2048]
-    # num_customers_r = [4096]
+    num_customers_r = [256]  # default
+    # num_customers_r = [16, 32, 64, 128, 256, 512, 1024, 2048]
+    # ratios = [4.0]  # default
     # ratios = [1.0, 2.0, 4.0, 8.0]
-    ratios = [4.0]
+    ratios = [1.0, 2.0, 4.0]
+    fractions = []  # default
     # fractions = [0.05, 0.1, 0.15, 0.2]
-    fractions = []
+    thresholds = []  # default
     # thresholds = [1.05, 1.1, 1.15, 1.2]
-    thresholds = []
-    without_partitioning = True
+    # thresholds = [1.5]
+    driver_locations = ['Z-U']  # default
     # driver_locations = ['Z-U', 'U-Z', 'U-U']
-    driver_locations = ['Z-U']
+    max_loads = [8]  # default
     # max_loads = [4, 6, 8, 10, 12]
-    max_loads = [8]
+    bounds = ['both']  # default
     # bounds = ['both', 'lb', 'ub']
-    bounds = ['both']
-    #
+    # ret_prefs = ['market_share']  # default
+    ret_prefs = ['market_share', 'neighbour_driver_pref']
+
+    without_partitioning = True  # default: True
+    setup_true_cd_scenario = True  # default: False
+
     # approaches = ['MILP', 'V-NN', 'V-BB', 'IRB-NN', 'IRB-BB']
-    approaches = ['IRB-NN', 'IRB-BB']
-    # approaches = ['IRB-NN', 'IRB-BB']
+    approaches = ['IRB-BB']
     results = []
     smpl = 0
-    s = 1077
+    s = 1000
     for region, info in regions.iteritems():
         while smpl < num_samples:
             #
@@ -279,7 +345,7 @@ if __name__ == '__main__':
             experiment = Experiment(region, bounding_box, delta_meters, info[1], rnds, s, g, stores)
 
             for nc in num_customers_r:
-                if 2 * nc + len(stores) > len(g.keys()):  # Assuming max. no. drivers = no. customers / 2.0
+                if 3 * nc + len(stores) > len(g.keys()):  # Assuming max. no. drivers = no. customers
                     print "Not enough vertices!"
                     break
                 custs = experiment.set_customers(nc)
@@ -299,81 +365,104 @@ if __name__ == '__main__':
                             break
                         starts = list()
                         ends = list()
+
+                        print "PART 2: SDs started"
+                        time1 = time.clock()
                         for (start, _, _), (end, _, _) in ds:
                             g.compute_dist_paths(origins=[start], destinations=[end])
                             starts.append(start)
                             ends.append(end)
+                        time2 = time.clock() - time1
+                        print "PART 2: SDs finished", time2
 
-                        print "PART 2: SDs started"
+                        print "PART 3: SDs started"
                         time1 = time.clock()
                         g.compute_dist_paths(origins=starts, destinations=stores, compute_paths=False)
                         g.compute_dist_paths(origins=custs, destinations=ends, compute_paths=False)
                         time2 = time.clock() - time1
-                        print "PART 2: SDs finished", time2
+                        print "PART 3: SDs finished", time2
 
-                        for model in models:
-                            for appr in approaches:
-                                if appr == 'MILP':
-                                    res = experiment.run(g, 'MILP', smpl, classical=model)
-                                    results.append(res)
-                                else:
-                                    if without_partitioning:
-                                        if appr == 'V-NN':
-                                            res = experiment.run(g, 'SP-Voronoi', smpl, 'NN', classical=model)
-                                            results.append(res)
-                                        elif appr == 'V-BB':
-                                            res = experiment.run(g, 'SP-Voronoi', smpl, 'BB', classical=model)
-                                            results.append(res)
-                                        elif appr == 'IRB-NN' or appr == 'IRB-BB':
-                                            for max_load in max_loads:
-                                                if appr == 'IRB-NN':
-                                                    res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load,
-                                                                         classical=model)
-                                                else:
-                                                    res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load,
-                                                                         classical=model)
-                                                results.append(res)
-                                    for f in fractions:
-                                        if appr == 'V-NN':
-                                            res = experiment.run(g, 'SP-Voronoi', smpl, 'NN', partition='SP-fraction',
-                                                                 fraction=f, classical=model)
-                                            results.append(res)
-                                        elif appr == 'V-BB':
-                                            res = experiment.run(g, 'SP-Voronoi', smpl, 'BB', partition='SP-fraction',
-                                                                 fraction=f, classical=model)
-                                            results.append(res)
-                                        elif appr == 'IRB-NN' or appr == 'IRB-BB':
-                                            for max_load in max_loads:
-                                                if appr == 'IRB-NN':
-                                                    res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load,
-                                                                         partition='SP-fraction', fraction=f,
-                                                                         classical=model)
-                                                else:
-                                                    res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load,
-                                                                         partition='SP-fraction', fraction=f,
-                                                                         classical=model)
-                                                results.append(res)
+                        for ret_pref in ret_prefs:
+                            if ret_pref == 'neighbour_driver_pref':
+                                g.compute_dist_paths(origins=stores, destinations=ends, compute_paths=False)
 
-                                    for t in thresholds:
-                                        if appr == 'V-NN':
-                                            res = experiment.run(g, 'SP-Voronoi', smpl, 'NN', partition='SP-threshold',
-                                                                 threshold=t, classical=model)
-                                            results.append(res)
-                                        elif appr == 'V-BB':
-                                            res = experiment.run(g, 'SP-Voronoi', smpl, 'BB', partition='SP-threshold',
-                                                                 threshold=t, classical=model)
-                                            results.append(res)
-                                        elif appr == 'IRB-NN' or appr == 'IRB-BB':
-                                            for max_load in max_loads:
-                                                if appr == 'IRB-NN':
-                                                    res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load,
-                                                                         partition='SP-threshold', threshold=t,
-                                                                         classical=model)
-                                                else:
-                                                    res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load,
-                                                                         partition='SP-threshold', threshold=t,
-                                                                         classical=model)
+                            for model in models:
+                                for appr in approaches:
+                                    if appr == 'MILP':
+                                        res = experiment.run(g, 'MILP', smpl, classical=model,
+                                                             retailer_preference=ret_pref)
+                                        results.append(res)
+                                    else:
+                                        if without_partitioning:
+                                            if appr == 'V-NN':
+                                                res = experiment.run(g, 'SP-Voronoi', smpl, 'NN', classical=model,
+                                                                     retailer_preference=ret_pref)
                                                 results.append(res)
+                                            elif appr == 'V-BB':
+                                                res = experiment.run(g, 'SP-Voronoi', smpl, 'BB', classical=model,
+                                                                     retailer_preference=ret_pref)
+                                                results.append(res)
+                                            elif appr == 'IRB-NN' or appr == 'IRB-BB':
+                                                for max_load in max_loads:
+                                                    if appr == 'IRB-NN':
+                                                        res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load,
+                                                                             classical=model,
+                                                                             retailer_preference=ret_pref)
+                                                    else:
+                                                        res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load,
+                                                                             classical=model,
+                                                                             retailer_preference=ret_pref)
+                                                    results.append(res)
+                                        for f in fractions:
+                                            if appr == 'V-NN':
+                                                res = experiment.run(g, 'SP-Voronoi', smpl, 'NN',
+                                                                     partition='SP-fraction', fraction=f,
+                                                                     classical=model,
+                                                                     retailer_preference=ret_pref)
+                                                results.append(res)
+                                            elif appr == 'V-BB':
+                                                res = experiment.run(g, 'SP-Voronoi', smpl, 'BB',
+                                                                     partition='SP-fraction', fraction=f,
+                                                                     classical=model, retailer_preference=ret_pref)
+                                                results.append(res)
+                                            elif appr == 'IRB-NN' or appr == 'IRB-BB':
+                                                for max_load in max_loads:
+                                                    if appr == 'IRB-NN':
+                                                        res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load,
+                                                                             partition='SP-fraction', fraction=f,
+                                                                             classical=model,
+                                                                             retailer_preference=ret_pref)
+                                                    else:
+                                                        res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load,
+                                                                             partition='SP-fraction', fraction=f,
+                                                                             classical=model,
+                                                                             retailer_preference=ret_pref)
+                                                    results.append(res)
+
+                                        for t in thresholds:
+                                            if appr == 'V-NN':
+                                                res = experiment.run(g, 'SP-Voronoi', smpl, 'NN',
+                                                                     partition='SP-threshold', threshold=t,
+                                                                     classical=model, retailer_preference=ret_pref)
+                                                results.append(res)
+                                            elif appr == 'V-BB':
+                                                res = experiment.run(g, 'SP-Voronoi', smpl, 'BB',
+                                                                     partition='SP-threshold', threshold=t,
+                                                                     classical=model, retailer_preference=ret_pref)
+                                                results.append(res)
+                                            elif appr == 'IRB-NN' or appr == 'IRB-BB':
+                                                for max_load in max_loads:
+                                                    if appr == 'IRB-NN':
+                                                        res = experiment.run(g, 'LL-EP', smpl, 'NN', max_load,
+                                                                             partition='SP-threshold', threshold=t,
+                                                                             classical=model,
+                                                                             retailer_preference=ret_pref)
+                                                    else:
+                                                        res = experiment.run(g, 'LL-EP', smpl, 'BB', max_load,
+                                                                             partition='SP-threshold', threshold=t,
+                                                                             classical=model,
+                                                                             retailer_preference=ret_pref)
+                                                    results.append(res)
 
             #
             smpl += 1
