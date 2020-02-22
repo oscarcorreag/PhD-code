@@ -748,3 +748,55 @@ p_truecd_c <- p_truecd_c + my_theme_none()
 p_truecd_c <- p_truecd_c + labs(x = "Prop. true CD")
 p_truecd_c <- p_truecd_c + labs(y = "Service Cost (m)")
 p_truecd_c
+
+
+
+# RETAILER PREFERENCE + MODEL
+# ---------------------------
+retpref <- fread("RetailerPref.csv")
+retpref[, Assignment := as.factor(Assignment)]
+retpref[, Partition := as.factor(Partition)]
+retpref[, Routing := as.factor(Routing)]
+retpref[, Zone := as.factor(Zone)]
+retpref[, Prop.served := Served / Customers]
+retpref[, Customers := as.factor(Customers)]
+retpref[, Ratio := as.factor(Ratio)]
+retpref[, Distribution := as.factor(Distribution)]
+retpref[, Limit := as.factor(Limit)]
+retpref[, Parameter := as.factor(Parameter)]
+#retpref[Classical == TRUE, Classical := "Current"]
+#retpref[Classical == FALSE, Classical := "CD-CRSS"]
+#retpref[, Classical := as.factor(Classical)]
+retpref[, Retailer.pref := as.factor(Retailer.pref)]
+
+retpref <- retpref[Cost != -1]
+
+retpref[Assignment == 'SP-Voronoi', Assignment := 'V']
+retpref[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+retpref[Routing == 'BB', Routing := 'BnB']
+retpref[, Approach := paste(Assignment, Routing, sep = "-")]
+retpref$Approach <- factor(retpref$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+retpref[, Total.service.cost := Dedicated.cost + Service.cost]
+
+retpref_prop_f <- function(sd) {
+  baseline <- sd[Classical == TRUE, -1 & Retailer.pref == "market_share", with = FALSE]
+  other <- sd[Classical == FALSE & Retailer.pref == "neighbour_driver_pref", -1, with = FALSE]
+  if(nrow(baseline) == 1 & nrow(other) == 1){
+    other[1] / baseline[1]
+  }
+}
+
+sd_cols_retpref <- c("Classical", "Retailer.pref", "Cost", "Service.cost", "Total.service.cost")
+
+retpref_prop_dt <- retpref[(Classical == TRUE & Retailer.pref == "market_share") | (Classical == FALSE & Retailer.pref == "neighbour_driver_pref"), retpref_prop_f(.SD), by = list(Seed, Ratio), .SDcols = sd_cols_retpref]
+
+p_retpref_prop_c <- ggplot(retpref_prop_dt, aes(x = Ratio, y = Total.service.cost, fill = Approach))
+p_retpref_prop_c <- p_retpref_prop_c + geom_boxplot(fill = "#56B4E9")
+p_retpref_prop_c <- p_retpref_prop_c + scale_x_discrete()
+#p_retpref_prop_c <- p_retpref_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
+p_retpref_prop_c <- p_retpref_prop_c + geom_hline(yintercept=.65, linetype="twodash", color = "red", size = 1)
+p_retpref_prop_c <- p_retpref_prop_c + my_theme_11()
+p_retpref_prop_c <- p_retpref_prop_c + theme(axis.text = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1), axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
+p_retpref_prop_c <- p_retpref_prop_c + labs(x = "Stores")
+p_retpref_prop_c <- p_retpref_prop_c + labs(y = "Times Current Model Service Cost")
+p_retpref_prop_c
