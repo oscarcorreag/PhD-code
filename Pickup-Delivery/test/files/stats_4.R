@@ -779,8 +779,8 @@ retpref$Approach <- factor(retpref$Approach, levels = c('V-NN', 'DIST(ra)-NN', '
 retpref[, Total.service.cost := Dedicated.cost + Service.cost]
 
 retpref_prop_f <- function(sd) {
-  baseline <- sd[Classical == TRUE, -1 & Retailer.pref == "market_share", with = FALSE]
-  other <- sd[Classical == FALSE & Retailer.pref == "neighbour_driver_pref", -1, with = FALSE]
+  baseline <- sd[Classical == TRUE & Retailer.pref == "market_share", -(1:2), with = FALSE]
+  other <- sd[Classical == FALSE & Retailer.pref == "neighbour_driver_pref", -(1:2), with = FALSE]
   if(nrow(baseline) == 1 & nrow(other) == 1){
     other[1] / baseline[1]
   }
@@ -793,10 +793,36 @@ retpref_prop_dt <- retpref[(Classical == TRUE & Retailer.pref == "market_share")
 p_retpref_prop_c <- ggplot(retpref_prop_dt, aes(x = Ratio, y = Total.service.cost, fill = Approach))
 p_retpref_prop_c <- p_retpref_prop_c + geom_boxplot(fill = "#56B4E9")
 p_retpref_prop_c <- p_retpref_prop_c + scale_x_discrete()
-#p_retpref_prop_c <- p_retpref_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
-p_retpref_prop_c <- p_retpref_prop_c + geom_hline(yintercept=.65, linetype="twodash", color = "red", size = 1)
-p_retpref_prop_c <- p_retpref_prop_c + my_theme_11()
+#p_retpref_prop_c <- p_retpref_prop_c + geom_hline(yintercept=.65, linetype="twodash", color = "red", size = 1)
+p_retpref_prop_c <- p_retpref_prop_c + my_theme_none()
 p_retpref_prop_c <- p_retpref_prop_c + theme(axis.text = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1), axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
-p_retpref_prop_c <- p_retpref_prop_c + labs(x = "Stores")
+p_retpref_prop_c <- p_retpref_prop_c + labs(x = "Ratio customers / drivers")
 p_retpref_prop_c <- p_retpref_prop_c + labs(y = "Times Current Model Service Cost")
 p_retpref_prop_c
+
+
+retpref_prop_f_2 <- function(sd) {
+  baseline <- sd[Classical == TRUE, -1, with = FALSE]
+  other <- sd[Classical == FALSE, -1, with = FALSE]
+  if(nrow(baseline) == 1 & nrow(other) == 1){
+    other[1] / baseline[1]
+  }
+}
+
+sd_cols_retpref_2 <- c("Classical", "Cost", "Service.cost", "Total.service.cost")
+
+retpref_prop_dt_2 <- retpref[Retailer.pref == "market_share", retpref_prop_f_2(.SD), by = list(Seed, Ratio), .SDcols = sd_cols_retpref_2]
+
+retpref_prop_dt[, Sharing.economy := TRUE]
+retpref_prop_dt_2[, Sharing.economy := FALSE]
+shec <- rbind(retpref_prop_dt, retpref_prop_dt_2)
+
+p_shec_prop_c <- ggplot(shec, aes(x = Ratio, y = Total.service.cost, fill = Sharing.economy))
+p_shec_prop_c <- p_shec_prop_c + geom_boxplot()
+p_shec_prop_c <- p_shec_prop_c + scale_x_discrete()
+#p_shec_prop_c <- p_shec_prop_c + geom_hline(yintercept=.65, linetype="twodash", color = "red", size = 1)
+p_shec_prop_c <- p_shec_prop_c + my_theme_01()
+p_shec_prop_c <- p_shec_prop_c + theme(axis.text = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1), axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
+p_shec_prop_c <- p_shec_prop_c + labs(x = "Ratio customers / drivers")
+p_shec_prop_c <- p_shec_prop_c + labs(y = "Times Current Model Service Cost")
+p_shec_prop_c
