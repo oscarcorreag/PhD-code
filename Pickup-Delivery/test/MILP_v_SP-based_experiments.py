@@ -290,11 +290,11 @@ if __name__ == '__main__':
     # models = [False]  # True: classical CD, False: CD-CRSS
     models = [True, False]
     #
-    num_customers_r = [256]  # default
-    # num_customers_r = [16, 32, 64, 128, 256, 512, 1024, 2048]
-    # ratios = [4.0]  # default
+    # num_customers_r = [256]  # default
+    num_customers_r = [16, 32, 64, 128, 256, 512, 1024, 2048]
+    ratios = [4.0]  # default
     # ratios = [1.0, 2.0, 4.0, 8.0]
-    ratios = [1.0, 2.0, 4.0]
+    # ratios = [1.0, 2.0, 4.0]
     fractions = []  # default
     # fractions = [0.05, 0.1, 0.15, 0.2]
     thresholds = []  # default
