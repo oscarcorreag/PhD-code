@@ -283,7 +283,7 @@ if __name__ == '__main__':
         # ),
     }
     #
-    delta_meters = 10000.0
+    delta_meters = 12000.0
     delta = delta_meters / 111111
     num_samples = 50
     #
@@ -291,7 +291,8 @@ if __name__ == '__main__':
     models = [True, False]
     #
     # num_customers_r = [256]  # default
-    num_customers_r = [16, 32, 64, 128, 256, 512, 1024, 2048]
+    # num_customers_r = [16, 32, 64, 128, 256, 512, 1024, 2048]
+    num_customers_r = [2048]
     ratios = [4.0]  # default
     # ratios = [1.0, 2.0, 4.0, 8.0]
     # ratios = [1.0, 2.0, 4.0]
