@@ -41,10 +41,10 @@ my_theme_11 <- function(base_size = 11, base_family = "") {
       
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
-      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
-      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
+      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 10, vjust = 0.5),
+      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5),
       #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
       axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
       
@@ -139,10 +139,10 @@ my_theme_01 <- function(base_size = 11, base_family = "") {
       
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
-      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
-      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
+      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 10, vjust = 0.5),
+      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5),
       #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
       axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
       
@@ -237,10 +237,10 @@ my_theme_none <- function(base_size = 11, base_family = "") {
       
       #axis.title.x = axis_x_title,
       #axis.title.y = axis_y_title,
-      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 9, vjust = 0.5, face="bold"),
-      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5),
-      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 9, angle = 90, vjust = 0.5, face="bold"),
-      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5),
+      #axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 12, vjust = 0.5, face="bold"),
+      axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 10, vjust = 0.5),
+      #axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 12, angle = 90, vjust = 0.5, face="bold"),
+      axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5),
       #axis.text    = element_text(size = 8, lineheight = 0.9, colour = "grey50", hjust = 1),
       axis.text    = element_text(size = 10, lineheight = 0.9, colour = "black", hjust = 1),
       
