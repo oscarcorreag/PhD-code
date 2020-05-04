@@ -6,7 +6,7 @@ from numpy.random import RandomState
 
 
 class NetworkXGraphHelper:
-    def __init__(self, graph):
+    def __init__(self, graph, layout="spring"):
 
         self.__graph = Graph()
         self.__graph.append_graph(graph)
@@ -49,15 +49,19 @@ class NetworkXGraphHelper:
                 for adj_node, weight in graph[node].iteritems():
                     self.__graph_x.add_edge(node, adj_node, weight=weight)
 
-        # Spectral layout looks better for grid graphs.
-        self.pos = nx.spectral_layout(self.__graph_x)
-        # self.pos = nx.kamada_kawai_layout(self.__graph_x)
+        if layout == "spectral":
+            # Spectral layout looks better for grid graphs.
+            self.pos = nx.spectral_layout(self.__graph_x)
+        elif layout == "kamada_kawai":
+            self.pos = nx.kamada_kawai_layout(self.__graph_x)
+        else:
+            self.pos = nx.spring_layout(self.__graph_x)
 
     '''
     '''
 
     def draw_graph(self, special_nodes=None, special_subgraphs=None, title_1=None, title_2=None, legend=None,
-                   edge_labels=None, print_edge_labels=False, print_node_labels=False, random_colors=False, seed=None):
+                   edge_labels=None, print_edge_labels=False, node_labels=None, print_node_labels=False):
 
         # Create list of node colors and sizes.
         node_colors = [self.default_color] * self.__graph_x.number_of_nodes()
@@ -66,13 +70,14 @@ class NetworkXGraphHelper:
         # Modify the list of colors and sizes if there are special nodes. Color of a sub-list may overlap color of a
         # previous sub-list.
         if special_nodes is not None:
+            node_idx_map = {node: idx for idx, node in enumerate(self.__graph_x.nodes())}
             for ord_, (nodes, color, size) in enumerate(special_nodes):
                 for n in nodes:
                     # n MUST BE the actual index of the node within node_colors
                     color = self.element_colors[ord_ % len(self.element_colors)] if color is None else color
-                    node_colors[n] = color
+                    node_colors[node_idx_map[n]] = color
                     if size is not None:
-                        node_sizes[n] = size
+                        node_sizes[node_idx_map[n]] = size
 
         # Create list of default edge colors.
         edge_colors = [self.default_color for _ in self.__graph_x.edges()]
@@ -102,13 +107,16 @@ class NetworkXGraphHelper:
 
         if print_edge_labels:
             if edge_labels is None:
-                edge_labels = dict(
-                    [((u, v,), format(d['weight'], '.3f')) for u, v, d in self.__graph_x.edges(data=True)])
-            nx.draw_networkx_edge_labels(self.__graph_x, self.pos, edge_labels=edge_labels, font_size=7)
+                labels = dict([((u, v,), format(d['weight'], '.3f')) for u, v, d in self.__graph_x.edges(data=True)])
+            else:
+                labels = dict(edge_labels)
+            nx.draw_networkx_edge_labels(self.__graph_x, self.pos, edge_labels=labels, font_size=7)
 
         if print_node_labels:
-            # labels = {n: str(d['weight']) for n, d in self.__graph_x.nodes(data=True)}
-            labels = {n: n for n, _ in self.__graph_x.nodes(data=True)}
+            if node_labels is None:
+                labels = {n: n for n, _ in self.__graph_x.nodes(data=True)}
+            else:
+                labels = dict(node_labels)
             nx.draw_networkx_labels(self.__graph_x, self.pos, labels, font_size=10)
 
         if title_1 is not None:

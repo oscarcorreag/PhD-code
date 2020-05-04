@@ -30,7 +30,7 @@ class Graph(dict):
         v = edge[0]
         w = edge[1]
         # First of all, the edge tuple is created to check whether it already exists.
-        if self.undirected:
+        if self.is_undirected():
             # v_w = tuple(sorted([v, w]))
             v_w = self.sort_edge_nodes(edge)
         else:
@@ -65,7 +65,7 @@ class Graph(dict):
             self.get_capacities()[v_w] = capacity
         # (C) If the graph is undirected, update the adjacency list of the second node.
         # It is not needed to worry about collateral information when the graph is undirected.
-        if self.undirected:
+        if self.is_undirected():
             if self.node_weighted:
                 self[w][1][v] = weight
             else:
@@ -91,7 +91,7 @@ class Graph(dict):
                         # When w is NOT present in this graph, an edge is added.
                         if w not in self[v][1]:
                             self[v][1][w] = weight
-                            if self.undirected:
+                            if self.is_undirected():
                                 # edge = tuple(sorted([v, w]))
                                 edge = self.sort_edge_nodes((v, w))
                             else:
@@ -112,7 +112,7 @@ class Graph(dict):
                         # When w is NOT present in this graph, an edge is added.
                         if w not in self[v]:
                             self[v][w] = weight
-                            if self.undirected:
+                            if self.is_undirected():
                                 # edge = tuple(sorted([v, w]))
                                 edge = self.sort_edge_nodes((v, w))
                             else:
@@ -137,7 +137,7 @@ class Graph(dict):
                     self[v] = adj_nodes.copy()
                 # Add edges corresponding to the whole neighbourhood.
                 for w, weight in adj_nodes.iteritems():
-                    if self.undirected:
+                    if self.is_undirected():
                         # edge = tuple(sorted([v, w]))
                         edge = self.sort_edge_nodes((v, w))
                     else:
@@ -178,6 +178,37 @@ class Graph(dict):
                     self.append_edge_2(my_v_w, weight, capacity, nodes_weights=nodes_weights, nodes_info=nodes_info)
                 else:
                     self.append_edge_2(my_v_w, weight, capacity)
+
+    def bfs(self, start_node=None, limit=0):
+        visited = dict()
+        count = 0
+        if start_node is not None:
+            to_visit = [v for v in self if v != start_node]
+            to_visit.insert(0, start_node)
+        else:
+            to_visit = list(self)
+        for v in to_visit:
+            if v not in visited and count < limit:
+                count = self.__bfs_explore(v, visited, count, limit)
+        return visited
+
+    def build_weights_matrix(self):
+        size = len(self)
+        weight_matrix = np.zeros(shape=(size, size), dtype=float)
+        mapping = {vertex: i for i, vertex in enumerate(self)}
+        inv_map = {i: vertex for vertex, i in mapping.iteritems()}
+        for edge, weight in self.get_edges().iteritems():
+            index_0 = mapping[edge[0]]
+            index_1 = mapping[edge[1]]
+            weight_matrix[index_0, index_1] = weight
+            if self.is_undirected():
+                weight_matrix[index_1, index_0] = weight
+        return weight_matrix, inv_map
+
+    def build_adj_matrix(self):
+        weight_matrix, inv_map = self.build_weights_matrix()
+        adj_matrix = np.where(weight_matrix > 0, 1, 0)
+        return adj_matrix, inv_map
 
     def build_metric_closure(self, nodes, excluded_edges=None):
         metric_closure = Graph(node_weighted=self.is_node_weighted())
@@ -334,7 +365,7 @@ class Graph(dict):
         return tour
 
     def compute_missing_pairs_dist_paths(self, pairs, compute_paths=True):
-        if self.undirected:
+        if self.is_undirected():
             # pairs_dict = {tuple(sorted([o, d])): (o, d) for (o, d) in pairs}
             pairs_dict = {self.sort_edge_nodes((o, d)): (o, d) for (o, d) in pairs}
         else:
@@ -367,15 +398,15 @@ class Graph(dict):
         return total_weight
 
     def compute_total_weights(self, excluded_nodes=None, compute_node_weight=False):
-        vertices = set()
+        nodes = set()
         total_weight_edges = 0
         for (v, w), edge_weight in self.__edges.iteritems():
-            vertices.update([v, w])
+            nodes.update([v, w])
             total_weight_edges += edge_weight
-        vertices = vertices.intersection(excluded_nodes if excluded_nodes else [])
+        nodes = nodes.intersection(excluded_nodes if excluded_nodes else [])
         total_weight_nodes = 0
         if compute_node_weight and self.is_node_weighted():
-            for v in vertices:
+            for v in nodes:
                 total_weight_nodes += self[v][0]
         return total_weight_edges, total_weight_nodes
 
@@ -387,9 +418,9 @@ class Graph(dict):
             else:
                 new_graph[v] = val.copy()
         #
-        new_graph.node_weighted = self.node_weighted
-        new_graph.undirected = self.undirected
-        new_graph.capacitated = self.capacitated
+        new_graph.node_weighted = self.is_node_weighted()
+        new_graph.undirected = self.is_undirected()
+        new_graph.capacitated = self.is_capacitated()
         new_graph.__edges = self.get_edges().copy()
         new_graph.set_capacities(self.get_capacities())
         new_graph.dist = self.dist.copy()
@@ -495,7 +526,7 @@ class Graph(dict):
                 # In case v-w shortest distance has already been computed.
                 if w in distances:
                     if vw_length < distances[w]:
-                        raise (ValueError, "Explore upto: found better path to already-final vertex")
+                        raise (ValueError, "Explore upto: found better path to already-final node")
                 # In case w has not been visited before or the current computed distance is better than the one computed
                 # before.
                 elif w not in priority_dict or vw_length < priority_dict[w]:
@@ -659,7 +690,7 @@ class Graph(dict):
                 # In case v-w shortest distance has already been computed.
                 if w in distances:
                     if vw_length < distances[w]:
-                        raise (ValueError, "Get k closest destinations: found better path to already-final vertex")
+                        raise (ValueError, "Get k closest destinations: found better path to already-final node")
                 # In case w has not been visited before or the current computed distance is better than the one computed
                 # before.
                 elif w not in priority_dict or vw_length < priority_dict[w]:
@@ -673,7 +704,7 @@ class Graph(dict):
         for v in nodes:
             sum_ = 0
             for w in nodes:
-                if self.undirected:
+                if self.is_undirected():
                     # sum_ += self.dist[tuple(sorted([v, w]))]
                     sum_ += self.dist[self.sort_edge_nodes((v, w))]
                 else:
@@ -697,7 +728,7 @@ class Graph(dict):
         for n in nodes:
             dists = dict()
             for m in medoids:
-                if self.undirected:
+                if self.is_undirected():
                     # n_m = tuple(sorted([n, m]))
                     n_m = self.sort_edge_nodes((n, m))
                 else:
@@ -710,7 +741,7 @@ class Graph(dict):
 
     def get_voronoi_paths_cells(self, paths, nodes=None, nodes_by_path=None):
         """
-        Compute the Voronoi cells based on the paths as generators. If a path is one vertex, this reduces to compute the
+        Compute the Voronoi cells based on the paths as generators. If a path is one node, this reduces to compute the
         Voronoi cells with a medoid as generator.
 
         :param nodes_by_path:
@@ -839,7 +870,7 @@ class Graph(dict):
                     else:
                         weight = self[v][1][w] - np.random.ranf() / 100
                     self[v][1][w] = weight
-                    if self.undirected:
+                    if self.is_undirected():
                         self[w][1][v] = weight
                         perturbed.add((w, v))
                         # self.get_edges()[tuple(sorted([v, w]))] = weight
@@ -855,7 +886,7 @@ class Graph(dict):
                     else:
                         weight = self[v][w] - np.random.ranf() / 100
                     self[v][w] = weight
-                    if self.undirected:
+                    if self.is_undirected():
                         self[w][v] = weight
                         perturbed.add((w, v))
                         # self.get_edges()[tuple(sorted([v, w]))] = weight
@@ -901,7 +932,7 @@ class Graph(dict):
             self.__capacities.update(capacities)
 
     def set_dist_path(self, origin, destination, dist, path=None):
-        if self.undirected:
+        if self.is_undirected():
             # v_w = tuple(sorted([origin, destination]))
             v_w = self.sort_edge_nodes((origin, destination))
         else:
@@ -941,7 +972,7 @@ class Graph(dict):
         od_to_recompute = set()
         for (v, w), weight in weights.iteritems():
             # Check whether the edge is present.
-            if self.undirected:
+            if self.is_undirected():
                 # v_w = tuple(sorted([v, w]))
                 v_w = self.sort_edge_nodes((v, w))
             else:
@@ -951,11 +982,11 @@ class Graph(dict):
             # Update the adjacency lists.
             if self.node_weighted:
                 self[v][1][w] = weight
-                if self.undirected:
+                if self.is_undirected():
                     self[w][1][v] = weight
             else:
                 self[v][w] = weight
-                if self.undirected:
+                if self.is_undirected():
                     self[w][v] = weight
             # Update the edge.
             self.get_edges()[v_w] = weight
@@ -964,9 +995,32 @@ class Graph(dict):
                 od_to_recompute.update(self.__edges_in_sp[v_w])
         # Recompute shortest distances|paths.
         if len(od_to_recompute) > 0:
-            print "Distances recomputed due to edge weight update!"
+            print ("Distances recomputed due to edge weight update!")
             self.compute_dist_paths(pairs=od_to_recompute, compute_paths=len(self.paths) > 0, recompute=True,
                                     track_edges=True)
+
+    def __bfs_explore(self, start_node, visited, count, limit=0):
+        #
+        visited[start_node] = count
+        count += 1
+        if 0 < limit == count:
+            return count
+        queue = list()
+        queue.insert(0, start_node)
+        while queue:
+            v = queue.pop()
+            if not self.node_weighted:
+                adj_nodes = self[v]
+            else:
+                adj_nodes = self[v][1]
+            for w in adj_nodes:
+                if w not in visited:
+                    visited[w] = count
+                    count += 1
+                    if 0 < limit == count:
+                        return count
+                    queue.insert(0, w)
+        return count
 
     def __dijkstra(self, origin, destinations=None, consider_node_weights=False, end_mode='all', compute_paths=True,
                    track_edges=False):
@@ -1042,7 +1096,7 @@ class Graph(dict):
                                 # internal_dist = dist_paths[0][tuple(sorted([n1, n2]))]
                                 internal_dist = dist_paths[0][self.sort_edge_nodes((n1, n2))]
                             except KeyError:
-                                print "Something is wrong"
+                                print ("Something is wrong")
                     except KeyError:
                         pass
                     # When the graph is weighted, the weights of the nodes may be taken into account as part of the
@@ -1053,7 +1107,7 @@ class Graph(dict):
                 # In case v-w shortest distance has already been computed.
                 if w in distances:
                     if vw_length < distances[w]:
-                        raise (ValueError, "Dijkstra: found better path to already-final vertex")
+                        raise (ValueError, "Dijkstra: found better path to already-final node")
                 # In case w has not been visited before or the current computed distance is better than the one computed
                 # before.
                 elif w not in priority_dict or vw_length < priority_dict[w]:
@@ -1128,7 +1182,7 @@ class Graph(dict):
                 # In case v-w shortest distance has already been computed.
                 if w in distances[end]:
                     if vw_length < distances[end][w]:
-                        raise (ValueError, "Meet-in-the-middle: found better path to already-final vertex")
+                        raise (ValueError, "Meet-in-the-middle: found better path to already-final node")
                 # In case w has not been visited before or the current computed distance is better than the one computed
                 # before.
                 elif (end, w) not in priority_dict or vw_length < priority_dict[(end, w)]:
@@ -1190,7 +1244,7 @@ class Graph(dict):
         for i in range(len(path) - 1):
             x = path[i]
             y = path[i + 1]
-            if self.undirected:
+            if self.is_undirected():
                 # x_y = tuple(sorted([x, y]))
                 x_y = self.sort_edge_nodes((x, y))
             else:
