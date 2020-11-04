@@ -28,8 +28,8 @@ my_theme_11 <- function(base_size = 11, base_family = "") {
       legend.background    = element_rect(color = "grey"),
       legend.justification = c(1, 1),
       legend.position      = c(1, 1),
-      #legend.title         = element_text(size = 9, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
-      legend.title         = element_blank(),
+      legend.title         = element_text(size = 11, lineheight = 0.9, colour = "black", hjust = 1, face="bold"),
+      #legend.title         = element_blank(),
       legend.text          = element_text(size = 11, lineheight = 0.9, colour = "black", hjust = 1),
       
       #legend.text           = element_text(size = 8, lineheight = 0.9, hjust = 1),
@@ -301,32 +301,32 @@ lim[, Parameter := as.factor(Parameter)]
 
 lim <- lim[Dedicated.cost == 0 & Cost != -1 & Limit %in% c(4, 6, 8, 10, 12)]
 
-lim[Assignment == 'SP-Voronoi', Assignment := 'V']
-lim[Assignment == 'LL-EP', Assignment := 'DIST[ra]']
+lim[Assignment == 'SP-Voronoi', Assignment := 'NN']
+lim[Assignment == 'LL-EP', Assignment := 'IRNN']
 lim[Routing == 'BB', Routing := 'BnB']
 lim[, Approach := paste(Assignment, Routing, sep = "-")]
-lim$Approach <- factor(lim$Approach, levels = c('V-NN', 'DIST[ra]-NN', 'V-BnB', 'DIST[ra]-BnB'))
+lim$Approach <- factor(lim$Approach, levels = c('NN-NN', 'IRNN-NN', 'NN-BnB', 'IRNN-BnB'))
 lim[, Total.service.cost := Dedicated.cost + Service.cost]
 
 # lab1 <- c(expression(dist[ra]-NN), expression(dist[ra]-BnB))
-lab1 <- c(expression(dist[ra]-BnB))
+# lab1 <- c(expression(dist[IR]-BnB))
 
 # p_lim_c <- ggplot(lim, aes(x = Limit, y = Total.service.cost, fill = Approach))
-p_lim_c <- ggplot(lim[Approach == 'DIST[ra]-BnB'], aes(x = Limit, y = Total.service.cost, fill = Approach))
+p_lim_c <- ggplot(lim[Approach == 'IRNN-BnB'], aes(x = Limit, y = Total.service.cost, fill = Approach))
 p_lim_c <- p_lim_c + geom_boxplot(color = "grey", alpha = 1/10)
 p_lim_c <- p_lim_c + geom_smooth(method = "loess", se=FALSE, aes(group = Approach, color = Approach))
 p_lim_c <- p_lim_c + scale_x_discrete()
 p_lim_c <- p_lim_c + my_theme_11()
 # p_lim_c <- p_lim_c + scale_fill_manual(values = c("#D55E00", "#56B4E9"), labels = lab1)
 # p_lim_c <- p_lim_c + scale_color_manual(values = c("#D55E00", "#56B4E9"), labels= lab1)
-p_lim_c <- p_lim_c + scale_fill_manual(values = c("#56B4E9"), labels = lab1)
-p_lim_c <- p_lim_c + scale_color_manual(values = c("#56B4E9"), labels= lab1)
+p_lim_c <- p_lim_c + scale_fill_manual(values = c("#56B4E9"))
+p_lim_c <- p_lim_c + scale_color_manual(values = c("#56B4E9"))
 p_lim_c <- p_lim_c + labs(x = "Max. Degree m")
 p_lim_c <- p_lim_c + labs(y = "Service Cost (m)")
 p_lim_c
 
 # p_lim_t <- ggplot(lim, aes(x = Limit, y = Elapsed.time, fill = Approach))
-p_lim_t <- ggplot(lim[Approach == 'DIST[ra]-BnB'], aes(x = Limit, y = Elapsed.time, fill = Approach))
+p_lim_t <- ggplot(lim[Approach == 'IRNN-BnB'], aes(x = Limit, y = Elapsed.time, fill = Approach))
 p_lim_t <- p_lim_t + geom_boxplot(color = "grey", alpha = 1/10) 
 p_lim_t <- p_lim_t + geom_smooth(method = "loess", se=FALSE, aes(group = Approach, color = Approach))
 p_lim_t <- p_lim_t + scale_x_discrete()
@@ -334,8 +334,8 @@ p_lim_t <- p_lim_t + scale_y_log10()
 p_lim_t <- p_lim_t + my_theme_none()
 # p_lim_t <- p_lim_t + scale_fill_manual(values = c("#D55E00", "#56B4E9"), labels = lab1)
 # p_lim_t <- p_lim_t + scale_color_manual(values = c("#D55E00", "#56B4E9"), labels = lab1)
-p_lim_t <- p_lim_t + scale_fill_manual(values = c("#56B4E9"), labels = lab1)
-p_lim_t <- p_lim_t + scale_color_manual(values = c("#56B4E9"), labels = lab1)
+p_lim_t <- p_lim_t + scale_fill_manual(values = c("#56B4E9"))
+p_lim_t <- p_lim_t + scale_color_manual(values = c("#56B4E9"))
 p_lim_t <- p_lim_t + labs(x = "Max. Degree m")
 p_lim_t <- p_lim_t + labs(y = "Processing Time (s)")
 p_lim_t
@@ -358,11 +358,11 @@ ird[, Parameter := as.factor(Parameter)]
 
 ird <- ird[Dedicated.cost == 0 & Cost != -1]
 
-ird[Assignment == 'SP-Voronoi', Assignment := 'V']
-ird[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+ird[Assignment == 'SP-Voronoi', Assignment := 'NN']
+ird[Assignment == 'LL-EP', Assignment := 'IRNN']
 ird[Routing == 'BB', Routing := 'BnB']
 ird[, Approach := paste(Assignment, Routing, sep = "-")]
-ird$Approach <- factor(ird$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+ird$Approach <- factor(ird$Approach, levels = c('NN-NN', 'IRNN-NN', 'NN-BnB', 'IRNN-BnB'))
 ird[, Total.service.cost := Dedicated.cost + Service.cost]
 
 #p_ird_c <- ggplot(ird, aes(x = Customers, y = Total.service.cost, fill = Approach)) 
@@ -375,8 +375,8 @@ ird[, Total.service.cost := Dedicated.cost + Service.cost]
 #p_ird_c
 
 ird_prop_f <- function(sd) {
-  baseline <- sd[Assignment == "V", -1, with = FALSE]
-  other <- sd[Assignment == "DIST(ra)", -1, with = FALSE]
+  baseline <- sd[Assignment == "NN", -1, with = FALSE]
+  other <- sd[Assignment == "IRNN", -1, with = FALSE]
   if(nrow(baseline) == 1 & nrow(other) == 1){
     other[1] / baseline[1]
   }
@@ -393,7 +393,8 @@ p_ird_prop_c <- p_ird_prop_c + scale_y_continuous(breaks = c(.3, .5, .6, .9, 1.2
 p_ird_prop_c <- p_ird_prop_c + geom_hline(yintercept=0.5, linetype="twodash", color = "red", size = 1)
 p_ird_prop_c <- p_ird_prop_c + my_theme_11()
 p_ird_prop_c <- p_ird_prop_c + scale_fill_manual(values = c("cyan", "green"))
-p_ird_prop_c <- p_ird_prop_c + labs(y = expression(atop("Times Path-Generator", paste("Voronoi-based Service Cost"))))
+# p_ird_prop_c <- p_ird_prop_c + labs(y = expression(atop("Prop. of Path-Generator", paste("Voronoi-based Service Cost"))))
+p_ird_prop_c <- p_ird_prop_c + labs(y = "Prop. of NN-based assignment Service Cost")
 p_ird_prop_c
 
 
@@ -432,11 +433,11 @@ ird_r[, Parameter := as.factor(Parameter)]
 
 ird_r <- ird_r[Cost != -1]
 
-ird_r[Assignment == 'SP-Voronoi', Assignment := 'V']
-ird_r[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+ird_r[Assignment == 'SP-Voronoi', Assignment := 'NN']
+ird_r[Assignment == 'LL-EP', Assignment := 'IRNN']
 ird_r[Routing == 'BB', Routing := 'BnB']
 ird_r[, Approach := paste(Assignment, Routing, sep = "-")]
-ird_r$Approach <- factor(ird_r$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+ird_r$Approach <- factor(ird_r$Approach, levels = c('NN-NN', 'IRNN-NN', 'NN-BnB', 'IRNN-BnB'))
 ird_r[, Total.service.cost := Dedicated.cost + Service.cost]
 
 #p_ird_r_c <- ggplot(ird_r, aes(x = Ratio, y = Total.service.cost, fill = Approach)) 
@@ -451,16 +452,18 @@ ird_r[, Total.service.cost := Dedicated.cost + Service.cost]
 #multiplot(p_ird_c, p_ird_r_c, cols = 1)
 
 
-lab1 <- c(expression(V-NN), expression(dist[ra]-NN), expression(V-BnB), expression(dist[ra]-BnB))
+# lab1 <- c(expression(V-NN), expression(dist[ra]-NN), expression(V-BnB), expression(dist[ra]-BnB))
 
 p_ird_r_d <- ggplot(ird_r, aes(x = Ratio, y = Avg.detour, fill = Approach)) 
 p_ird_r_d <- p_ird_r_d + geom_boxplot() 
 p_ird_r_d <- p_ird_r_d + scale_x_discrete()
 p_ird_r_d <- p_ird_r_d + my_theme_01()
 p_ird_r_d <- p_ird_r_d + theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
-p_ird_r_d <- p_ird_r_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"), labels = lab1)
+# p_ird_r_d <- p_ird_r_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"), labels = lab1)
+p_ird_r_d <- p_ird_r_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_ird_r_d <- p_ird_r_d + labs(x = "Ratio customers / drivers")
-p_ird_r_d <- p_ird_r_d + labs(y = "Avg. Detour (times original distance)")
+# p_ird_r_d <- p_ird_r_d + labs(y = paste("Avg. Detour (times", expression(k^+k^-), "original distance)"))
+p_ird_r_d <- p_ird_r_d + labs(y = bquote("Avg. Detour (times " ~ k^"+" ~ k^"-" ~ " route's distance)"))
 p_ird_r_d
 
 
@@ -481,11 +484,11 @@ milp[, Parameter := as.factor(Parameter)]
 milp <- milp[Customers %in% c(8, 12, 16)]
 milp <- milp[Cost != -1]
 
-milp[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+milp[Assignment == 'LL-EP', Assignment := 'IRNN']
 milp[Routing == 'BB', Routing := 'BnB']
-milp[Assignment == 'DIST(ra)', Approach := paste(Assignment, Routing, sep = "-")]
+milp[Assignment == 'IRNN', Approach := paste(Assignment, Routing, sep = "-")]
 milp[Assignment == 'MILP', Approach := Assignment]
-milp$Approach <- factor(milp$Approach, levels = c('MILP', 'DIST(ra)-BnB'))
+milp$Approach <- factor(milp$Approach, levels = c('MILP', 'IRNN-BnB'))
 milp[, Total.service.cost := Dedicated.cost + Service.cost]
 
 milp_prop_f <- function(sd) {
@@ -506,7 +509,7 @@ p_milp_c <- p_milp_c + scale_x_discrete()
 p_milp_c <- p_milp_c + scale_y_continuous(breaks = c(1.0, 1.25, 1.5, 1.75, 2.0))
 p_milp_c <- p_milp_c + geom_hline(yintercept=1.5, linetype="twodash", color = "red", size = 1)
 p_milp_c <- p_milp_c + my_theme_none()
-p_milp_c <- p_milp_c + labs(y = "Times MILP Service Cost")
+p_milp_c <- p_milp_c + labs(y = "Prop. of MILP Service Cost")
 p_milp_c
 
 p_milp_t <- ggplot(milp_prop_dt, aes(x = Customers, y = Elapsed.time)) 
@@ -515,7 +518,7 @@ p_milp_t <- p_milp_t + scale_x_discrete()
 p_milp_t <- p_milp_t + scale_y_log10(breaks = c(1, 1e-1, 1e-2, 1e-3))
 p_milp_t <- p_milp_t + geom_hline(yintercept=1e-3, linetype="twodash", color = "red", size = 1)
 p_milp_t <- p_milp_t + my_theme_none()
-p_milp_t <- p_milp_t + labs(y = "Times MILP Processing Time")
+p_milp_t <- p_milp_t + labs(y = "Prop. of MILP Processing Time")
 p_milp_t
 
 multiplot(p_milp_c, p_milp_t, cols = 2)
@@ -537,11 +540,11 @@ spar[, Parameter := as.factor(Parameter)]
 
 spar <- spar[Cost != -1]
 
-spar[Assignment == 'SP-Voronoi', Assignment := 'V']
-spar[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+spar[Assignment == 'SP-Voronoi', Assignment := 'NN']
+spar[Assignment == 'LL-EP', Assignment := 'IRNN']
 spar[Routing == 'BB', Routing := 'BnB']
 spar[, Approach := paste(Assignment, Routing, sep = "-")]
-spar$Approach <- factor(spar$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+spar$Approach <- factor(spar$Approach, levels = c('NN-NN', 'IRNN-NN', 'NN-BnB', 'IRNN-BnB'))
 spar[, Total.service.cost := Dedicated.cost + Service.cost]
 
 p_spar_f_c <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Total.service.cost, fill = Approach))
@@ -570,7 +573,7 @@ p_spar_f_d <- p_spar_f_d + my_theme_none()
 p_spar_f_d <- p_spar_f_d + theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
 p_spar_f_d <- p_spar_f_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_f_d <- p_spar_f_d + labs(x = "Fraction f")
-p_spar_f_d <- p_spar_f_d + labs(y = "Avg. Detour (times original distance)")
+p_spar_f_d <- p_spar_f_d + labs(y = bquote("Avg. Detour (times " ~ k^"+" ~ k^"-" ~ " route's distance)"))
 p_spar_f_d
 
 p_spar_f_sc <- ggplot(spar[Partition == 'SP-fraction'], aes(x = Parameter, y = Prop.served, fill = Approach))
@@ -579,7 +582,7 @@ p_spar_f_sc <- p_spar_f_sc + scale_x_discrete()
 p_spar_f_sc <- p_spar_f_sc + my_theme_none()
 p_spar_f_sc <- p_spar_f_sc + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_f_sc <- p_spar_f_sc + labs(x = "Fraction f")
-p_spar_f_sc <- p_spar_f_sc + labs(y = "Prop. Customers Served")
+p_spar_f_sc <- p_spar_f_sc + labs(y = "Prop. Served Customers")
 p_spar_f_sc
 
 p_spar_c <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Total.service.cost, fill = Approach))
@@ -608,7 +611,7 @@ p_spar_d <- p_spar_d + my_theme_none()
 p_spar_d <- p_spar_d + theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
 p_spar_d <- p_spar_d + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_d <- p_spar_d + labs(x = "Threshold t")
-p_spar_d <- p_spar_d + labs(y = "Avg. Detour (times original distance)")
+p_spar_d <- p_spar_d + labs(y = bquote("Avg. Detour (times " ~ k^"+" ~ k^"-" ~ " route's distance)"))
 p_spar_d
 
 p_spar_sc <- ggplot(spar[Partition == 'SP-threshold'], aes(x = Parameter, y = Prop.served, fill = Approach))
@@ -617,7 +620,7 @@ p_spar_sc <- p_spar_sc + scale_x_discrete()
 p_spar_sc <- p_spar_sc + my_theme_none()
 p_spar_sc <- p_spar_sc + scale_fill_manual(values = c("#F0E442", "#D55E00", "#009E73", "#56B4E9"))
 p_spar_sc <- p_spar_sc + labs(x = "Threshold t")
-p_spar_sc <- p_spar_sc + labs(y = "Prop. Customers Served")
+p_spar_sc <- p_spar_sc + labs(y = "Prop. Served Customers")
 p_spar_sc
 
 #multiplot(p_spar_f_c, p_spar_f_t, p_spar_f_d, p_spar_f_sc, p_spar_c, p_spar_t, p_spar_d, p_spar_sc, cols = 2)
@@ -643,11 +646,11 @@ cdcrss[Classical == 0, Classical := "CD-CRSS"]
 
 cdcrss <- cdcrss[Cost != -1]
 
-cdcrss[Assignment == 'SP-Voronoi', Assignment := 'V']
-cdcrss[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+cdcrss[Assignment == 'SP-Voronoi', Assignment := 'NN']
+cdcrss[Assignment == 'LL-EP', Assignment := 'IRNN']
 cdcrss[Routing == 'BB', Routing := 'BnB']
 cdcrss[, Approach := paste(Assignment, Routing, sep = "-")]
-cdcrss$Approach <- factor(cdcrss$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+cdcrss$Approach <- factor(cdcrss$Approach, levels = c('NN-NN', 'IRNN-NN', 'NN-BnB', 'IRNN-BnB'))
 cdcrss[, Total.service.cost := Dedicated.cost + Service.cost]
 
 cdcrss_prop_f <- function(sd) {
@@ -662,7 +665,7 @@ sd_cols_cdcrss <- c("Classical", "Cost", "Service.cost", "Total.service.cost")
 
 cdcrss_prop_dt <- cdcrss[, cdcrss_prop_f(.SD), by = list(Seed, Customers, Approach, Stores), .SDcols = sd_cols_cdcrss]
 
-p_cdcrss_prop_c <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB"], aes(x = as.factor(Stores), y = Total.service.cost, fill = Approach)) 
+p_cdcrss_prop_c <- ggplot(cdcrss_prop_dt[Approach == "IRNN-BnB"], aes(x = as.factor(Stores), y = Total.service.cost, fill = Approach)) 
 p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_boxplot(fill = "#56B4E9") 
 p_cdcrss_prop_c <- p_cdcrss_prop_c + scale_x_discrete()
 #p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_hline(yintercept=1.0, linetype="twodash", color = "red", size = 1)
@@ -670,35 +673,35 @@ p_cdcrss_prop_c <- p_cdcrss_prop_c + geom_hline(yintercept=.65, linetype="twodas
 p_cdcrss_prop_c <- p_cdcrss_prop_c + my_theme_11()
 p_cdcrss_prop_c <- p_cdcrss_prop_c + theme(axis.text = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1), axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
 p_cdcrss_prop_c <- p_cdcrss_prop_c + labs(x = "Stores")
-p_cdcrss_prop_c <- p_cdcrss_prop_c + labs(y = "Times Current Model Service Cost")
+p_cdcrss_prop_c <- p_cdcrss_prop_c + labs(y = "Prop. of Current Model's Service Cost")
 p_cdcrss_prop_c
 
-p_cdcrss_prop_c_2 <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 5], aes(x = Customers, y = Total.service.cost, fill = Approach)) 
+p_cdcrss_prop_c_2 <- ggplot(cdcrss_prop_dt[Approach == "IRNN-BnB" & Stores >= 5], aes(x = Customers, y = Total.service.cost, fill = Approach)) 
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + geom_boxplot(fill = "#56B4E9") 
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + scale_x_discrete()
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + geom_hline(yintercept=.80, linetype="twodash", color = "red", size = 1)
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + my_theme_11()
 p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + theme(axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
-p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + labs(y = "Times Current Model Service Cost")
+p_cdcrss_prop_c_2 <- p_cdcrss_prop_c_2 + labs(y = "Prop. of Current Model's Service Cost")
 p_cdcrss_prop_c_2
 
-summary(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 5, Total.service.cost])
+summary(cdcrss_prop_dt[Approach == "IRNN-BnB" & Stores >= 5, Total.service.cost])
 
-p_cdcrss_prop_c_3 <- ggplot(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 5], aes(x = Total.service.cost)) 
+p_cdcrss_prop_c_3 <- ggplot(cdcrss_prop_dt[Approach == "IRNN-BnB" & Stores >= 5], aes(x = Total.service.cost)) 
 p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + geom_histogram(binwidth = .1, alpha = 0.2, col = I("black"))
 #p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + scale_x_discrete()
 p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + geom_vline(aes(xintercept=mean(Total.service.cost)), linetype="twodash", color = "red", size = 1)
 p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + geom_text(aes(label=round(mean(Total.service.cost),2),y=0,x=mean(Total.service.cost)), vjust=-1,col='red',size=5)
 p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + my_theme_11()
 p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + theme(axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0), size = 10, vjust = 0.5))
-p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + labs(x = "Times Current Model Service Cost")
+p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + labs(x = "Prop. of Current Model's Service Cost")
 p_cdcrss_prop_c_3 <- p_cdcrss_prop_c_3 + labs(y = "Frequency")
 p_cdcrss_prop_c_3
 
 
 #hist(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 5, Total.service.cost])
 
-p_cdcrss_t <- ggplot(cdcrss[Approach == "DIST(ra)-BnB"], aes(x = Customers, y = Elapsed.time, fill = Classical)) 
+p_cdcrss_t <- ggplot(cdcrss[Approach == "IRNN-BnB"], aes(x = Customers, y = Elapsed.time, fill = Classical)) 
 p_cdcrss_t <- p_cdcrss_t + geom_boxplot() 
 p_cdcrss_t <- p_cdcrss_t + scale_x_discrete()
 #p_cdcrss_t <- p_cdcrss_t + scale_y_log10()
@@ -712,7 +715,7 @@ p_cdcrss_t
 #multiplot(p_cdcrss_prop_c, p_cdcrss_prop_c_3, p_cdcrss_prop_c_2, p_cdcrss_t, cols = 2)
 multiplot(p_cdcrss_prop_c_2, p_cdcrss_t, cols = 2)
 
-summary(cdcrss[Approach == "DIST(ra)-BnB" & Customers == 256, Elapsed.time])
+summary(cdcrss[Approach == "IRNN-BnB" & Customers == 256, Elapsed.time])
 
 
 
@@ -733,11 +736,11 @@ truecd[, Prop.true.cd := as.factor(Prop.true.cd)]
 
 truecd <- truecd[Cost != -1]
 
-truecd[Assignment == 'SP-Voronoi', Assignment := 'V']
-truecd[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+truecd[Assignment == 'SP-Voronoi', Assignment := 'NN']
+truecd[Assignment == 'LL-EP', Assignment := 'IRNN']
 truecd[Routing == 'BB', Routing := 'BnB']
 truecd[, Approach := paste(Assignment, Routing, sep = "-")]
-truecd$Approach <- factor(truecd$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+truecd$Approach <- factor(truecd$Approach, levels = c('NN-NN', 'IRNN-NN', 'NN-BnB', 'IRNN-BnB'))
 truecd[, Total.service.cost := Dedicated.cost + Service.cost]
 
 p_truecd_f_c <- ggplot(truecd[Partition == 'SP-fraction'], aes(x = Prop.true.cd, y = Total.service.cost))
@@ -775,11 +778,11 @@ retpref_r[, Retailer.pref := as.factor(Retailer.pref)]
 
 retpref_r <- retpref_r[Cost != -1]
 
-retpref_r[Assignment == 'SP-Voronoi', Assignment := 'V']
-retpref_r[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+retpref_r[Assignment == 'SP-Voronoi', Assignment := 'NN']
+retpref_r[Assignment == 'LL-EP', Assignment := 'IRNN']
 retpref_r[Routing == 'BB', Routing := 'BnB']
 retpref_r[, Approach := paste(Assignment, Routing, sep = "-")]
-retpref_r$Approach <- factor(retpref_r$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+retpref_r$Approach <- factor(retpref_r$Approach, levels = c('NN-NN', 'IRNN-NN', 'NN-BnB', 'IRNN-BnB'))
 retpref_r[, Total.service.cost := Dedicated.cost + Service.cost]
 
 retpref_prop_f <- function(sd) {
@@ -801,7 +804,7 @@ p_retpref_r_prop_c <- p_retpref_r_prop_c + scale_x_discrete()
 p_retpref_r_prop_c <- p_retpref_r_prop_c + my_theme_none()
 p_retpref_r_prop_c <- p_retpref_r_prop_c + theme(axis.text = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1), axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
 p_retpref_r_prop_c <- p_retpref_r_prop_c + labs(x = "Ratio customers / drivers")
-p_retpref_r_prop_c <- p_retpref_r_prop_c + labs(y = "Times Current Model Service Cost")
+p_retpref_r_prop_c <- p_retpref_r_prop_c + labs(y = "Prop. of Current Model's Service Cost")
 p_retpref_r_prop_c
 
 
@@ -828,7 +831,7 @@ p_shec_prop_c <- p_shec_prop_c + scale_x_discrete()
 p_shec_prop_c <- p_shec_prop_c + my_theme_01()
 p_shec_prop_c <- p_shec_prop_c + theme(axis.text = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1), axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
 p_shec_prop_c <- p_shec_prop_c + labs(x = "Ratio customers / drivers")
-p_shec_prop_c <- p_shec_prop_c + labs(y = "Times Current Model Service Cost")
+p_shec_prop_c <- p_shec_prop_c + labs(y = "Prop. of Current Model's Service Cost")
 p_shec_prop_c
 
 
@@ -849,11 +852,11 @@ retpref_cust[, Retailer.pref := as.factor(Retailer.pref)]
 
 retpref_cust <- retpref_cust[Cost != -1]
 
-retpref_cust[Assignment == 'SP-Voronoi', Assignment := 'V']
-retpref_cust[Assignment == 'LL-EP', Assignment := 'DIST(ra)']
+retpref_cust[Assignment == 'SP-Voronoi', Assignment := 'NN']
+retpref_cust[Assignment == 'LL-EP', Assignment := 'IRNN']
 retpref_cust[Routing == 'BB', Routing := 'BnB']
 retpref_cust[, Approach := paste(Assignment, Routing, sep = "-")]
-retpref_cust$Approach <- factor(retpref_cust$Approach, levels = c('V-NN', 'DIST(ra)-NN', 'V-BnB', 'DIST(ra)-BnB'))
+retpref_cust$Approach <- factor(retpref_cust$Approach, levels = c('NN-NN', 'IRNN-NN', 'NN-BnB', 'IRNN-BnB'))
 retpref_cust[, Total.service.cost := Dedicated.cost + Service.cost]
 
 retpref_cust_prop_dt <- retpref_cust[(Classical == TRUE & Retailer.pref == "market_share") | (Classical == FALSE & Retailer.pref == "neighbour_driver_pref"), retpref_prop_f(.SD), by = list(Seed, Customers), .SDcols = sd_cols_retpref]
@@ -864,8 +867,8 @@ p_retpref_cust_prop_c <- p_retpref_cust_prop_c + scale_x_discrete()
 p_retpref_cust_prop_c <- p_retpref_cust_prop_c + geom_hline(yintercept=.5, linetype="twodash", color = "red", size = 1)
 p_retpref_cust_prop_c <- p_retpref_cust_prop_c + my_theme_none()
 p_retpref_cust_prop_c <- p_retpref_cust_prop_c + theme(axis.text = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1), axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
-p_retpref_cust_prop_c <- p_retpref_cust_prop_c + labs(x = "Ratio customers / drivers")
-p_retpref_cust_prop_c <- p_retpref_cust_prop_c + labs(y = "Times Current Model Service Cost")
+p_retpref_cust_prop_c <- p_retpref_cust_prop_c + labs(x = "Customers")
+p_retpref_cust_prop_c <- p_retpref_cust_prop_c + labs(y = "Prop. of Current Model's Service Cost")
 p_retpref_cust_prop_c
 
 
@@ -874,7 +877,7 @@ retpref_cust_prop_dt[, Stores := 0]
 retpref_cust_prop_dt[, Approach_2 := "Amazon model"]
 cdcrss_prop_dt[, Approach_2 := "Retailer specific"]
 
-shec_2 <- rbind(cdcrss_prop_dt[Approach == "DIST(ra)-BnB" & Stores >= 5], retpref_cust_prop_dt)
+shec_2 <- rbind(cdcrss_prop_dt[Approach == "IRNN-BnB" & Stores >= 5], retpref_cust_prop_dt)
 
 p_retpref_cust_prop_c <- ggplot(shec_2, aes(x = Customers, y = Total.service.cost, fill = Approach_2))
 p_retpref_cust_prop_c <- p_retpref_cust_prop_c + geom_boxplot()
@@ -884,7 +887,7 @@ p_retpref_cust_prop_c <- p_retpref_cust_prop_c + geom_hline(yintercept=.8, linet
 p_retpref_cust_prop_c <- p_retpref_cust_prop_c + geom_hline(yintercept=.5, linetype="twodash", color = "red", size = 1)
 p_retpref_cust_prop_c <- p_retpref_cust_prop_c + my_theme_11()
 p_retpref_cust_prop_c <- p_retpref_cust_prop_c + theme(axis.text = element_text(size = 8, lineheight = 0.9, colour = "black", hjust = 1), axis.title.y = element_text(margin = margin(t = 0, r = 5, b = 0, l = 0), size = 10, angle = 90, vjust = 0.5))
-p_retpref_cust_prop_c <- p_retpref_cust_prop_c + labs(x = "Ratio customers / drivers")
-p_retpref_cust_prop_c <- p_retpref_cust_prop_c + labs(y = "Times Current Model Service Cost")
+p_retpref_cust_prop_c <- p_retpref_cust_prop_c + labs(x = "Customers")
+p_retpref_cust_prop_c <- p_retpref_cust_prop_c + labs(y = "Prop. of Current Model's Service Cost")
 p_retpref_cust_prop_c
 
